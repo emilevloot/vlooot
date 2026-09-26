@@ -1,0 +1,20 @@
+{
+  "boards": [
+    {
+      "A": ["field", "house", "battlefield", "battlefield", "field", "mountain", "forest", "castle", "battlefield", "forest", "field", "watchtower", "battlefield", "forest", "mountain", "forest", "forest", "battlefield", "watchtower", "field", "field", "house", "battlefield", "forest", "mountain"],
+      "B": ["field", "field", "watchtower", "forest", "house", "forest", "mountain", "field", "forest", "forest", "battlefield", "battlefield", "watchtower", "field", "forest", "castle", "mountain", "mountain", "battlefield", "battlefield", "house", "battlefield", "field", "battlefield", "forest"]
+    },
+    {
+      "A": ["battlefield", "field", "field", "forest", "mountain", "mountain", "forest", "battlefield", "watchtower", "forest", "forest", "watchtower", "battlefield", "forest", "battlefield", "battlefield", "field", "field", "castle", "house", "house", "battlefield", "forest", "field", "mountain"],
+      "B": ["forest", "house", "battlefield", "house", "forest", "mountain", "castle", "field", "mountain", "battlefield", "battlefield", "forest", "mountain", "forest", "field", "watchtower", "battlefield", "forest", "watchtower", "battlefield", "field", "field", "field", "forest", "battlefield"]
+    },
+    {
+      "A": ["battlefield", "forest", "field", "house", "field", "forest", "battlefield", "mountain", "watchtower", "field", "mountain", "watchtower", "forest", "battlefield", "battlefield", "field", "mountain", "battlefield", "castle", "battlefield", "forest", "house", "forest", "forest", "field"],
+      "B": ["forest", "house", "watchtower", "forest", "mountain", "castle", "field", "forest", "watchtower", "field", "battlefield", "battlefield", "mountain", "forest", "battlefield", "battlefield", "field", "forest", "field", "mountain", "house", "battlefield", "field", "battlefield", "forest"]
+    },
+    {
+      "A": ["watchtower", "mountain", "field", "battlefield", "forest", "field", "forest", "watchtower", "forest", "forest", "mountain", "house", "battlefield", "field", "castle", "battlefield", "forest", "battlefield", "mountain", "field", "battlefield", "field", "house", "battlefield", "forest"],
+      "B": ["mountain", "house", "battlefield", "mountain", "forest", "castle", "battlefield", "battlefield", "watchtower", "forest", "battlefield", "field", "field", "forest", "battlefield", "watchtower", "battlefield", "forest", "mountain", "field", "forest", "forest", "field", "field", "house"]
+    }
+  ]
+}

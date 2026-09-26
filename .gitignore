@@ -1,0 +1,13 @@
+# Training data: large, and made again with gen_data.py / curriculum.py
+data/
+
+# Trained networks: only the best one is kept in Git
+models/*
+!models/c2_full_r5.pt
+!models/c2_full_r5.npz
+
+# Python and Numba caches
+__pycache__/
+*.pyc
+*.nbi
+*.nbc

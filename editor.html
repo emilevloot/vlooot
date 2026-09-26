@@ -1,0 +1,442 @@
+<title>Looot Board Editor</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Alegreya+Sans:wght@400;500;700;800&display=swap">
+<style>
+  /* Same fjord-at-dusk look as the game (index.html). */
+  :root {
+    color-scheme: dark;
+    --night: #141d25;
+    --slate: #1d2934;
+    --slate-2: #253441;
+    --line: #34485a;
+    --snow: #eaf0ea;
+    --mist: #9fb0b8;
+    --rune: #d0603f;
+    --gold: #e6ad2e;
+    --sea: #2b5a7e;
+    --good: #7cc47a;
+    --bad: #ff9f86;
+    --display: "Pirata One", "Luminari", Georgia, serif;
+    --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    background: radial-gradient(1200px 600px at 70% -10%, #23384a 0%, var(--night) 60%) fixed, var(--night);
+    color: var(--snow);
+    font: 16px/1.4 var(--body);
+    padding-inline: 16px;
+  }
+  button { font: inherit; color: inherit; }
+  .app { max-width: 1360px; margin: 0 auto; padding-block: 14px 40px; display: grid; gap: 14px; }
+  .app > * { min-width: 0; }
+  header.top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  header.top h1 { font: 44px/1 var(--display); margin: 0; letter-spacing: 1px; }
+  header.top h1 span { color: var(--rune); }
+  header.top h1 small { font: 28px var(--display); color: var(--mist); margin-left: 6px; }
+  .grow { flex: 1; }
+  .btn {
+    background: var(--slate-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 14px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--mist); }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn.primary { background: var(--rune); border-color: var(--rune); color: #fff; }
+  .btn.primary:hover:not(:disabled) { background: #df7050; }
+  .btn:focus-visible, .brush:focus-visible, .seg button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  .panel { background: var(--slate); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+  .label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--mist); font-weight: 700; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .hint { color: var(--mist); font-size: 14px; }
+
+  .brushes { display: flex; gap: 6px; flex-wrap: wrap; }
+  .brush {
+    display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; cursor: pointer;
+    background: var(--night); border: 2px solid var(--line); border-radius: 999px; font-size: 14px; font-weight: 600;
+  }
+  .brush svg { width: 30px; height: 30px; }
+  .brush kbd { font: 700 11px var(--body); color: var(--mist); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+  .brush.on { border-color: var(--gold); background: #e6ad2e1f; }
+
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { background: var(--night); border: 0; padding: 6px 12px; cursor: pointer; font-size: 14px; }
+  .seg button.on { background: var(--slate-2); color: var(--gold); font-weight: 700; }
+
+  .boardwrap { overflow-x: auto; touch-action: none; }
+  svg { display: block; }
+  #land { width: 100%; height: auto; user-select: none; }
+  .hex { stroke: #0e151b; stroke-width: 1.5; }
+  .cell { cursor: crosshair; }
+  .cell:hover .hex { filter: brightness(1.2); }
+  .unused { opacity: .35; }
+  .bnum circle { fill: #141d25dd; stroke: var(--snow); stroke-width: 2; }
+  .bnum text { font: 18px var(--display); fill: var(--snow); }
+  .bnum.dim { opacity: .5; }
+
+  .boards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+  .bcard { background: var(--night); border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 8px; }
+  .bcard h3 { font: 24px/1 var(--display); margin: 0; font-weight: 400; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .bcard h3 small { font: 500 13px var(--body); color: var(--mist); }
+  .counts { display: grid; grid-template-columns: repeat(4, auto); gap: 2px 10px; font-size: 14px; font-variant-numeric: tabular-nums; justify-content: start; }
+  .counts span { display: inline-flex; align-items: center; gap: 3px; }
+  .counts svg { width: 20px; height: 20px; }
+
+  .msgs { display: grid; gap: 4px; font-size: 15px; }
+  .ok { color: var(--good); }
+  .warn { color: var(--bad); }
+  .status { font-size: 14px; color: var(--mist); }
+  .status.dirty { color: var(--gold); }
+</style>
+
+<div class="app">
+  <header class="top">
+    <h1>Lo<span>oo</span>t <small>board editor</small></h1>
+    <span class="grow"></span>
+    <span class="status" id="saveState"></span>
+    <button class="btn" id="btnUndo" title="Ctrl+Z">Undo</button>
+    <button class="btn" id="btnDownload">Download</button>
+    <button class="btn primary" id="btnSave" title="Ctrl+S">Save boards</button>
+    <a class="btn" href="index.html">Back to game</a>
+  </header>
+
+  <section class="panel row" style="justify-content:space-between">
+    <div class="row">
+      <span class="label">Paint with</span>
+      <div class="brushes" id="brushes"></div>
+    </div>
+    <div class="row">
+      <span class="label">Preview for</span>
+      <span class="seg" id="players"></span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="boardwrap"><svg id="land" aria-label="Landscape boards"></svg></div>
+    <p class="hint" style="margin:6px 0 0">Click or drag over spaces to paint them. The badge in each board shows its number and the side you're editing; faded boards aren't used with this many players. The blue spaces are the Ocean board. Boards 1–3 sit the way they do in the rulebook's 3-player setup picture. The game uses the first boards from the left, each on a random side (A or B).</p>
+  </section>
+
+  <section class="boards" id="boardCards"></section>
+
+  <section class="panel">
+    <div class="label" style="margin-bottom:6px">Checks</div>
+    <div class="msgs" id="checks"></div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const TYPES = ['forest', 'field', 'mountain', 'battlefield', 'house', 'watchtower', 'castle'];
+  const LBL = { forest: 'Forest', field: 'Field', mountain: 'Mountain', battlefield: 'Battlefield', house: 'House', watchtower: 'Watchtower', castle: 'Castle' };
+  const TERRAIN = {
+    forest: '#577f3a', field: '#a8c065', mountain: '#7d7058', battlefield: '#9c7b4e',
+    house: '#5f7a39', watchtower: '#5f7a39', castle: '#5f7a39'
+  };
+  const RES_OF = { forest: 'wood', field: 'sheep', mountain: 'gold', battlefield: 'axe' };
+  const BUILDINGS = ['house', 'watchtower', 'castle'];
+  const N_BOARDS = 4, S = 30, SQ3 = Math.sqrt(3);
+  // Board shape, placement and ocean: same as BOARD_SHAPE, BOARD_PLACEMENT
+  // and OCEAN_CELLS in looot.py (flat-top axial coordinates).
+  const BOARD_SHAPE = [[-3, 5], [-3, 6], [-2, 3], [-2, 4], [-2, 5],
+    [-1, 1], [-1, 2], [-1, 3], [-1, 4], [-1, 5], [0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
+    [1, 0], [1, 1], [1, 2], [1, 3], [1, 4], [2, 1], [2, 2], [2, 3], [3, 2], [3, 3]];
+  const BOARD_PLACEMENT = [[2, 6, 3], [1, 10, -4], [0, 12, -5], [1, 19, -9]];
+  const OCEAN_CELLS = [[1, 7], [2, 6], [3, 6], [4, 5], [5, 5]];
+  // Mix of every printed board side (BOARD_BUILDINGS / BOARD_TERRAIN)
+  const MIX_BLD = ['castle', 'watchtower', 'watchtower', 'house', 'house'];
+  const MIX_TERR = [].concat(Array(6).fill('forest'), Array(5).fill('field'), Array(3).fill('mountain'), Array(6).fill('battlefield'));
+
+  let layout = null, side = ['A', 'A', 'A', 'A'], brush = 'forest', players = 4;
+  let undo = [], dirty = false, painting = false, loadedFrom = '';
+
+  const $ = id => document.getElementById(id);
+
+  // ---------- geometry (same as looot.py board_cells) ----------
+  function rotate([x, z], turns) {
+    let y = -x - z;
+    for (let k = 0; k < turns; k++) [x, y, z] = [-z, -x, -y];
+    return [x, z];
+  }
+  function boardCells(i) {
+    const [turns, dq, dr] = BOARD_PLACEMENT[i];
+    return BOARD_SHAPE.map(c => { const [q, r] = rotate(c, turns); return [q + dq, r + dr]; });
+  }
+  const CELLS = Array.from({ length: N_BOARDS }, (_, i) => boardCells(i));
+  const pos = (q, r) => [S * 1.5 * q, S * SQ3 * (r + q / 2)];
+  function hexPts(cx, cy, r) {
+    const p = [];
+    for (let i = 0; i < 6; i++) {
+      const a = Math.PI / 180 * (60 * i);
+      p.push((cx + r * Math.cos(a)).toFixed(1) + ',' + (cy + r * Math.sin(a)).toFixed(1));
+    }
+    return p.join(' ');
+  }
+  const oceanCells = () => OCEAN_CELLS;
+  const near = (a, b) => { const dq = a[0] - b[0], dr = a[1] - b[1]; return Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq + dr)) === 1; };
+
+  // ---------- glyphs (copied from index.html) ----------
+  function glyph(t, x, y, s) {
+    const g = (inner) => `<g transform="translate(${x},${y}) scale(${s})">${inner}</g>`;
+    switch (t) {
+      case 'wood': return g(`<rect x="-1.6" y="1" width="3.2" height="7" fill="#6b4a2b"/><circle cx="-3.5" cy="-1" r="5" fill="#2f5a25"/><circle cx="3.5" cy="-1" r="5" fill="#2f5a25"/><circle cx="0" cy="-5" r="5.5" fill="#3d7030"/>`);
+      case 'sheep': return g(`<ellipse cx="0" cy="0" rx="7.5" ry="5.2" fill="#f4f1e8" stroke="#bdb6a3" stroke-width=".8"/><ellipse cx="7" cy="-2" rx="2.6" ry="2.2" fill="#2b2b2b"/><rect x="-5" y="4" width="1.6" height="4" fill="#2b2b2b"/><rect x="3" y="4" width="1.6" height="4" fill="#2b2b2b"/>`);
+      case 'gold': return g(`<path d="M-7 3 L-4 -5 L3 -7 L8 -1 L5 6 L-3 7 Z" fill="#3b3226"/><path d="M-4 -1 L0 -5 L5 -3 L2 2 Z M-3 3 L1 4 L-1 6 Z" fill="#f2b92f"/>`);
+      case 'axe': return g(`<g stroke="#5a3b1e" stroke-width="2.2" stroke-linecap="round"><line x1="-7" y1="7" x2="6" y2="-6"/><line x1="7" y1="7" x2="-6" y2="-6"/></g><path d="M3 -9 Q10 -8 9 -1 L4 -5 Z" fill="#c9d1d6"/><path d="M-3 -9 Q-10 -8 -9 -1 L-4 -5 Z" fill="#c9d1d6"/>`);
+      case 'house': return g(`<rect x="-7" y="-1" width="14" height="8" fill="#8a5a33"/><path d="M-9 0 L0 -8 L9 0 Z" fill="#e3c768"/><rect x="-1.5" y="2" width="3" height="5" fill="#3a2616"/>`);
+      case 'watchtower': return g(`<rect x="-3.5" y="-4" width="7" height="12" fill="#8e969c"/><path d="M-6 -4 L0 -10 L6 -4 Z" fill="#c3532f"/><rect x="-1" y="3" width="2" height="5" fill="#333"/>`);
+      case 'castle': return g(`<path d="M-9 8 V-4 h3 v2 h2 v-2 h3 v2 h2 v-2 h3 v2 h2 v-2 h3 V8 Z" fill="#e0a39a"/><path d="M-2 8 v-4 a2 2 0 0 1 4 0 v4 Z" fill="#5b2e2a"/>`);
+    }
+    return '';
+  }
+  const typeGlyph = (t, x, y, s) => glyph(RES_OF[t] || t, x, y, s);
+
+  // ---------- random side (same mix as looot.py random_board) ----------
+  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function randomSide(i) {
+    const cells = CELLS[i];
+    let spots = [];
+    for (let t = 0; t < 300; t++) {
+      spots = shuffle([...cells.keys()]).slice(0, MIX_BLD.length);
+      // keep buildings apart, like on the printed boards
+      if (spots.every(a => spots.every(b => a === b || !near(cells[a], cells[b])))) break;
+    }
+    const blds = shuffle(MIX_BLD.slice()), terr = shuffle(MIX_TERR.slice());
+    return cells.map((_, j) => spots.includes(j) ? blds.pop() : terr.pop());
+  }
+
+  // ---------- rendering ----------
+  function terr(i) { return layout.boards[i][side[i]]; }
+
+  function renderLand() {
+    const ocean = oceanCells();
+    let out = '', minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
+    const all = CELLS.flat().concat(ocean);
+    for (const [q, r] of all) {
+      const [x, y] = pos(q, r);
+      minx = Math.min(minx, x); maxx = Math.max(maxx, x); maxy = Math.max(maxy, y);
+      miny = Math.min(miny, y);
+    }
+    for (let i = 0; i < N_BOARDS; i++) {
+      const used = i < players;
+      const t = terr(i);
+      let cx = 0, cy = 0;
+      out += `<g class="${used ? '' : 'unused'}">`;
+      CELLS[i].forEach(([q, r], j) => {
+        const [x, y] = pos(q, r);
+        cx += x; cy += y;
+        const k = t[j];
+        const isBld = BUILDINGS.includes(k);
+        out += `<g class="cell" data-b="${i}" data-j="${j}"><title>Board ${i + 1}${side[i]}: ${LBL[k]}</title>`;
+        out += `<polygon class="hex" points="${hexPts(x, y, S)}" fill="${TERRAIN[k]}"/>`;
+        if (isBld) out += `<polygon points="${hexPts(x, y, S - 5)}" fill="#6f8d44" stroke="#0e151b44"/>` + glyph(k, x, y, 1.9);
+        else out += typeGlyph(k, x - 9, y - 7, 0.95) + typeGlyph(k, x + 9, y - 5, 0.95) + typeGlyph(k, x, y + 9, 0.95);
+        out += `</g>`;
+      });
+      cx /= CELLS[i].length;
+      cy /= CELLS[i].length;
+      out += boardOutline(i) + `</g><g class="bnum${used ? '' : ' dim'}" pointer-events="none"><circle cx="${cx}" cy="${cy}" r="17"/><text x="${cx}" y="${cy + 6}" text-anchor="middle">${i + 1}${side[i]}</text></g>`;
+    }
+    for (const [q, r] of ocean) {
+      const [x, y] = pos(q, r);
+      out += `<polygon class="hex" points="${hexPts(x, y, S)}" fill="var(--sea)"/>`;
+      out += `<path d="M${x - S * 0.55} ${y + 4} Q${x} ${y + S * 0.45} ${x + S * 0.55} ${y + 4} Z" fill="#6a4426" opacity=".8"/>`;
+    }
+    const pad = S + 4;
+    const svg = $('land');
+    const W = maxx - minx + pad * 2, H = maxy - miny + pad * 2;
+    svg.setAttribute('viewBox', `${minx - pad} ${miny - pad} ${W} ${H}`);
+    svg.style.minWidth = Math.min(W * 0.7, 900) + 'px';
+    svg.innerHTML = out;
+  }
+
+  // Draw the hex edges that face outside board i, so each board stands out.
+  // Edge k runs between corners k and k+1 and faces the neighbour EDGE_DIR[k].
+  const EDGE_DIR = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]];
+  function boardOutline(i) {
+    const own = new Set(CELLS[i].map(([q, r]) => q + ',' + r));
+    let d = '';
+    for (const [q, r] of CELLS[i]) {
+      const [x, y] = pos(q, r);
+      EDGE_DIR.forEach(([dq, dr], k) => {
+        if (own.has((q + dq) + ',' + (r + dr))) return;
+        const a = Math.PI / 180 * (60 * k), b = Math.PI / 180 * (60 * k + 60);
+        d += `M${(x + S * Math.cos(a)).toFixed(1)} ${(y + S * Math.sin(a)).toFixed(1)}L${(x + S * Math.cos(b)).toFixed(1)} ${(y + S * Math.sin(b)).toFixed(1)}`;
+      });
+    }
+    return `<path d="${d}" fill="none" stroke="var(--snow)" stroke-width="3" stroke-linecap="round" pointer-events="none"/>`;
+  }
+
+  function countsHtml(t) {
+    return TYPES.map(k => {
+      const n = t.filter(x => x === k).length;
+      return `<span title="${LBL[k]}"><svg viewBox="-12 -12 24 24" aria-hidden="true">${typeGlyph(k, 0, 0, 1)}</svg>${n}</span>`;
+    }).join('');
+  }
+
+  function renderCards() {
+    $('boardCards').innerHTML = CELLS.map((_, i) => `
+      <div class="bcard">
+        <h3>Board ${i + 1} <small>${i < 2 ? 'always used' : i === 2 ? 'used with 3–4 players' : 'used with 4 players'}</small></h3>
+        <div class="row">
+          <span class="seg">${['A', 'B'].map(s => `<button data-side="${i}" data-s="${s}" class="${side[i] === s ? 'on' : ''}">Side ${s}</button>`).join('')}</span>
+        </div>
+        <div class="counts">${countsHtml(terr(i))}</div>
+        <div class="row">
+          <button class="btn" data-copy="${i}" title="Copy this side onto side ${side[i] === 'A' ? 'B' : 'A'}">Copy to side ${side[i] === 'A' ? 'B' : 'A'}</button>
+          <button class="btn" data-random="${i}">Random</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderChecks() {
+    const msgs = [];
+    // The first Viking needs a resource space next to the ocean (which lies
+    // along board 1), whichever side of board 1 comes up.
+    const adj = new Set();
+    for (const [q, r] of oceanCells()) for (const [dq, dr] of EDGE_DIR) adj.add((q + dq) + ',' + (r + dr));
+    for (const s of ['A', 'B']) {
+      const n = CELLS[0].filter(([q, r], j) => adj.has(q + ',' + r) && RES_OF[layout.boards[0][s][j]]).length;
+      if (n === 0) msgs.push(`<div class="warn">Board 1${s} has no resource space next to the ocean, so nobody can place the first Viking.</div>`);
+    }
+    // Buildings on the used boards for the preview
+    const used = [];
+    for (let i = 0; i < players; i++) used.push(...terr(i));
+    const b = BUILDINGS.map(k => `${used.filter(x => x === k).length} ${k}${used.filter(x => x === k).length === 1 ? '' : 's'}`).join(', ');
+    msgs.push(`<div class="hint">With ${players} players and these sides the gameboard has ${b}.</div>`);
+    for (let i = 0; i < N_BOARDS; i++) for (const s of ['A', 'B']) {
+      const t = layout.boards[i][s];
+      if (!t.some(x => BUILDINGS.includes(x))) msgs.push(`<div class="warn">Board ${i + 1}${s} has no buildings.</div>`);
+      if (!t.some(x => RES_OF[x])) msgs.push(`<div class="warn">Board ${i + 1}${s} has no resource spaces.</div>`);
+    }
+    if (msgs.length === 1) msgs.unshift(`<div class="ok">All boards are playable.</div>`);
+    $('checks').innerHTML = msgs.join('');
+  }
+
+  function renderTop() {
+    $('brushes').innerHTML = TYPES.map((k, i) => `
+      <button class="brush${brush === k ? ' on' : ''}" data-brush="${k}" aria-pressed="${brush === k}">
+        <svg viewBox="-15 -15 30 30" aria-hidden="true"><polygon points="${hexPts(0, 0, 14)}" fill="${TERRAIN[k]}"/>${typeGlyph(k, 0, 0, 0.9)}</svg>
+        ${LBL[k]} <kbd>${i + 1}</kbd></button>`).join('');
+    $('players').innerHTML = [2, 3, 4].map(n => `<button data-players="${n}" class="${players === n ? 'on' : ''}">${n} players</button>`).join('');
+    $('btnUndo').disabled = !undo.length;
+    const st = $('saveState');
+    st.textContent = dirty ? 'Unsaved changes' : loadedFrom;
+    st.classList.toggle('dirty', dirty);
+  }
+
+  function render() { renderTop(); renderLand(); renderCards(); renderChecks(); }
+
+  // ---------- editing ----------
+  function snapshot() { undo.push(JSON.stringify(layout)); if (undo.length > 200) undo.shift(); }
+  function changed() { dirty = true; render(); }
+
+  function paintAt(el) {
+    const c = el && el.closest && el.closest('[data-b]');
+    if (!c) return;
+    const i = +c.dataset.b, j = +c.dataset.j;
+    if (terr(i)[j] === brush) return;
+    terr(i)[j] = brush;
+    changed();
+  }
+
+  const land = $('land');
+  land.addEventListener('pointerdown', e => {
+    if (!e.target.closest('[data-b]')) return;
+    e.preventDefault();
+    snapshot();
+    painting = true;
+    paintAt(e.target);
+  });
+  window.addEventListener('pointermove', e => {
+    if (painting) paintAt(document.elementFromPoint(e.clientX, e.clientY));
+  });
+  window.addEventListener('pointerup', () => {
+    // drop the undo step if the stroke changed nothing
+    if (painting && undo.length && undo[undo.length - 1] === JSON.stringify(layout)) { undo.pop(); renderTop(); }
+    painting = false;
+  });
+
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-brush],[data-players],[data-side],[data-copy],[data-random]');
+    if (!t) return;
+    const d = t.dataset;
+    if (d.brush) brush = d.brush;
+    else if (d.players) players = +d.players;
+    else if (d.side !== undefined) side[+d.side] = d.s;
+    else if (d.copy !== undefined) {
+      const i = +d.copy, other = side[i] === 'A' ? 'B' : 'A';
+      if (!confirm(`Replace side ${other} of board ${i + 1} with side ${side[i]}?`)) return;
+      snapshot(); layout.boards[i][other] = terr(i).slice(); changed(); return;
+    } else if (d.random !== undefined) {
+      snapshot(); layout.boards[+d.random][side[+d.random]] = randomSide(+d.random); changed(); return;
+    }
+    render();
+  });
+
+  function doUndo() {
+    if (!undo.length) return;
+    layout = JSON.parse(undo.pop());
+    changed();
+  }
+  $('btnUndo').onclick = doUndo;
+
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); doUndo(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); return; }
+    const n = +e.key;
+    if (!e.ctrlKey && !e.metaKey && !e.altKey && n >= 1 && n <= TYPES.length) { brush = TYPES[n - 1]; renderTop(); }
+  });
+
+  // ---------- load / save ----------
+  const text = () => JSON.stringify(layout, null, 1);
+
+  function download() {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text()], { type: 'application/json' }));
+    a.download = 'boards.json';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  $('btnDownload').onclick = download;
+
+  async function save() {
+    try {
+      const res = await fetch('/save-boards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: text() });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'The server did not save.');
+      dirty = false;
+      loadedFrom = 'Saved to boards.json · start a new game to use it';
+      renderTop();
+    } catch (err) {
+      alert('Could not save directly (' + err.message + ').\n\nStart the game with start_game.bat so the editor can save, or use Download and put boards.json in the Looot folder.');
+    }
+  }
+  $('btnSave').onclick = save;
+
+  window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+  async function load() {
+    try {
+      const res = await fetch('boards.json', { cache: 'no-store' });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (!Array.isArray(data.boards) || data.boards.length !== N_BOARDS) throw new Error();
+      layout = { boards: data.boards.map((sides, i) => {
+        const ok = s => Array.isArray(s) && s.length === CELLS[i].length && s.every(x => TYPES.includes(x));
+        const A = ok(sides.A) ? sides.A : ok(sides.B) ? sides.B.slice() : randomSide(i);
+        const B = ok(sides.B) ? sides.B : A.slice();
+        return { A, B };
+      }) };
+      loadedFrom = 'Loaded boards.json';
+    } catch {
+      layout = { boards: CELLS.map((_, i) => ({ A: randomSide(i), B: randomSide(i) })) };
+      loadedFrom = 'No boards.json yet: random boards';
+    }
+    render();
+  }
+  load();
+})();
+</script>

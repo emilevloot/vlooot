@@ -1,0 +1,23 @@
+14:49:33 round 1: best variation +0.2 pts (±2.8), wins 32%; others +0.1 -0.1 -0.8 -1.6 -2.5 -3.2 -5.3
+14:49:47   not confirmed: -0.4 pts (±1.6), wins 32%
+14:50:31 round 2: best variation +1.6 pts (±2.6), wins 37%; others -1.0 -1.0 -1.3 -2.0 -4.4 -5.3 -15.2
+14:50:46   not confirmed: +0.1 pts (±1.7), wins 36%
+14:51:29 round 3: best variation -0.8 pts (±3.0), wins 37%; others -0.9 -1.3 -2.7 -2.8 -3.2 -4.5 -9.8
+14:52:14 round 4: best variation +1.3 pts (±2.7), wins 37%; others +1.0 +0.9 -0.5 -0.7 -2.9 -4.1 -10.0
+14:52:29   not confirmed: -0.3 pts (±1.8), wins 32%
+14:53:12 round 5: best variation +1.4 pts (±2.8), wins 33%; others +0.6 +0.4 -0.9 -1.8 -3.2 -3.9 -20.7
+14:53:28   not confirmed: +1.2 pts (±1.5), wins 36%
+14:54:12 round 6: best variation +1.4 pts (±2.5), wins 37%; others +1.2 -1.3 -1.3 -1.3 -2.6 -3.6 -7.7
+14:54:26   NEW CHAMPION: +3.3 pts (±1.7), wins 38% (fair 33%). Changed: ship_base 0.95->0.901, site_early 0.9->0.938, site_late 0.4->0.514, shield_early 1.5->1.915, shield_late_left 3->5, tile_open 0.2->0.262, trophy_wait_left 2->0
+14:55:11 round 7: best variation +1.1 pts (±2.8), wins 31%; others -0.5 -0.8 -3.3 -4.2 -4.9 -5.7 -6.7
+14:55:26   not confirmed: -0.7 pts (±1.6), wins 32%
+14:56:11 round 8: best variation +0.3 pts (±2.6), wins 36%; others +0.3 -0.9 -1.1 -1.8 -2.0 -2.1 -13.2
+14:56:26   not confirmed: -1.4 pts (±1.7), wins 34%
+14:57:12 round 9: best variation +2.4 pts (±2.4), wins 43%; others +2.0 +0.7 +0.6 +0.0 -2.4 -2.9 -3.0
+14:57:27   not confirmed: -0.1 pts (±1.5), wins 32%
+14:58:12 round 10: best variation +1.1 pts (±2.7), wins 35%; others +0.5 -0.3 -0.5 -0.7 -1.2 -1.3 -4.8
+14:58:27   not confirmed: +0.6 pts (±1.6), wins 34%
+14:59:12 round 11: best variation +1.2 pts (±2.7), wins 35%; others +0.7 +0.3 -0.2 -0.4 -1.8 -1.9 -2.8
+14:59:27   not confirmed: -0.5 pts (±1.7), wins 33%
+14:59:48 FINAL vs original (600 games): tuned wins 43.2% (fair 33.3%), +3.9 pts per game (±1.3)
+14:59:49 Graphs: tune_report.html. Best weights are in tune_best.json. Run  python tune.py --apply  to put them into looot.py.

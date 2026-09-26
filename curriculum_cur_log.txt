@@ -1,0 +1,65 @@
+15:34:45 === stage 1/5: resources ===
+15:36:05   data: 8000 greedy games in 80 s
+15:36:40   trained cur_resources_a in 35 s: Test error by moment in the game (points off):
+15:37:27   self-play: 1200 games in 47 s
+15:38:06   trained cur_resources in 39 s: Test error by moment in the game (points off):
+15:38:11   arena cur_resources_a vs greedy (resources rules): wins 99.8%, margin +6.9, score 15.8, longship penalty 0.0, 19 ms/turn
+15:38:16   arena cur_resources vs greedy (resources rules): wins 99.5%, margin +7.0, score 15.8, longship penalty 0.0, 19 ms/turn
+15:38:16 === stage 2/5: buildings ===
+15:39:50   data: 8000 greedy games in 94 s
+15:40:24   trained cur_buildings_a in 34 s: Test error by moment in the game (points off):
+15:41:15   self-play: 1200 games in 51 s
+15:41:54   trained cur_buildings in 39 s: Test error by moment in the game (points off):
+15:42:00   arena cur_buildings_a vs greedy (buildings rules): wins 76.5%, margin +5.7, score 32.4, longship penalty 0.0, 22 ms/turn
+15:42:05   arena cur_buildings vs greedy (buildings rules): wins 89.2%, margin +7.8, score 34.2, longship penalty 0.0, 22 ms/turn
+15:42:05 === stage 3/5: sites ===
+15:43:42   data: 8000 greedy games in 97 s
+15:44:16   trained cur_sites_a in 34 s: Test error by moment in the game (points off):
+15:45:16   self-play: 1200 games in 59 s
+15:45:55   trained cur_sites in 39 s: Test error by moment in the game (points off):
+15:46:01   arena cur_sites_a vs greedy (sites rules): wins 85.8%, margin +11.9, score 50.1, longship penalty 0.0, 23 ms/turn
+15:46:07   arena cur_sites vs greedy (sites rules): wins 84.2%, margin +12.8, score 51.0, longship penalty 0.0, 23 ms/turn
+15:46:07 === stage 4/5: longships ===
+15:48:19   data: 8000 greedy games in 133 s
+15:48:54   trained cur_longships_a in 35 s: Test error by moment in the game (points off):
+15:51:22   self-play: 1200 games in 148 s
+15:52:02   trained cur_longships in 40 s: Test error by moment in the game (points off):
+15:52:15   arena cur_longships_a vs greedy (longships rules): wins 11.5%, margin -35.1, score 31.1, longship penalty -29.2, 61 ms/turn
+15:52:29   arena cur_longships vs greedy (longships rules): wins 27.8%, margin -16.5, score 51.9, longship penalty -14.3, 62 ms/turn
+15:52:29 === stage 5/5: full ===
+15:55:09   data: 8000 greedy games in 160 s
+15:55:41   trained cur_full_a in 32 s: Test error by moment in the game (points off):
+15:59:40   self-play: 1200 games in 239 s
+16:00:16   trained cur_full in 36 s: Test error by moment in the game (points off):
+16:00:39   arena cur_full_a vs greedy (full rules): wins 5.5%, margin -41.4, score 51.7, longship penalty -20.8, 119 ms/turn
+16:01:03   arena cur_full vs greedy (full rules): wins 10.0%, margin -36.3, score 55.9, longship penalty -16.3, 128 ms/turn
+16:01:29   for comparison, v1 (no curriculum) vs greedy: wins 23.0%, margin -17.9, longship penalty -15.9
+16:01:29 Curriculum finished.
+16:02:08 === longships: self-play round 2 (cur_longships plays itself) ===
+16:05:08   self-play: 1500 games in 181 s
+16:05:52   trained cur_longships_r2 on 3 data sets in 44 s: Keeping epoch 1 (15.90 points off).
+16:06:05   arena cur_longships_r2 vs greedy (longships rules): wins 29.8%, margin -13.3, score 53.4, longship penalty -12.2
+16:06:05 === longships: self-play round 3 (cur_longships_r2 plays itself) ===
+16:09:11   self-play: 1500 games in 186 s
+16:10:01   trained cur_longships_r3 on 4 data sets in 50 s: Keeping epoch 2 (16.11 points off).
+16:10:14   arena cur_longships_r3 vs greedy (longships rules): wins 28.5%, margin -16.5, score 54.0, longship penalty -11.2
+16:10:14 === longships: self-play round 4 (cur_longships_r3 plays itself) ===
+16:13:15   self-play: 1500 games in 180 s
+16:14:11   trained cur_longships_r4 on 5 data sets in 56 s: Keeping epoch 1 (16.11 points off).
+16:14:24   arena cur_longships_r4 vs greedy (longships rules): wins 31.8%, margin -11.8, score 57.3, longship penalty -10.0
+16:14:24 === longships: self-play round 5 (cur_longships_r4 plays itself) ===
+16:17:21   self-play: 1500 games in 177 s
+16:18:22   trained cur_longships_r5 on 6 data sets in 61 s: Keeping epoch 2 (16.04 points off).
+16:18:35   arena cur_longships_r5 vs greedy (longships rules): wins 34.5%, margin -8.3, score 58.7, longship penalty -9.0
+16:19:05 === longships: self-play round 6 (cur_longships_r5 plays itself) ===
+16:22:22   self-play: 1500 games in 198 s
+16:23:50   trained cur_longships_r6 on 7 data sets in 88 s: Keeping epoch 1 (16.00 points off).
+16:24:08   arena cur_longships_r6 vs greedy (longships rules): wins 40.2%, margin -5.6, score 61.4, longship penalty -8.9
+16:24:08 === longships: self-play round 7 (cur_longships_r6 plays itself) ===
+16:27:44   self-play: 1500 games in 216 s
+16:28:57   trained cur_longships_r7 on 8 data sets in 73 s: Keeping epoch 1 (15.98 points off).
+16:29:10   arena cur_longships_r7 vs greedy (longships rules): wins 36.5%, margin -9.6, score 58.0, longship penalty -8.8
+16:29:10 === longships: self-play round 8 (cur_longships_r7 plays itself) ===
+16:32:06   self-play: 1500 games in 176 s
+16:33:25   trained cur_longships_r8 on 9 data sets in 79 s: Keeping epoch 1 (15.78 points off).
+16:33:38   arena cur_longships_r8 vs greedy (longships rules): wins 33.0%, margin -8.3, score 57.9, longship penalty -9.4

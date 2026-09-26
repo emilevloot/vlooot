@@ -1,0 +1,1212 @@
+{
+ "start_weights": {
+  "ship_base": 0.95,
+  "ship_per_missing": 0.22,
+  "ship_late": 0.25,
+  "ship_min": 0.1,
+  "ship_hopeless": 1.3,
+  "ship_hopeless_chance": 0.05,
+  "ship_future_res": 0.3,
+  "ship_future_bld": 0.15,
+  "site_power": 2.0,
+  "site_early": 0.9,
+  "site_late": 0.4,
+  "site_late_left": 2,
+  "trophy_ready": 0.9,
+  "trophy_progress": 0.5,
+  "shield_early": 1.5,
+  "shield_late": 0.3,
+  "shield_late_left": 3,
+  "chain": 0.8,
+  "tile_need": 10.0,
+  "tile_block": 3.0,
+  "tile_open": 0.2,
+  "shipcell_match": 5.0,
+  "shipcell_room": 1.0,
+  "extra_gain": 3.0,
+  "extra_force_left": 3,
+  "take_ship_margin": 1.0,
+  "trophy_wait_left": 2,
+  "noise": 0.3
+ },
+ "ranges": {
+  "ship_base": [
+   0.3,
+   1.0,
+   false
+  ],
+  "ship_per_missing": [
+   0.0,
+   0.6,
+   false
+  ],
+  "ship_late": [
+   0.0,
+   0.8,
+   false
+  ],
+  "ship_min": [
+   0.0,
+   0.6,
+   false
+  ],
+  "ship_hopeless": [
+   0.3,
+   4.0,
+   false
+  ],
+  "ship_hopeless_chance": [
+   0.0,
+   0.4,
+   false
+  ],
+  "ship_future_res": [
+   0.0,
+   1.5,
+   false
+  ],
+  "ship_future_bld": [
+   0.0,
+   1.0,
+   false
+  ],
+  "site_power": [
+   0.5,
+   4.0,
+   false
+  ],
+  "site_early": [
+   0.0,
+   2.0,
+   false
+  ],
+  "site_late": [
+   0.0,
+   2.0,
+   false
+  ],
+  "site_late_left": [
+   0,
+   6,
+   true
+  ],
+  "trophy_ready": [
+   0.2,
+   1.2,
+   false
+  ],
+  "trophy_progress": [
+   0.0,
+   1.2,
+   false
+  ],
+  "shield_early": [
+   0.0,
+   6.0,
+   false
+  ],
+  "shield_late": [
+   0.0,
+   4.0,
+   false
+  ],
+  "shield_late_left": [
+   0,
+   8,
+   true
+  ],
+  "chain": [
+   0.0,
+   4.0,
+   false
+  ],
+  "tile_need": [
+   1.0,
+   30.0,
+   false
+  ],
+  "tile_block": [
+   0.0,
+   15.0,
+   false
+  ],
+  "tile_open": [
+   0.0,
+   2.0,
+   false
+  ],
+  "shipcell_match": [
+   0.5,
+   20.0,
+   false
+  ],
+  "shipcell_room": [
+   0.0,
+   5.0,
+   false
+  ],
+  "extra_gain": [
+   -2.0,
+   10.0,
+   false
+  ],
+  "extra_force_left": [
+   0,
+   8,
+   true
+  ],
+  "take_ship_margin": [
+   -5.0,
+   8.0,
+   false
+  ],
+  "trophy_wait_left": [
+   0,
+   8,
+   true
+  ],
+  "noise": [
+   0.0,
+   2.0,
+   false
+  ]
+ },
+ "rounds": [
+  {
+   "round": 1,
+   "sigma": 0.12,
+   "champ_score": 82.97416666666666,
+   "variations": [
+    {
+     "adv": -2.52,
+     "ci": 3.0433437508538694,
+     "win": 0.31333333333333335,
+     "score": 81.78
+    },
+    {
+     "adv": -3.183333333333333,
+     "ci": 2.8183853178990876,
+     "win": 0.2733333333333333,
+     "score": 80.72666666666667
+    },
+    {
+     "adv": -1.5833333333333333,
+     "ci": 2.658970996855329,
+     "win": 0.32666666666666666,
+     "score": 80.96
+    },
+    {
+     "adv": -0.08666666666666667,
+     "ci": 2.7812642563077965,
+     "win": 0.34,
+     "score": 83.21333333333334
+    },
+    {
+     "adv": -5.296666666666667,
+     "ci": 2.947081623813605,
+     "win": 0.22,
+     "score": 77.52
+    },
+    {
+     "adv": 0.06333333333333334,
+     "ci": 2.661456648454617,
+     "win": 0.3,
+     "score": 82.56666666666666
+    },
+    {
+     "adv": -0.7766666666666666,
+     "ci": 2.806882952997327,
+     "win": 0.3466666666666667,
+     "score": 81.02666666666667
+    },
+    {
+     "adv": 0.22333333333333333,
+     "ci": 2.818158438706472,
+     "win": 0.32,
+     "score": 82.84
+    }
+   ],
+   "check": {
+    "adv": -0.38,
+    "ci": 1.577296105654319,
+    "win": 0.315,
+    "score": 83.4975,
+    "champ_score": 83.8775
+   },
+   "accepted": false,
+   "weights": {
+    "ship_base": 0.95,
+    "ship_per_missing": 0.22,
+    "ship_late": 0.25,
+    "ship_min": 0.1,
+    "ship_hopeless": 1.3,
+    "ship_hopeless_chance": 0.05,
+    "ship_future_res": 0.3,
+    "ship_future_bld": 0.15,
+    "site_power": 2.0,
+    "site_early": 0.9,
+    "site_late": 0.4,
+    "site_late_left": 2,
+    "trophy_ready": 0.9,
+    "trophy_progress": 0.5,
+    "shield_early": 1.5,
+    "shield_late": 0.3,
+    "shield_late_left": 3,
+    "chain": 0.8,
+    "tile_need": 10.0,
+    "tile_block": 3.0,
+    "tile_open": 0.2,
+    "shipcell_match": 5.0,
+    "shipcell_room": 1.0,
+    "extra_gain": 3.0,
+    "extra_force_left": 3,
+    "take_ship_margin": 1.0,
+    "trophy_wait_left": 2,
+    "noise": 0.3
+   },
+   "time_s": 58.064446449279785
+  },
+  {
+   "round": 2,
+   "sigma": 0.11399999999999999,
+   "champ_score": 82.145,
+   "variations": [
+    {
+     "adv": -1.3433333333333333,
+     "ci": 2.428037018515396,
+     "win": 0.3,
+     "score": 82.38
+    },
+    {
+     "adv": -0.9933333333333333,
+     "ci": 2.7736251050270635,
+     "win": 0.3,
+     "score": 80.57333333333334
+    },
+    {
+     "adv": -2.0233333333333334,
+     "ci": 2.840632625362601,
+     "win": 0.2866666666666667,
+     "score": 79.92
+    },
+    {
+     "adv": -4.41,
+     "ci": 2.500832899788027,
+     "win": 0.22,
+     "score": 78
+    },
+    {
+     "adv": -0.9633333333333334,
+     "ci": 2.6381663762855174,
+     "win": 0.2866666666666667,
+     "score": 82.24
+    },
+    {
+     "adv": -5.27,
+     "ci": 2.667380886211281,
+     "win": 0.22,
+     "score": 74.84666666666666
+    },
+    {
+     "adv": 1.6233333333333333,
+     "ci": 2.6486001464902302,
+     "win": 0.36666666666666664,
+     "score": 83.82666666666667
+    },
+    {
+     "adv": -15.16,
+     "ci": 3.344580193932645,
+     "win": 0.14666666666666667,
+     "score": 66.83333333333333
+    }
+   ],
+   "check": {
+    "adv": 0.09,
+    "ci": 1.6758048117300366,
+    "win": 0.3575,
+    "score": 83.295,
+    "champ_score": 83.205
+   },
+   "accepted": false,
+   "weights": {
+    "ship_base": 0.95,
+    "ship_per_missing": 0.22,
+    "ship_late": 0.25,
+    "ship_min": 0.1,
+    "ship_hopeless": 1.3,
+    "ship_hopeless_chance": 0.05,
+    "ship_future_res": 0.3,
+    "ship_future_bld": 0.15,
+    "site_power": 2.0,
+    "site_early": 0.9,
+    "site_late": 0.4,
+    "site_late_left": 2,
+    "trophy_ready": 0.9,
+    "trophy_progress": 0.5,
+    "shield_early": 1.5,
+    "shield_late": 0.3,
+    "shield_late_left": 3,
+    "chain": 0.8,
+    "tile_need": 10.0,
+    "tile_block": 3.0,
+    "tile_open": 0.2,
+    "shipcell_match": 5.0,
+    "shipcell_room": 1.0,
+    "extra_gain": 3.0,
+    "extra_force_left": 3,
+    "take_ship_margin": 1.0,
+    "trophy_wait_left": 2,
+    "noise": 0.3
+   },
+   "time_s": 116.48681497573853
+  },
+  {
+   "round": 3,
+   "sigma": 0.10829999999999998,
+   "champ_score": 82.50833333333334,
+   "variations": [
+    {
+     "adv": -2.71,
+     "ci": 2.695116911842809,
+     "win": 0.28,
+     "score": 79.3
+    },
+    {
+     "adv": -2.8433333333333333,
+     "ci": 2.644089275039202,
+     "win": 0.25333333333333335,
+     "score": 79.9
+    },
+    {
+     "adv": -9.846666666666666,
+     "ci": 2.845176389457955,
+     "win": 0.14666666666666667,
+     "score": 72.17333333333333
+    },
+    {
+     "adv": -0.9166666666666666,
+     "ci": 2.6528066124751066,
+     "win": 0.29333333333333333,
+     "score": 82.48666666666666
+    },
+    {
+     "adv": -0.7933333333333333,
+     "ci": 3.0460719484947183,
+     "win": 0.36666666666666664,
+     "score": 80.97333333333333
+    },
+    {
+     "adv": -1.29,
+     "ci": 2.8226945875345146,
+     "win": 0.31333333333333335,
+     "score": 81.14666666666666
+    },
+    {
+     "adv": -3.1966666666666668,
+     "ci": 2.8288628518068153,
+     "win": 0.28,
+     "score": 80.10666666666667
+    },
+    {
+     "adv": -4.47,
+     "ci": 2.65615452119176,
+     "win": 0.23333333333333334,
+     "score": 77.91333333333333
+    }
+   ],
+   "check": null,
+   "accepted": false,
+   "weights": {
+    "ship_base": 0.95,
+    "ship_per_missing": 0.22,
+    "ship_late": 0.25,
+    "ship_min": 0.1,
+    "ship_hopeless": 1.3,
+    "ship_hopeless_chance": 0.05,
+    "ship_future_res": 0.3,
+    "ship_future_bld": 0.15,
+    "site_power": 2.0,
+    "site_early": 0.9,
+    "site_late": 0.4,
+    "site_late_left": 2,
+    "trophy_ready": 0.9,
+    "trophy_progress": 0.5,
+    "shield_early": 1.5,
+    "shield_late": 0.3,
+    "shield_late_left": 3,
+    "chain": 0.8,
+    "tile_need": 10.0,
+    "tile_block": 3.0,
+    "tile_open": 0.2,
+    "shipcell_match": 5.0,
+    "shipcell_room": 1.0,
+    "extra_gain": 3.0,
+    "extra_force_left": 3,
+    "take_ship_margin": 1.0,
+    "trophy_wait_left": 2,
+    "noise": 0.3
+   },
+   "time_s": 159.92641472816467
+  },
+  {
+   "round": 4,
+   "sigma": 0.09746999999999999,
+   "champ_score": 83.01416666666667,
+   "variations": [
+    {
+     "adv": -4.073333333333333,
+     "ci": 2.9967667850082296,
+     "win": 0.26,
+     "score": 80.28666666666666
+    },
+    {
+     "adv": -10.043333333333333,
+     "ci": 2.50855088831267,
+     "win": 0.15333333333333332,
+     "score": 71.74
+    },
+    {
+     "adv": 0.8666666666666667,
+     "ci": 2.4190392432847854,
+     "win": 0.32,
+     "score": 83.17333333333333
+    },
+    {
+     "adv": -0.6533333333333333,
+     "ci": 3.05170614954109,
+     "win": 0.38,
+     "score": 82.46666666666667
+    },
+    {
+     "adv": 1.2866666666666666,
+     "ci": 2.7466506809551974,
+     "win": 0.36666666666666664,
+     "score": 84.49333333333334
+    },
+    {
+     "adv": -0.4766666666666667,
+     "ci": 2.4983619606301324,
+     "win": 0.30666666666666664,
+     "score": 82.95333333333333
+    },
+    {
+     "adv": 1.0166666666666666,
+     "ci": 2.9633283024143027,
+     "win": 0.36666666666666664,
+     "score": 82.92666666666666
+    },
+    {
+     "adv": -2.85,
+     "ci": 3.0756316897228997,
+     "win": 0.2866666666666667,
+     "score": 81.14666666666666
+    }
+   ],
+   "check": {
+    "adv": -0.3225,
+    "ci": 1.7518129524941624,
+    "win": 0.325,
+    "score": 82.805,
+    "champ_score": 83.1275
+   },
+   "accepted": false,
+   "weights": {
+    "ship_base": 0.95,
+    "ship_per_missing": 0.22,
+    "ship_late": 0.25,
+    "ship_min": 0.1,
+    "ship_hopeless": 1.3,
+    "ship_hopeless_chance": 0.05,
+    "ship_future_res": 0.3,
+    "ship_future_bld": 0.15,
+    "site_power": 2.0,
+    "site_early": 0.9,
+    "site_late": 0.4,
+    "site_late_left": 2,
+    "trophy_ready": 0.9,
+    "trophy_progress": 0.5,
+    "shield_early": 1.5,
+    "shield_late": 0.3,
+    "shield_late_left": 3,
+    "chain": 0.8,
+    "tile_need": 10.0,
+    "tile_block": 3.0,
+    "tile_open": 0.2,
+    "shipcell_match": 5.0,
+    "shipcell_room": 1.0,
+    "extra_gain": 3.0,
+    "extra_force_left": 3,
+    "take_ship_margin": 1.0,
+    "trophy_wait_left": 2,
+    "noise": 0.3
+   },
+   "time_s": 219.8554561138153
+  },
+  {
+   "round": 5,
+   "sigma": 0.09259649999999998,
+   "champ_score": 82.49916666666667,
+   "variations": [
+    {
+     "adv": 0.64,
+     "ci": 2.6665831717577393,
+     "win": 0.36666666666666664,
+     "score": 83.05333333333333
+    },
+    {
+     "adv": 1.3966666666666667,
+     "ci": 2.7727156898918444,
+     "win": 0.3333333333333333,
+     "score": 83.98
+    },
+    {
+     "adv": -1.8133333333333332,
+     "ci": 2.917545206674664,
+     "win": 0.35333333333333333,
+     "score": 80.93333333333334
+    },
+    {
+     "adv": -3.92,
+     "ci": 2.864715107503508,
+     "win": 0.26666666666666666,
+     "score": 79.01333333333334
+    },
+    {
+     "adv": 0.37333333333333335,
+     "ci": 2.7070312965841485,
+     "win": 0.4066666666666667,
+     "score": 82.97333333333333
+    },
+    {
+     "adv": -20.673333333333332,
+     "ci": 3.0863324541306034,
+     "win": 0.06666666666666667,
+     "score": 62.373333333333335
+    },
+    {
+     "adv": -0.9466666666666667,
+     "ci": 2.4721465038193045,
+     "win": 0.3333333333333333,
+     "score": 81.85333333333334
+    },
+    {
+     "adv": -3.1766666666666667,
+     "ci": 2.387471041410128,
+     "win": 0.26,
+     "score": 77.69333333333333
+    }
+   ],
+   "check": {
+    "adv": 1.225,
+    "ci": 1.5288323545834097,
+    "win": 0.3625,
+    "score": 83.8775,
+    "champ_score": 82.6525
+   },
+   "accepted": false,
+   "weights": {
+    "ship_base": 0.95,
+    "ship_per_missing": 0.22,
+    "ship_late": 0.25,
+    "ship_min": 0.1,
+    "ship_hopeless": 1.3,
+    "ship_hopeless_chance": 0.05,
+    "ship_future_res": 0.3,
+    "ship_future_bld": 0.15,
+    "site_power": 2.0,
+    "site_early": 0.9,
+    "site_late": 0.4,
+    "site_late_left": 2,
+    "trophy_ready": 0.9,
+    "trophy_progress": 0.5,
+    "shield_early": 1.5,
+    "shield_late": 0.3,
+    "shield_late_left": 3,
+    "chain": 0.8,
+    "tile_need": 10.0,
+    "tile_block": 3.0,
+    "tile_open": 0.2,
+    "shipcell_match": 5.0,
+    "shipcell_room": 1.0,
+    "extra_gain": 3.0,
+    "extra_force_left": 3,
+    "take_ship_margin": 1.0,
+    "trophy_wait_left": 2,
+    "noise": 0.3
+   },
+   "time_s": 278.71699929237366
+  },
+  {
+   "round": 6,
+   "sigma": 0.08796667499999998,
+   "champ_score": 83.38791666666667,
+   "variations": [
+    {
+     "adv": -2.6433333333333335,
+     "ci": 3.0087296721770516,
+     "win": 0.2866666666666667,
+     "score": 80.48
+    },
+    {
+     "adv": 1.39,
+     "ci": 2.490584793335979,
+     "win": 0.37333333333333335,
+     "score": 85.52
+    },
+    {
+     "adv": -7.663333333333333,
+     "ci": 3.043705427466195,
+     "win": 0.22,
+     "score": 76.00666666666666
+    },
+    {
+     "adv": -1.31,
+     "ci": 2.717258262009861,
+     "win": 0.31333333333333335,
+     "score": 80.12
+    },
+    {
+     "adv": 1.2,
+     "ci": 2.677356257199293,
+     "win": 0.3333333333333333,
+     "score": 84.96
+    },
+    {
+     "adv": -3.6333333333333333,
+     "ci": 2.798928236340642,
+     "win": 0.2733333333333333,
+     "score": 80.13333333333334
+    },
+    {
+     "adv": -1.3433333333333333,
+     "ci": 2.9416677437317014,
+     "win": 0.32,
+     "score": 83.33333333333333
+    },
+    {
+     "adv": -1.3133333333333332,
+     "ci": 2.5908558357040903,
+     "win": 0.2866666666666667,
+     "score": 81.23333333333333
+    }
+   ],
+   "check": {
+    "adv": 3.34625,
+    "ci": 1.657949652604136,
+    "win": 0.38,
+    "score": 86.685,
+    "champ_score": 83.33875
+   },
+   "accepted": true,
+   "weights": {
+    "ship_base": 0.901,
+    "ship_per_missing": 0.22,
+    "ship_late": 0.25,
+    "ship_min": 0.1,
+    "ship_hopeless": 1.3,
+    "ship_hopeless_chance": 0.05,
+    "ship_future_res": 0.3,
+    "ship_future_bld": 0.15,
+    "site_power": 2.0,
+    "site_early": 0.938,
+    "site_late": 0.514,
+    "site_late_left": 2,
+    "trophy_ready": 0.9,
+    "trophy_progress": 0.5,
+    "shield_early": 1.915,
+    "shield_late": 0.3,
+    "shield_late_left": 5,
+    "chain": 0.8,
+    "tile_need": 10.0,
+    "tile_block": 3.0,
+    "tile_open": 0.262,
+    "shipcell_match": 5.0,
+    "shipcell_room": 1.0,
+    "extra_gain": 3.0,
+    "extra_force_left": 3,
+    "take_ship_margin": 1.0,
+    "trophy_wait_left": 0,
+    "noise": 0.3
+   },
+   "time_s": 337.1033263206482
+  },
+  {
+   "round": 7,
+   "sigma": 0.08796667499999998,
+   "champ_score": 84.27208333333334,
+   "variations": [
+    {
+     "adv": -3.31,
+     "ci": 2.5944710213847775,
+     "win": 0.24666666666666667,
+     "score": 81.26666666666667
+    },
+    {
+     "adv": -0.5233333333333333,
+     "ci": 3.005528783645467,
+     "win": 0.38,
+     "score": 83.73333333333333
+    },
+    {
+     "adv": -4.156666666666666,
+     "ci": 2.6300266712041798,
+     "win": 0.24666666666666667,
+     "score": 79.89333333333333
+    },
+    {
+     "adv": -0.83,
+     "ci": 2.5754231281902014,
+     "win": 0.26666666666666666,
+     "score": 81.66666666666667
+    },
+    {
+     "adv": -4.91,
+     "ci": 2.5120452130472763,
+     "win": 0.23333333333333334,
+     "score": 78.42666666666666
+    },
+    {
+     "adv": 1.14,
+     "ci": 2.793510473386792,
+     "win": 0.31333333333333335,
+     "score": 85.45333333333333
+    },
+    {
+     "adv": -5.71,
+     "ci": 3.0566491121650405,
+     "win": 0.24,
+     "score": 80.24
+    },
+    {
+     "adv": -6.656666666666666,
+     "ci": 2.816825459506038,
+     "win": 0.18666666666666668,
+     "score": 78.54
+    }
+   ],
+   "check": {
+    "adv": -0.685,
+    "ci": 1.6399366553877044,
+    "win": 0.3225,
+    "score": 85.015,
+    "champ_score": 85.7
+   },
+   "accepted": false,
+   "weights": {
+    "ship_base": 0.901,
+    "ship_per_missing": 0.22,
+    "ship_late": 0.25,
+    "ship_min": 0.1,
+    "ship_hopeless": 1.3,
+    "ship_hopeless_chance": 0.05,
+    "ship_future_res": 0.3,
+    "ship_future_bld": 0.15,
+    "site_power": 2.0,
+    "site_early": 0.938,
+    "site_late": 0.514,
+    "site_late_left": 2,
+    "trophy_ready": 0.9,
+    "trophy_progress": 0.5,
+    "shield_early": 1.915,
+    "shield_late": 0.3,
+    "shield_late_left": 5,
+    "chain": 0.8,
+    "tile_need": 10.0,
+    "tile_block": 3.0,
+    "tile_open": 0.262,
+    "shipcell_match": 5.0,
+    "shipcell_room": 1.0,
+    "extra_gain": 3.0,
+    "extra_force_left": 3,
+    "take_ship_margin": 1.0,
+    "trophy_wait_left": 0,
+    "noise": 0.3
+   },
+   "time_s": 397.23704719543457
+  },
+  {
+   "round": 8,
+   "sigma": 0.08356834124999998,
+   "champ_score": 86.54708333333333,
+   "variations": [
+    {
+     "adv": -1.1166666666666667,
+     "ci": 2.8157006299117824,
+     "win": 0.32,
+     "score": 85.92666666666666
+    },
+    {
+     "adv": -13.223333333333333,
+     "ci": 3.027384222680945,
+     "win": 0.16,
+     "score": 74.74
+    },
+    {
+     "adv": -0.8566666666666667,
+     "ci": 2.43734944117666,
+     "win": 0.29333333333333333,
+     "score": 85.94
+    },
+    {
+     "adv": -1.7566666666666666,
+     "ci": 2.3245395819342636,
+     "win": 0.28,
+     "score": 83.29333333333334
+    },
+    {
+     "adv": 0.31,
+     "ci": 2.384707270654285,
+     "win": 0.37333333333333335,
+     "score": 86.84666666666666
+    },
+    {
+     "adv": 0.32,
+     "ci": 2.6023033629882844,
+     "win": 0.36,
+     "score": 85.87333333333333
+    },
+    {
+     "adv": -1.9733333333333334,
+     "ci": 2.407395940397096,
+     "win": 0.31333333333333335,
+     "score": 86.02
+    },
+    {
+     "adv": -2.1333333333333333,
+     "ci": 2.4787345524192776,
+     "win": 0.26,
+     "score": 83.30666666666667
+    }
+   ],
+   "check": {
+    "adv": -1.4025,
+    "ci": 1.6585404541554527,
+    "win": 0.335,
+    "score": 84.355,
+    "champ_score": 85.7575
+   },
+   "accepted": false,
+   "weights": {
+    "ship_base": 0.901,
+    "ship_per_missing": 0.22,
+    "ship_late": 0.25,
+    "ship_min": 0.1,
+    "ship_hopeless": 1.3,
+    "ship_hopeless_chance": 0.05,
+    "ship_future_res": 0.3,
+    "ship_future_bld": 0.15,
+    "site_power": 2.0,
+    "site_early": 0.938,
+    "site_late": 0.514,
+    "site_late_left": 2,
+    "trophy_ready": 0.9,
+    "trophy_progress": 0.5,
+    "shield_early": 1.915,
+    "shield_late": 0.3,
+    "shield_late_left": 5,
+    "chain": 0.8,
+    "tile_need": 10.0,
+    "tile_block": 3.0,
+    "tile_open": 0.262,
+    "shipcell_match": 5.0,
+    "shipcell_room": 1.0,
+    "extra_gain": 3.0,
+    "extra_force_left": 3,
+    "take_ship_margin": 1.0,
+    "trophy_wait_left": 0,
+    "noise": 0.3
+   },
+   "time_s": 457.1126410961151
+  },
+  {
+   "round": 9,
+   "sigma": 0.07938992418749997,
+   "champ_score": 85.45541666666666,
+   "variations": [
+    {
+     "adv": 1.9533333333333334,
+     "ci": 2.6031464722586803,
+     "win": 0.44666666666666666,
+     "score": 87.09333333333333
+    },
+    {
+     "adv": -2.4266666666666667,
+     "ci": 2.859044069130785,
+     "win": 0.30666666666666664,
+     "score": 83.58
+    },
+    {
+     "adv": 2.433333333333333,
+     "ci": 2.4155194839475733,
+     "win": 0.43333333333333335,
+     "score": 87.58
+    },
+    {
+     "adv": 0.043333333333333335,
+     "ci": 2.4879447826631744,
+     "win": 0.31333333333333335,
+     "score": 84.9
+    },
+    {
+     "adv": 0.5633333333333334,
+     "ci": 2.280054179635449,
+     "win": 0.36,
+     "score": 86.1
+    },
+    {
+     "adv": -2.94,
+     "ci": 3.1533802717205015,
+     "win": 0.32,
+     "score": 82.93333333333334
+    },
+    {
+     "adv": 0.7266666666666667,
+     "ci": 2.5427089261635216,
+     "win": 0.36,
+     "score": 85.80666666666667
+    },
+    {
+     "adv": -3.0433333333333334,
+     "ci": 2.6579934160885674,
+     "win": 0.23333333333333334,
+     "score": 82.96
+    }
+   ],
+   "check": {
+    "adv": -0.115,
+    "ci": 1.5330024897840873,
+    "win": 0.3175,
+    "score": 85.5775,
+    "champ_score": 85.6925
+   },
+   "accepted": false,
+   "weights": {
+    "ship_base": 0.901,
+    "ship_per_missing": 0.22,
+    "ship_late": 0.25,
+    "ship_min": 0.1,
+    "ship_hopeless": 1.3,
+    "ship_hopeless_chance": 0.05,
+    "ship_future_res": 0.3,
+    "ship_future_bld": 0.15,
+    "site_power": 2.0,
+    "site_early": 0.938,
+    "site_late": 0.514,
+    "site_late_left": 2,
+    "trophy_ready": 0.9,
+    "trophy_progress": 0.5,
+    "shield_early": 1.915,
+    "shield_late": 0.3,
+    "shield_late_left": 5,
+    "chain": 0.8,
+    "tile_need": 10.0,
+    "tile_block": 3.0,
+    "tile_open": 0.262,
+    "shipcell_match": 5.0,
+    "shipcell_room": 1.0,
+    "extra_gain": 3.0,
+    "extra_force_left": 3,
+    "take_ship_margin": 1.0,
+    "trophy_wait_left": 0,
+    "noise": 0.3
+   },
+   "time_s": 517.4144909381866
+  },
+  {
+   "round": 10,
+   "sigma": 0.07542042797812497,
+   "champ_score": 85.00958333333332,
+   "variations": [
+    {
+     "adv": -0.2633333333333333,
+     "ci": 2.850875868061115,
+     "win": 0.32,
+     "score": 85.33333333333333
+    },
+    {
+     "adv": 0.49666666666666665,
+     "ci": 2.950934278910481,
+     "win": 0.3466666666666667,
+     "score": 85.48
+    },
+    {
+     "adv": -1.2733333333333334,
+     "ci": 2.449277923719801,
+     "win": 0.32,
+     "score": 84.23333333333333
+    },
+    {
+     "adv": -4.8133333333333335,
+     "ci": 2.5049958247883986,
+     "win": 0.23333333333333334,
+     "score": 79.47333333333333
+    },
+    {
+     "adv": -0.7,
+     "ci": 2.9159460443110627,
+     "win": 0.29333333333333333,
+     "score": 82.92
+    },
+    {
+     "adv": 1.0666666666666667,
+     "ci": 2.6761469023770283,
+     "win": 0.35333333333333333,
+     "score": 86.1
+    },
+    {
+     "adv": -0.4633333333333333,
+     "ci": 2.549401004151793,
+     "win": 0.28,
+     "score": 84.26666666666667
+    },
+    {
+     "adv": -1.1733333333333333,
+     "ci": 2.9111082538686164,
+     "win": 0.3,
+     "score": 85.14666666666666
+    }
+   ],
+   "check": {
+    "adv": 0.57,
+    "ci": 1.607948648913845,
+    "win": 0.34,
+    "score": 85.9625,
+    "champ_score": 85.3925
+   },
+   "accepted": false,
+   "weights": {
+    "ship_base": 0.901,
+    "ship_per_missing": 0.22,
+    "ship_late": 0.25,
+    "ship_min": 0.1,
+    "ship_hopeless": 1.3,
+    "ship_hopeless_chance": 0.05,
+    "ship_future_res": 0.3,
+    "ship_future_bld": 0.15,
+    "site_power": 2.0,
+    "site_early": 0.938,
+    "site_late": 0.514,
+    "site_late_left": 2,
+    "trophy_ready": 0.9,
+    "trophy_progress": 0.5,
+    "shield_early": 1.915,
+    "shield_late": 0.3,
+    "shield_late_left": 5,
+    "chain": 0.8,
+    "tile_need": 10.0,
+    "tile_block": 3.0,
+    "tile_open": 0.262,
+    "shipcell_match": 5.0,
+    "shipcell_room": 1.0,
+    "extra_gain": 3.0,
+    "extra_force_left": 3,
+    "take_ship_margin": 1.0,
+    "trophy_wait_left": 0,
+    "noise": 0.3
+   },
+   "time_s": 577.7526750564575
+  },
+  {
+   "round": 11,
+   "sigma": 0.07164940657921871,
+   "champ_score": 84.88833333333334,
+   "variations": [
+    {
+     "adv": -0.23333333333333334,
+     "ci": 2.6607359710297627,
+     "win": 0.34,
+     "score": 84.17333333333333
+    },
+    {
+     "adv": 0.65,
+     "ci": 2.5405306972586743,
+     "win": 0.3466666666666667,
+     "score": 84.4
+    },
+    {
+     "adv": 1.1766666666666667,
+     "ci": 2.7258864265154186,
+     "win": 0.3466666666666667,
+     "score": 85.56
+    },
+    {
+     "adv": -0.41333333333333333,
+     "ci": 2.5065426458919204,
+     "win": 0.4066666666666667,
+     "score": 83.3
+    },
+    {
+     "adv": -1.9366666666666668,
+     "ci": 2.7851017407571272,
+     "win": 0.31333333333333335,
+     "score": 83.04666666666667
+    },
+    {
+     "adv": -1.77,
+     "ci": 2.6687015611623446,
+     "win": 0.32666666666666666,
+     "score": 84.59333333333333
+    },
+    {
+     "adv": 0.31333333333333335,
+     "ci": 2.6835530659181694,
+     "win": 0.38,
+     "score": 86.28
+    },
+    {
+     "adv": -2.7933333333333334,
+     "ci": 2.597938822891515,
+     "win": 0.2866666666666667,
+     "score": 82.74666666666667
+    }
+   ],
+   "check": {
+    "adv": -0.465,
+    "ci": 1.6921407064799063,
+    "win": 0.3325,
+    "score": 84.2075,
+    "champ_score": 84.6725
+   },
+   "accepted": false,
+   "weights": {
+    "ship_base": 0.901,
+    "ship_per_missing": 0.22,
+    "ship_late": 0.25,
+    "ship_min": 0.1,
+    "ship_hopeless": 1.3,
+    "ship_hopeless_chance": 0.05,
+    "ship_future_res": 0.3,
+    "ship_future_bld": 0.15,
+    "site_power": 2.0,
+    "site_early": 0.938,
+    "site_late": 0.514,
+    "site_late_left": 2,
+    "trophy_ready": 0.9,
+    "trophy_progress": 0.5,
+    "shield_early": 1.915,
+    "shield_late": 0.3,
+    "shield_late_left": 5,
+    "chain": 0.8,
+    "tile_need": 10.0,
+    "tile_block": 3.0,
+    "tile_open": 0.262,
+    "shipcell_match": 5.0,
+    "shipcell_room": 1.0,
+    "extra_gain": 3.0,
+    "extra_force_left": 3,
+    "take_ship_margin": 1.0,
+    "trophy_wait_left": 0,
+    "noise": 0.3
+   },
+   "time_s": 637.6796696186066
+  }
+ ],
+ "final": {
+  "games": 600,
+  "adv": 3.9166666666666665,
+  "ci": 1.3152563798872,
+  "win": 0.43166666666666664,
+  "score": 86.40833333333333,
+  "original_score": 82.49166666666666
+ }
+}

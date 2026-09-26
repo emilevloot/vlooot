@@ -1,0 +1,720 @@
+<title>Looot</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Alegreya+Sans:wght@400;500;700;800&display=swap">
+<style>
+  /* One deliberate look: a fjord at dusk. Single dark theme on purpose. */
+  :root {
+    color-scheme: dark;
+    --night: #141d25;
+    --slate: #1d2934;
+    --slate-2: #253441;
+    --line: #34485a;
+    --snow: #eaf0ea;
+    --mist: #9fb0b8;
+    --rune: #d0603f;
+    --rune-soft: #d0603f33;
+    --gold: #e6ad2e;
+    --sea: #2b5a7e;
+    --sea-2: #1f4462;
+    --moss: #86a24b;
+    --good: #7cc47a;
+    --p-red: #d24a3a;
+    --p-blue: #3f8fd8;
+    --p-yellow: #f0cf4a;
+    --p-grey: #9aa3ab;
+    --display: "Pirata One", "Luminari", Georgia, serif;
+    --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: radial-gradient(1200px 600px at 70% -10%, #23384a 0%, var(--night) 60%) fixed, var(--night);
+    color: var(--snow);
+    font: 16px/1.4 var(--body);
+    padding-inline: 16px;
+  }
+  button { font: inherit; color: inherit; }
+  .app { max-width: 1360px; margin: 0 auto; padding-block: 14px 40px; display: grid; gap: 14px; }
+
+  header.top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  header.top h1 { font: 44px/1 var(--display); margin: 0; letter-spacing: 1px; color: var(--snow); }
+  header.top h1 span { color: var(--rune); }
+  .players { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+  .pchip {
+    display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: center;
+    background: var(--slate); border: 1px solid var(--line); border-radius: 10px;
+    padding: 6px 12px 6px 8px; cursor: pointer; min-width: 150px;
+  }
+  .pchip.turn { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+  .pchip.viewing { background: var(--slate-2); }
+  .pchip .dot { width: 14px; height: 14px; border-radius: 50%; grid-row: span 2; }
+  .pchip .nm { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pchip .meta { font-size: 13px; color: var(--mist); font-variant-numeric: tabular-nums; }
+  .hdr-btns { display: flex; gap: 8px; }
+
+  .btn {
+    background: var(--slate-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 14px; cursor: pointer; font-weight: 600;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--mist); }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn.primary { background: var(--rune); border-color: var(--rune); color: #fff; }
+  .btn.primary:hover:not(:disabled) { background: #df7050; }
+  .btn:focus-visible, .pchip:focus-visible, .tile:focus-visible, .shield:focus-visible, .troph:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  .main { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+  @media (max-width: 980px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+  .panel { background: var(--slate); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+  .panel h2 { font: 26px/1 var(--display); margin: 0 0 8px; letter-spacing: .5px; font-weight: 400; }
+  .panel h2 small { font: 500 14px var(--body); color: var(--mist); margin-left: 6px; letter-spacing: 0; }
+
+  .boardwrap { overflow-x: auto; }
+  svg { display: block; width: 100%; height: auto; }
+  .hex { stroke: #0e151b; stroke-width: 1.5; }
+  .cell { cursor: default; }
+  .cell.legal { cursor: pointer; }
+  .cell.legal .ring { stroke: var(--gold); stroke-width: 3; fill: #e6ad2e22; animation: pulse 1.4s ease-in-out infinite; }
+  .cell.legal:hover .ring { fill: #e6ad2e55; }
+  .cell.pick { cursor: pointer; }
+  .cell.pick:hover .hex { filter: brightness(1.25); }
+  .cell.help .ring { stroke: var(--good); stroke-width: 3; fill: #7cc47a22; }
+  .cell.target .ring { stroke: var(--snow); stroke-dasharray: 4 4; stroke-width: 1.5; fill: none; }
+  .left circle { fill: var(--night); stroke: var(--gold); stroke-width: 1.5; }
+  .left text { font: 800 12px var(--body); fill: var(--snow); font-variant-numeric: tabular-nums; }
+  .left.none circle { stroke: #ff9f86; }
+  .left.none text { fill: #ff9f86; }
+  .reserve { display: flex; gap: 14px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+  .reserve span { display: inline-flex; align-items: center; gap: 4px; }
+  .reserve svg { width: 26px; height: 26px; display: inline-block; }
+  .reserve .zero { color: #ff9f86; }
+  @keyframes pulse { 50% { stroke-opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .cell.legal .ring { animation: none; } }
+
+  .status {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: var(--slate-2); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;
+  }
+  .status .who { font: 24px/1 var(--display); }
+  .status .what { color: var(--mist); flex: 1; min-width: 180px; }
+  .status .what b { color: var(--snow); }
+  .err { color: #ff9f86; font-weight: 600; }
+
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--mist); font-weight: 700; }
+  .section { display: grid; gap: 6px; margin-top: 10px; }
+
+  .shield {
+    display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px;
+    background: var(--night); border: 1px solid var(--line); border-radius: 999px; cursor: pointer; font-size: 14px;
+  }
+  .shield .ic { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 13px;
+    background: #5b6d7b; border: 2px solid #aab7bf; color: #fff; }
+  .shield.on { border-color: var(--gold); background: #e6ad2e1f; }
+  .shield.on .ic { background: var(--gold); color: #1a1a1a; border-color: #fff3; }
+  .shield.used { opacity: .35; cursor: default; text-decoration: line-through; }
+
+  .tray { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tile { background: var(--night); border: 2px solid var(--line); border-radius: 10px; padding: 2px; cursor: pointer; width: 48px; height: 48px; }
+  .tile.sel { border-color: var(--gold); }
+  .tile svg { width: 40px; height: 40px; margin: auto; }
+
+  .trophies { display: flex; gap: 6px; flex-wrap: wrap; }
+  .troph {
+    width: 58px; height: 64px; display: grid; place-items: center; align-content: center; gap: 0;
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+    background: #6f8f3f; border: 0; cursor: default; line-height: 1.05;
+  }
+  .troph .a { font-weight: 800; font-size: 17px; }
+  .troph .v { font-size: 12px; background: #5b3d22; padding: 0 6px; border-radius: 4px; color: #f3e2c2; }
+  .troph.can { background: var(--gold); color: #1a1a1a; cursor: pointer; }
+  .troph.taken { background: #3a4650; color: #8a98a2; }
+  .troph .o { font-size: 11px; }
+
+  .log { font-size: 14px; color: var(--mist); max-height: 190px; overflow-y: auto; display: grid; gap: 2px; }
+  .log div:last-child { color: var(--snow); }
+
+  .fjordhead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .score-mini { font-variant-numeric: tabular-nums; color: var(--mist); font-size: 14px; }
+  .score-mini b { color: var(--gold); font-size: 20px; }
+
+  details.rules { font-size: 15px; color: var(--mist); }
+  details.rules summary { cursor: pointer; color: var(--snow); font-weight: 700; }
+  details.rules p, details.rules li { max-width: 68ch; }
+  details.rules ul { padding-left: 18px; }
+
+  /* overlays */
+  .overlay { position: fixed; inset: 0; background: #0a0f14cc; display: grid; place-items: center; padding: 16px; z-index: 10; overflow-y: auto; }
+  .card { background: var(--slate); border: 1px solid var(--line); border-radius: 16px; padding: 20px; width: min(560px, 100%); box-shadow: 0 30px 80px #0008; }
+  .card h2 { font: 40px/1 var(--display); margin: 0 0 4px; font-weight: 400; }
+  .card p { color: var(--mist); margin: 4px 0 14px; }
+  .seat { display: grid; grid-template-columns: 16px 1fr auto; gap: 10px; align-items: center; margin-bottom: 8px; }
+  .seat input[type=text] { background: var(--night); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; color: var(--snow); font: inherit; min-width: 0; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { background: var(--night); border: 0; padding: 7px 10px; cursor: pointer; font-size: 14px; }
+  .seg button.on { background: var(--slate-2); color: var(--gold); font-weight: 700; }
+  table.scores { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 15px; }
+  table.scores th, table.scores td { padding: 5px 6px; text-align: right; border-bottom: 1px solid var(--line); }
+  table.scores th:first-child, table.scores td:first-child { text-align: left; color: var(--mist); }
+  table.scores tr.total td { font-weight: 800; color: var(--gold); font-size: 18px; border-bottom: 0; }
+  .loading { display: grid; place-items: center; gap: 10px; text-align: center; }
+  .loading .spin { width: 42px; height: 42px; border-radius: 50%; border: 4px solid var(--line); border-top-color: var(--rune); animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<div class="app">
+  <header class="top">
+    <h1>Lo<span>oo</span>t</h1>
+    <div class="players" id="players"></div>
+    <div class="hdr-btns">
+      <a class="btn" href="editor.html" style="text-decoration:none">Board editor</a>
+      <button class="btn" id="btnNew">New game</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <section class="panel">
+      <div class="status" id="status"></div>
+      <div class="boardwrap"><svg id="land" aria-label="Landscape board"></svg></div>
+      <div class="section">
+        <details class="rules">
+          <summary>How to play</summary>
+          <p>On your turn, place 1 Viking on an empty resource space next to any Viking or a longship in the ocean. Take that resource and put it anywhere on your fjord.</p>
+          <ul>
+            <li><b>Stacks</b>: each House starts with 2 tiles, each Watchtower with 2 and each Castle with 3. The number on a building shows how many are left; an empty building gives nothing.</li>
+          <li><b>House</b>: your new Viking is next to it. Take 1 house.</li>
+            <li><b>Watchtower</b>: link two towers with a chain of your Vikings. Take 1 tile for each tower. Linking a new tower to towers you already linked gives 2 more: 1 for the new tower and 1 for the tower it joins.</li>
+            <li><b>Castle</b>: a chain of 4 of your Vikings touching a castle gives 1 tile. A chain of 8 gives a 2nd tile and a chain of 12 gives a 3rd.</li>
+            <li><b>Longships</b>: at the end of your turn you may take 1 from the ocean and put it on your fjord. Put its 3 resources around it to flip it for a bonus. Each unfilled longship costs 5 points at the end.</li>
+            <li><b>Construction sites</b>: surround them with what they show to score 5, 7 or 9.</li>
+            <li><b>Shields</b> (once each): place a second Viking, stack on an occupied space, or take 2 of the resource.</li>
+            <li><b>Trophies</b>: once per game, claim one needing no more axes than you have.</li>
+            <li><b>Scoring</b>: for castles (4), watchtowers (2), houses (1), gold (2), sheep (1) and wood (1), add your longship bonuses to the starting value and multiply by how many you have.</li>
+          </ul>
+        </details>
+      </div>
+    </section>
+
+    <section class="panel" id="side">
+      <div class="fjordhead">
+        <h2 id="fjordTitle">Fjord</h2>
+        <div class="score-mini" id="scoreMini"></div>
+      </div>
+      <svg id="fjord" aria-label="Fjord board"></svg>
+      <div class="section" id="actions"></div>
+      <div class="section">
+        <div class="label">Buildings left to claim</div>
+        <div class="reserve" id="reserve"></div>
+      </div>
+      <div class="section">
+        <div class="label">Trophies</div>
+        <div class="trophies" id="trophies"></div>
+      </div>
+      <div class="section">
+        <div class="label">Saga</div>
+        <div class="log" id="log"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="card loading" id="loadingCard">
+    <div class="spin"></div>
+    <div id="loadMsg">Loading the Python game engine…</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const PCOL = { red: 'var(--p-red)', blue: 'var(--p-blue)', yellow: 'var(--p-yellow)', grey: 'var(--p-grey)' };
+  const PHEX = { red: '#d24a3a', blue: '#3f8fd8', yellow: '#f0cf4a', grey: '#9aa3ab' };
+  const TERRAIN = {
+    forest: '#577f3a', field: '#a8c065', mountain: '#7d7058', battlefield: '#9c7b4e',
+    house: '#5f7a39', watchtower: '#5f7a39', castle: '#5f7a39'
+  };
+  const RES_OF = { forest: 'wood', field: 'sheep', mountain: 'gold', battlefield: 'axe' };
+  const NAMES = { wood: 'wood', sheep: 'sheep', gold: 'gold', axe: 'axe', house: 'house', watchtower: 'watchtower', castle: 'castle' };
+  const SITE = { port: 'Port', altar: 'Altar', jarl: 'Jarl Palace' };
+  const SITE_VP = { port: 5, altar: 7, jarl: 9 };
+  const SQ3 = Math.sqrt(3);
+
+  let api = null, S = null, view = 0, busy = false;
+  let sel = { occupy: false, double: false, tile: 0 };
+  let lastError = '';
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // ---------- glyphs (small drawings for resources and buildings) ----------
+  function glyph(t, x, y, s) {
+    const g = (inner) => `<g transform="translate(${x},${y}) scale(${s})">${inner}</g>`;
+    switch (t) {
+      case 'wood': return g(`<rect x="-1.6" y="1" width="3.2" height="7" fill="#6b4a2b"/><circle cx="-3.5" cy="-1" r="5" fill="#2f5a25"/><circle cx="3.5" cy="-1" r="5" fill="#2f5a25"/><circle cx="0" cy="-5" r="5.5" fill="#3d7030"/>`);
+      case 'sheep': return g(`<ellipse cx="0" cy="0" rx="7.5" ry="5.2" fill="#f4f1e8" stroke="#bdb6a3" stroke-width=".8"/><ellipse cx="7" cy="-2" rx="2.6" ry="2.2" fill="#2b2b2b"/><rect x="-5" y="4" width="1.6" height="4" fill="#2b2b2b"/><rect x="3" y="4" width="1.6" height="4" fill="#2b2b2b"/>`);
+      case 'gold': return g(`<path d="M-7 3 L-4 -5 L3 -7 L8 -1 L5 6 L-3 7 Z" fill="#3b3226"/><path d="M-4 -1 L0 -5 L5 -3 L2 2 Z M-3 3 L1 4 L-1 6 Z" fill="#f2b92f"/>`);
+      case 'axe': return g(`<g stroke="#5a3b1e" stroke-width="2.2" stroke-linecap="round"><line x1="-7" y1="7" x2="6" y2="-6"/><line x1="7" y1="7" x2="-6" y2="-6"/></g><path d="M3 -9 Q10 -8 9 -1 L4 -5 Z" fill="#c9d1d6"/><path d="M-3 -9 Q-10 -8 -9 -1 L-4 -5 Z" fill="#c9d1d6"/>`);
+      case 'house': return g(`<rect x="-7" y="-1" width="14" height="8" fill="#8a5a33"/><path d="M-9 0 L0 -8 L9 0 Z" fill="#e3c768"/><rect x="-1.5" y="2" width="3" height="5" fill="#3a2616"/>`);
+      case 'watchtower': return g(`<rect x="-3.5" y="-4" width="7" height="12" fill="#8e969c"/><path d="M-6 -4 L0 -10 L6 -4 Z" fill="#c3532f"/><rect x="-1" y="3" width="2" height="5" fill="#333"/>`);
+      case 'castle': return g(`<path d="M-9 8 V-4 h3 v2 h2 v-2 h3 v2 h2 v-2 h3 v2 h2 v-2 h3 V8 Z" fill="#e0a39a"/><path d="M-2 8 v-4 a2 2 0 0 1 4 0 v4 Z" fill="#5b2e2a"/>`);
+    }
+    return '';
+  }
+
+  function hexPts(cx, cy, r) {
+    const p = [];
+    for (let i = 0; i < 6; i++) {
+      const a = Math.PI / 180 * (60 * i);
+      p.push((cx + r * Math.cos(a)).toFixed(1) + ',' + (cy + r * Math.sin(a)).toFixed(1));
+    }
+    return p.join(' ');
+  }
+  // Flat-top hexes, like the printed boards (same axial coordinates as looot.py)
+  const pos = (q, r, s) => [s * 1.5 * q, s * SQ3 * (r + q / 2)];
+
+  function viking(x, y, color, s) {
+    return `<g transform="translate(${x},${y}) scale(${s})"><path d="M-6 9 L-6 1 Q-6 -3 -3 -4 A4.2 4.2 0 1 1 3 -4 Q6 -3 6 1 L6 9 Z" fill="${PHEX[color]}" stroke="#0d1115" stroke-width="1.3"/><path d="M-4.5 -8 L-7.5 -12 M4.5 -8 L7.5 -12" stroke="#f1ecdc" stroke-width="1.8" stroke-linecap="round"/></g>`;
+  }
+
+  // ---------- landscape board ----------
+  function renderLand() {
+    const s = 30;
+    const cells = S.land.concat(S.ocean.map(o => ({ ...o, ocean: true })));
+    let minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
+    for (const c of cells) {
+      const [x, y] = pos(c.q, c.r, s);
+      minx = Math.min(minx, x); maxx = Math.max(maxx, x); miny = Math.min(miny, y); maxy = Math.max(maxy, y);
+    }
+    const pad = s + 4;
+    const legalSet = new Set(sel.occupy ? S.legal_occupy : S.legal);
+    const me = S.players[S.current];
+    const humanTurn = !me.ai && !S.game_over;
+    let out = '';
+    for (const c of S.land) {
+      const [x, y] = pos(c.q, c.r, s);
+      const k = c.q + ',' + c.r;
+      const isLegal = humanTurn && S.phase === 'place' && legalSet.has(k);
+      const isBld = !RES_OF[c.t];
+      out += `<g class="cell${isLegal ? ' legal' : ''}" data-k="${k}"${isLegal ? ' tabindex="0" role="button" aria-label="Place a Viking on ' + c.t + '"' : ''}>`;
+      out += `<polygon class="hex" points="${hexPts(x, y, s)}" fill="${TERRAIN[c.t]}"/>`;
+      if (isBld) {
+        out += `<polygon points="${hexPts(x, y, s - 5)}" fill="#6f8d44" stroke="#0e151b44"/>`;
+        out += glyph(c.t, x, y, 1.9);
+        out += leftBadge(c.t, c.left, x + s * 0.52, y - s * 0.5);
+      } else {
+        const res = RES_OF[c.t];
+        if (c.v.length === 0) {
+          out += glyph(res, x - 9, y - 7, 0.95) + glyph(res, x + 9, y - 5, 0.95) + glyph(res, x, y + 9, 0.95);
+        } else {
+          out += glyph(res, x, y + 12, 0.7);
+        }
+      }
+      c.v.forEach((pi, i) => {
+        const off = (i - (c.v.length - 1) / 2) * 12;
+        out += viking(x + off, y - 2, S.players[pi].color, 1.15);
+      });
+      if (isLegal) out += `<polygon class="ring" points="${hexPts(x, y, s - 3)}"/>`;
+      out += `</g>`;
+    }
+    // ocean with longships
+    for (const o of S.ocean) {
+      const [x, y] = pos(o.q, o.r, s);
+      const canPick = humanTurn && S.phase === 'actions' && !S.took_ship && o.ship;
+      const held = S.phase === 'ship' && S.held_ship === o.slot;
+      out += `<g class="cell${canPick ? ' pick' : ''}${held ? ' help' : ''}" data-slot="${o.slot}"${canPick ? ' tabindex="0" role="button" aria-label="Take this longship"' : ''}>`;
+      out += `<polygon class="hex" points="${hexPts(x, y, s)}" fill="var(--sea)"/>`;
+      if (o.ship) out += shipGlyph(o.ship, x, y, s, false, []);
+      if (held) out += `<polygon class="ring" points="${hexPts(x, y, s - 3)}"/>`;
+      out += `</g>`;
+    }
+    const W = maxx - minx + pad * 2, H = maxy - miny + pad * 2;
+    const svg = $('land');
+    svg.setAttribute('viewBox', `${minx - pad} ${miny - pad} ${W} ${H}`);
+    svg.style.minWidth = Math.min(W * 0.75, 820) + 'px';
+    svg.innerHTML = out;
+  }
+
+  // How many tiles are still on this building's stack to be claimed
+  function leftBadge(t, n, x, y) {
+    return `<g class="left${n === 0 ? ' none' : ''}"><title>${n} ${t} tile${n === 1 ? '' : 's'} left on this ${t}</title>` +
+      `<circle cx="${x}" cy="${y}" r="9.5"/><text x="${x}" y="${y + 4}" text-anchor="middle">${n}</text></g>`;
+  }
+
+  function shipGlyph(ship, x, y, s, filled, have) {
+    let out = '';
+    if (!filled) {
+      out += `<polygon points="${hexPts(x, y, s - 3)}" fill="#e8c9c4"/>`;
+      out += `<path d="M${x - s * 0.62} ${y + s * 0.28} Q${x} ${y + s * 0.62} ${x + s * 0.62} ${y + s * 0.28} Z" fill="#6a4426"/>`;
+      const pool = have.slice();
+      const spots = [[-0.34, -0.36], [0.34, -0.36], [0, 0.0]];
+      ship.need.forEach((n, i) => {
+        const [dx, dy] = spots[i];
+        const got = pool.indexOf(n);
+        if (got >= 0) pool.splice(got, 1);
+        out += `<g opacity="${got >= 0 ? 0.35 : 1}">` + glyph(n, x + dx * s, y + dy * s, 0.78) + `</g>`;
+        if (got >= 0) out += `<path d="M${x + dx * s - 5} ${y + dy * s} l3 3 l6 -7" stroke="var(--good)" stroke-width="2.4" fill="none"/>`;
+      });
+      out += `<text x="${x + s * 0.02}" y="${y + s * 0.58}" text-anchor="middle" font-size="${s * 0.3}" font-weight="800" fill="#f3e2c2">+${ship.bonus}</text>`;
+      out += glyph(ship.cat, x + s * 0.42, y + s * 0.33, 0.55);
+    } else {
+      out += `<polygon points="${hexPts(x, y, s - 3)}" fill="#8b6239" stroke="var(--gold)" stroke-width="2"/>`;
+      out += `<text x="${x - s * 0.22}" y="${y + s * 0.18}" text-anchor="middle" font-size="${s * 0.55}" font-weight="800" fill="#f3e2c2">+${ship.bonus}</text>`;
+      out += glyph(ship.cat, x + s * 0.32, y + s * 0.02, 0.95);
+    }
+    return out;
+  }
+
+  // ---------- fjord ----------
+  function renderFjord() {
+    const P = S.players[view];
+    const s = 27;
+    const me = S.players[S.current];
+    const mine = view === S.current && !me.ai && !S.game_over;
+    const pending = S.pending[sel.tile] || S.pending[0];
+    const helpSet = new Set(mine && S.phase === 'tiles' && pending ? (S.helpful[pending.type] || []) : []);
+    const placing = mine && (S.phase === 'tiles' || S.phase === 'ship');
+    let minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9, out = '';
+    for (const c of P.fjord) {
+      const [x, y] = pos(c.q, c.r, s);
+      minx = Math.min(minx, x); maxx = Math.max(maxx, x); miny = Math.min(miny, y); maxy = Math.max(maxy, y);
+    }
+    for (const c of P.fjord) {
+      const [x, y] = pos(c.q, c.r, s);
+      const k = c.q + ',' + c.r;
+      const it = c.item;
+      const empty = !it;
+      const pick = placing && empty;
+      const help = pick && helpSet.has(k);
+      out += `<g class="cell${pick ? ' pick' : ''}${help ? ' help' : ''}" data-f="${k}"${pick ? ' tabindex="0" role="button" aria-label="Put the tile here"' : ''}>`;
+      if (empty) {
+        out += `<polygon class="hex" points="${hexPts(x, y, s)}" fill="#6f8d44"/>`;
+      } else if (it.kind === 'res' || it.kind === 'bld') {
+        out += `<polygon class="hex" points="${hexPts(x, y, s)}" fill="${it.kind === 'bld' ? '#5b7536' : '#86a24b'}"/>`;
+        out += glyph(it.type, x, y + 1, 1.6);
+      } else if (it.kind === 'ship') {
+        out += `<polygon class="hex" points="${hexPts(x, y, s)}" fill="var(--sea-2)"/>`;
+        out += shipGlyph(it, x, y, s, it.filled, c.have || []);
+      } else if (it.kind === 'site') {
+        out += siteGlyph(it, x, y, s, c.have || []);
+      }
+      if (pick) out += `<polygon class="ring" points="${hexPts(x, y, s - 3)}" fill="none" stroke="transparent"/>`;
+      out += `</g>`;
+    }
+    const pad = s + 3;
+    const svg = $('fjord');
+    svg.setAttribute('viewBox', `${minx - pad} ${miny - pad} ${maxx - minx + pad * 2} ${maxy - miny + pad * 2}`);
+    svg.innerHTML = out;
+  }
+
+  function siteGlyph(it, x, y, s, have) {
+    let out = `<polygon class="hex" points="${hexPts(x, y, s)}" fill="${it.done ? '#cfe3ea' : '#3d5a4a'}" stroke="${it.done ? 'var(--gold)' : '#0e151b'}" stroke-width="${it.done ? 2.5 : 1.5}"/>`;
+    if (it.done) {
+      out += `<path d="M${x - 12} ${y + 6} L${x} ${y - 10} L${x + 12} ${y + 6} Z" fill="#2f8f8a"/><rect x="${x - 8}" y="${y + 6}" width="16" height="9" fill="#7a5433"/>`;
+      out += `<text x="${x}" y="${y + s * 0.82}" text-anchor="middle" font-size="10" font-weight="800" fill="#1b2a33">${SITE_VP[it.type]} VP</text>`;
+      return out;
+    }
+    const n = it.need.length;
+    const pool = have.slice();
+    const rad = s * 0.52;
+    it.need.forEach((t, i) => {
+      const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+      const gx = x + rad * Math.cos(a), gy = y + rad * Math.sin(a) - 2;
+      const got = pool.indexOf(t);
+      if (got >= 0) pool.splice(got, 1);
+      out += `<g opacity="${got >= 0 ? 0.3 : 1}">` + glyph(t, gx, gy, 0.62) + `</g>`;
+    });
+    out += `<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="11" font-weight="800" fill="#f3e2c2">${SITE_VP[it.type]}</text>`;
+    return out;
+  }
+
+  // ---------- side panel ----------
+  function renderPlayers() {
+    $('players').innerHTML = S.players.map((p, i) => `
+      <div class="pchip${i === S.current && !S.game_over ? ' turn' : ''}${i === view ? ' viewing' : ''}" data-view="${i}" tabindex="0" role="button" aria-label="Show ${esc(p.name)}'s fjord">
+        <span class="dot" style="background:${PCOL[p.color]}"></span>
+        <span class="nm">${esc(p.name)}${p.ai ? ' <small style="color:var(--mist);font-weight:500">(computer)</small>' : ''}</span>
+        <span class="meta">${p.vikings_left} Vikings · ${p.score.total} pts · ${p.axes} axes</span>
+      </div>`).join('');
+  }
+
+  function renderStatus() {
+    const p = S.players[S.current];
+    let what = '';
+    if (S.game_over) {
+      what = `<b>Game over.</b> ${S.winners.map(i => esc(S.players[i].name)).join(' & ')} ${S.winners.length > 1 ? 'share' : 'wins'} the title of Jarl.`;
+    } else if (p.ai) {
+      what = 'The computer is thinking…';
+    } else if (S.phase === 'place') {
+      what = sel.occupy ? '<b>Stack</b> your Viking on an occupied space (gold rings).' : '<b>Place a Viking</b> on a gold-ringed space.';
+      if (S.extra_active) what = '<b>Second Viking</b> from your shield: ' + what;
+    } else if (S.phase === 'tiles') {
+      what = `<b>Put ${S.pending.length} tile${S.pending.length > 1 ? 's' : ''} on your fjord.</b> Green spaces help a longship or site.`;
+      if (S.pending.length > S.room)
+        what = `<b>Your fjord only has room for ${S.room} of ${S.pending.length} tiles.</b> Pick the tile${S.room > 1 ? 's' : ''} you want to keep; the rest are lost.`;
+    } else if (S.phase === 'ship') {
+      what = '<b>Pick an empty fjord space</b> for your longship.';
+    } else if (S.phase === 'actions') {
+      what = 'Optionally take a longship from the ocean or claim a trophy, then <b>end your turn</b>.';
+    }
+    $('status').innerHTML = `
+      <span class="who" style="color:${PCOL[p.color]}">${esc(p.name)}</span>
+      <span class="what">${what}${lastError ? `<br><span class="err">${esc(lastError)}</span>` : ''}</span>`;
+  }
+
+  function renderActions() {
+    const p = S.players[S.current];
+    const P = S.players[view];
+    const sc = P.score;
+    $('fjordTitle').innerHTML = `${P.name === 'You' ? 'Your' : esc(P.name) + "'s"} fjord${view !== S.current ? ' <small>(viewing)</small>' : ''}`;
+    $('scoreMini').innerHTML = `<b>${sc.total}</b> pts · ${P.vikings_left} Vikings left`;
+    let h = '';
+    const human = !p.ai && !S.game_over && view === S.current;
+    if (human && S.phase === 'place') {
+      h += `<div class="label">Shields for this Viking</div><div class="row">`;
+      h += shieldBtn('occupy', 'Stack on occupied space', p.shields.occupy, sel.occupy, '↧');
+      h += shieldBtn('double', 'Take 2 of the resource', p.shields.double, sel.double, '×2');
+      h += `</div>`;
+    }
+    if (human && S.phase === 'tiles') {
+      h += `<div class="label">Tiles to place</div><div class="tray">`;
+      S.pending.forEach((t, i) => {
+        h += `<button class="tile${i === sel.tile ? ' sel' : ''}" data-tile="${i}" aria-label="${t.type}"><svg viewBox="-12 -12 24 24">${glyph(t.type, 0, 0, 1)}</svg></button>`;
+      });
+      h += `</div>`;
+    }
+    if (human && S.phase === 'actions') {
+      h += `<div class="row">`;
+      if (S.can_extra)
+        h += `<button class="btn" data-act="extra">Use shield: place a second Viking</button>`;
+      h += `<button class="btn primary" data-act="end">End turn</button></div>`;
+      if (!S.took_ship) h += `<div style="color:var(--mist);font-size:14px">Tip: click a longship in the ocean to take it.</div>`;
+    }
+    if (human && S.phase === 'ship') {
+      h += `<div class="row"><button class="btn" data-act="cancelship">Put the longship back</button></div>`;
+    }
+    if (human) {
+      const used = Object.entries(p.shields).filter(([k, v]) => !v).map(([k]) => k);
+      if (S.phase !== 'place') h += `<div style="color:var(--mist);font-size:14px">Shields left: ${3 - used.length} of 3</div>`;
+    }
+    if (S.game_over) h += `<div class="row"><button class="btn primary" data-act="scores">Show final scores</button></div>`;
+    $('actions').innerHTML = h;
+
+    $('trophies').innerHTML = S.trophies.map((t, i) => {
+      const can = human && S.claimable.includes(i);
+      const cls = t.owner !== null ? 'taken' : can ? 'can' : '';
+      return `<button class="troph ${cls}" data-troph="${i}" ${can ? '' : 'tabindex="-1"'} aria-label="${t.axes} axes trophy, ${t.vp} points">
+        <span class="a">${t.axes}⚒</span><span class="v">${t.vp} VP</span>${t.owner !== null ? `<span class="o">${esc(S.players[t.owner].name).slice(0, 8)}</span>` : ''}</button>`;
+    }).join('');
+
+    $('reserve').innerHTML = ['house', 'watchtower', 'castle'].map(b =>
+      `<span class="${S.supply[b] === 0 ? 'zero' : ''}"><svg viewBox="-12 -12 24 24" aria-hidden="true">${glyph(b, 0, 0, 1)}</svg>${S.supply[b]} ${b}${S.supply[b] === 1 ? '' : 's'}</span>`).join('');
+
+    $('log').innerHTML = S.log.map(l => `<div>${esc(l)}</div>`).join('');
+    $('log').scrollTop = 1e6;
+  }
+
+  function shieldBtn(k, label, avail, on, ic) {
+    return `<button class="shield${!avail ? ' used' : on ? ' on' : ''}" data-shield="${k}" ${avail ? '' : 'disabled'}><span class="ic">${ic}</span>${label}</button>`;
+  }
+
+  function render() {
+    if (!S) return;
+    if (sel.tile >= S.pending.length) sel.tile = 0;
+    if (S.phase !== 'place') { sel.occupy = false; sel.double = false; }
+    renderPlayers(); renderStatus(); renderLand(); renderFjord(); renderActions();
+    if (S.game_over && !render.shownEnd) { render.shownEnd = true; showScores(); }
+  }
+
+  // ---------- talking to Python ----------
+  function call(fn, ...args) {
+    const res = JSON.parse(api[fn](...args));
+    lastError = res.error || '';
+    S = res;
+    render();
+    maybeAI();
+  }
+
+  function maybeAI() {
+    if (!S || S.game_over || busy) return;
+    const p = S.players[S.current];
+    if (!p.ai) { if (view !== S.current && !S.players[view].ai) {} return; }
+    busy = true;
+    setTimeout(() => {
+      busy = false;
+      S = JSON.parse(api.ai_turn());
+      const nxt = S.players[S.current];
+      if (!nxt.ai) view = S.current;
+      render();
+      maybeAI();
+    }, 850);
+  }
+
+  // ---------- events ----------
+  document.addEventListener('click', onClick);
+  document.addEventListener('keydown', e => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role=button]')) { e.preventDefault(); onClick(e); }
+  });
+
+  function onClick(e) {
+    if (!S) return;
+    const t = e.target.closest('[data-k],[data-slot],[data-f],[data-view],[data-shield],[data-tile],[data-act],[data-troph]');
+    if (!t) return;
+    const p = S.players[S.current];
+    if (t.dataset.view !== undefined) { view = +t.dataset.view; render(); return; }
+    if (t.dataset.act === 'scores') { showScores(); return; }
+    if (p.ai || S.game_over) return;
+    if (t.dataset.k && S.phase === 'place' && t.classList.contains('legal')) {
+      const [q, r] = t.dataset.k.split(',').map(Number);
+      call('place_viking', q, r, sel.occupy, sel.double);
+      return;
+    }
+    if (t.dataset.shield) {
+      sel[t.dataset.shield] = !sel[t.dataset.shield]; render(); return;
+    }
+    if (t.dataset.tile !== undefined) { sel.tile = +t.dataset.tile; render(); return; }
+    if (t.dataset.f && t.classList.contains('pick')) {
+      const [q, r] = t.dataset.f.split(',').map(Number);
+      if (S.phase === 'tiles') call('place_tile', Math.min(sel.tile, S.pending.length - 1), q, r);
+      else if (S.phase === 'ship') call('place_ship', q, r);
+      return;
+    }
+    if (t.dataset.slot !== undefined && t.classList.contains('pick')) {
+      view = S.current; call('pick_ship', +t.dataset.slot); return;
+    }
+    if (t.dataset.troph !== undefined && t.classList.contains('can')) { call('claim_trophy', +t.dataset.troph); return; }
+    if (t.dataset.act === 'end') { call('end_turn'); return; }
+    if (t.dataset.act === 'extra') { call('use_extra'); return; }
+    if (t.dataset.act === 'cancelship') { call('cancel_ship'); return; }
+  }
+
+  // ---------- setup & scores ----------
+  const seats = [
+    { name: 'You', ai: false, on: true },
+    { name: 'Astrid', ai: true, on: true },
+    { name: 'Ragnar', ai: true, on: true },
+    { name: 'Hilda', ai: true, on: false },
+  ];
+  const SEAT_COL = ['red', 'blue', 'yellow', 'grey'];
+
+  function showSetup() {
+    const ov = $('overlay');
+    ov.hidden = false;
+    const n = seats.filter(s => s.on).length;
+    ov.innerHTML = `<div class="card" role="dialog" aria-label="New game">
+      <h2>New game</h2>
+      <p>2 to 4 Vikings share one screen. Any seat can be played by the computer.</p>
+      ${seats.map((s, i) => `
+        <div class="seat" style="${s.on ? '' : 'opacity:.45'}">
+          <span class="dot" style="width:14px;height:14px;border-radius:50%;background:${PCOL[SEAT_COL[i]]}"></span>
+          <input type="text" id="seatName${i}" value="${esc(s.name)}" aria-label="Name of player ${i + 1}" ${s.on ? '' : 'disabled'}>
+          <span class="seg">
+            ${i >= 2 ? `<button data-seat="${i}" data-mode="off" class="${!s.on ? 'on' : ''}">Empty</button>` : ''}
+            <button data-seat="${i}" data-mode="human" class="${s.on && !s.ai ? 'on' : ''}">Human</button>
+            <button data-seat="${i}" data-mode="ai" class="${s.on && s.ai ? 'on' : ''}">Computer</button>
+          </span>
+        </div>`).join('')}
+      <div class="row" style="justify-content:space-between;margin-top:14px">
+        <span style="color:var(--mist);font-size:14px">${n} players · ${n * 13} Vikings · ${n} landscape boards</span>
+        <span class="row">${S ? '<button class="btn" id="cancelSetup">Cancel</button>' : ''}<button class="btn primary" id="startGame">Start</button></span>
+      </div></div>`;
+    ov.querySelectorAll('[data-seat]').forEach(b => b.onclick = () => {
+      saveNames();
+      const s = seats[+b.dataset.seat], m = b.dataset.mode;
+      if (m === 'off') s.on = false; else { s.on = true; s.ai = m === 'ai'; }
+      if (seats.filter(x => x.on).length < 2) seats[1].on = true;
+      showSetup();
+    });
+    const cancel = $('cancelSetup');
+    if (cancel) cancel.onclick = () => { ov.hidden = true; };
+    $('startGame').onclick = () => {
+      saveNames();
+      const ps = seats.filter(s => s.on).map((s, i) => ({ name: (s.name || 'Player').slice(0, 18), ai: s.ai }));
+      ov.hidden = true;
+      render.shownEnd = false;
+      S = JSON.parse(api.new_game(JSON.stringify(ps), -1));
+      view = S.players.findIndex(p => !p.ai); if (view < 0) view = 0;
+      if (!S.players[S.current].ai) view = S.current;
+      lastError = '';
+      render(); maybeAI();
+    };
+  }
+  function saveNames() {
+    seats.forEach((s, i) => { const el = $('seatName' + i); if (el) s.name = el.value.trim() || s.name; });
+  }
+
+  function showScores() {
+    const ov = $('overlay');
+    ov.hidden = false;
+    const cats = ['castle', 'watchtower', 'house', 'gold', 'sheep', 'wood'];
+    const LBL = { castle: 'Castles', watchtower: 'Watchtowers', house: 'Houses', gold: 'Gold', sheep: 'Sheep', wood: 'Wood' };
+    const rows = cats.map(c => `<tr><td>${LBL[c]}</td>${S.players.map(p => {
+      const r = p.score.rows[c]; return `<td title="${r.value} × ${r.count}">${r.points}<small style="color:var(--mist)"> (${r.value}×${r.count})</small></td>`;
+    }).join('')}</tr>`).join('');
+    ov.innerHTML = `<div class="card" role="dialog" aria-label="Final scores" style="width:min(720px,100%)">
+      <h2>${S.winners.map(i => esc(S.players[i].name)).join(' & ')} ${S.winners.length > 1 ? 'share the title' : 'is the new Jarl'}</h2>
+      <p>Final scores. Each category is its value (starting value plus longship bonuses) times how many you have.</p>
+      <div style="overflow-x:auto"><table class="scores">
+        <tr><th></th>${S.players.map(p => `<th style="color:${PCOL[p.color]}">${esc(p.name)}</th>`).join('')}</tr>
+        ${rows}
+        <tr><td>Construction sites</td>${S.players.map(p => `<td>${p.score.sites}</td>`).join('')}</tr>
+        <tr><td>Trophy</td>${S.players.map(p => `<td>${p.score.trophy}</td>`).join('')}</tr>
+        <tr><td>Unfilled longships</td>${S.players.map(p => `<td>${p.score.penalty}</td>`).join('')}</tr>
+        <tr class="total"><td>Total</td>${S.players.map(p => `<td>${p.score.total}</td>`).join('')}</tr>
+      </table></div>
+      <div class="row" style="justify-content:flex-end;margin-top:14px">
+        <button class="btn" id="closeScores">Look at the board</button>
+        <button class="btn primary" id="again">New game</button>
+      </div></div>`;
+    $('closeScores').onclick = () => { ov.hidden = true; };
+    $('again').onclick = showSetup;
+  }
+
+  $('btnNew').onclick = () => { if (api) showSetup(); };
+
+  // ---------- boot Python ----------
+  async function boot() {
+    try {
+      const base = new URL('py/', location.href).href;
+      await new Promise((ok, bad) => {
+        const sc = document.createElement('script');
+        sc.src = base + 'pyodide.js'; sc.onload = ok; sc.onerror = () => bad(new Error('Could not load Pyodide'));
+        document.head.appendChild(sc);
+      });
+      $('loadMsg').textContent = 'Starting Python…';
+      // The standard library ships as base64 text; turn it back into a zip blob.
+      const b64 = await (await fetch(base + 'python_stdlib.b64.txt')).text();
+      const bin = Uint8Array.from(atob(b64.trim()), ch => ch.charCodeAt(0));
+      // Hand the bytes to Pyodide without a network request (the page may
+      // not fetch blob: URLs), by answering its fetch for this one name.
+      const stdLibURL = base + 'python_stdlib_inline.zip';
+      const realFetch = window.fetch.bind(window);
+      window.fetch = (u, o) => String(u && u.url || u) === stdLibURL
+        ? Promise.resolve(new Response(bin, { headers: { 'Content-Type': 'application/zip' } }))
+        : realFetch(u, o);
+      const py = await loadPyodide({ indexURL: base, stdLibURL });
+      window.fetch = realFetch;
+      $('loadMsg').textContent = 'Loading the rules…';
+      // Local copy: looot.py next to this page. Published copy: looot.py.txt.
+      let res = await fetch('looot.py', { cache: 'no-store' }).catch(() => null);
+      if (!res || !res.ok) res = await fetch('looot.py.txt', { cache: 'no-store' });
+      const src = await res.text();
+      py.runPython(src);
+      api = py.globals.get('api');
+      // Board layouts from the editor (boards.json); random boards if missing.
+      const lay = await fetch('boards.json', { cache: 'no-store' }).catch(() => null);
+      if (lay && lay.ok) {
+        const err = api.set_layout(await lay.text());
+        if (err) console.warn('boards.json ignored:', err);
+      }
+      showSetup();
+    } catch (err) {
+      $('loadingCard').innerHTML = `<h2 style="font:32px var(--display);margin:0">The ships could not sail</h2><p style="color:var(--mist)">Python didn't start in this browser: ${esc(err && err.message || err)}</p>`;
+    }
+  }
+  boot();
+})();
+</script>
