@@ -7,6 +7,10 @@ PLAY
   close it to stop.
   (It needs Python installed. If "python" isn't found, try replacing
   "python" with "py" in start_game.bat.)
+  Computer players: "Computer" is the greedy player, "Network" the neural
+  network (2-player games only). The network's turns are played by
+  server.py (it needs numpy and numba; NN_MODEL in server.py says which
+  network plays). Without them, the greedy player takes its turns.
 
 EDIT THE LANDSCAPE BOARDS
   Click "Board editor" in the game (or open

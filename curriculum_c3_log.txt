@@ -1,0 +1,224 @@
+10:08:23 === stage 1/5: resources ===
+10:09:16   data: 8000 greedy games in 53 s
+10:09:40   trained c3_resources_a in 24 s
+10:09:46   c3_resources_a         wins 100.0% ±0.0, margin   +7.4, score  16.2, longship penalty   0.0,   13 ms/turn (test error 1.72)
+10:11:03   round 1: 8000 self-play games in 34 s, trained c3_resources_r1 in 44 s
+10:11:09   c3_resources_r1        wins 100.0% ±0.0, margin   +8.4, score  16.6, longship penalty   0.0,   14 ms/turn (test error 1.63)
+10:12:48   round 2: 8000 self-play games in 35 s, trained c3_resources_r2 in 64 s
+10:12:54   c3_resources_r2        wins 100.0% ±0.0, margin   +8.3, score  16.6, longship penalty   0.0,   14 ms/turn (test error 1.51)
+10:12:54   best of stage resources: c3_resources_r1 (100.0% wins)
+10:12:54 === stage 2/5: buildings ===
+10:13:58   data: 8000 greedy games in 64 s
+10:14:20   trained c3_buildings_a in 22 s
+10:14:29   c3_buildings_a         wins  81.3% ±3.4, margin   +6.6, score  31.6, longship penalty   0.0,   13 ms/turn (test error 5.21)
+10:15:55   round 1: 8000 self-play games in 42 s, trained c3_buildings_r1 in 44 s
+10:16:05   c3_buildings_r1        wins  94.4% ±2.0, margin  +11.0, score  34.8, longship penalty   0.0,   14 ms/turn (test error 5.23)
+10:17:51   round 2: 8000 self-play games in 43 s, trained c3_buildings_r2 in 64 s
+10:18:01   c3_buildings_r2        wins  97.2% ±1.4, margin  +11.9, score  35.8, longship penalty   0.0,   15 ms/turn (test error 4.77)
+10:21:18   round 3: 8000 self-play games in 45 s, trained c3_buildings_r3 in 152 s
+10:21:34   c3_buildings_r3        wins  98.0% ±1.2, margin  +12.7, score  36.2, longship penalty   0.0,   23 ms/turn (test error 4.54)
+10:21:34   best of stage buildings: c3_buildings_r3 (98.0% wins)
+10:21:34 === stage 3/5: sites ===
+10:22:39   data: 8000 greedy games in 65 s
+10:23:06   trained c3_sites_a in 27 s
+10:23:16   c3_sites_a             wins  94.1% ±2.1, margin  +17.2, score  52.0, longship penalty   0.0,   15 ms/turn (test error 8.25)
+10:24:43   round 1: 8000 self-play games in 44 s, trained c3_sites_r1 in 43 s
+10:24:53   c3_sites_r1            wins  98.7% ±1.0, margin  +22.1, score  55.6, longship penalty   0.0,   15 ms/turn (test error 7.86)
+10:26:40   round 2: 8000 self-play games in 43 s, trained c3_sites_r2 in 64 s
+10:26:50   c3_sites_r2            wins  98.4% ±1.1, margin  +22.1, score  55.0, longship penalty   0.0,   14 ms/turn (test error 7.38)
+10:29:49   round 3: 8000 self-play games in 43 s, trained c3_sites_r3 in 136 s
+10:29:59   c3_sites_r3            wins  97.1% ±1.5, margin  +22.1, score  54.3, longship penalty   0.0,   15 ms/turn (test error 7.22)
+10:29:59   best of stage sites: c3_sites_r1 (98.7% wins)
+10:29:59 === stage 4/5: longships ===
+10:31:32   data: 8000 greedy games in 93 s
+10:31:54   trained c3_longships_a in 22 s
+10:32:11   c3_longships_a         wins  37.1% ±4.2, margin   -6.6, score  51.9, longship penalty -20.6,   27 ms/turn (test error 14.37)
+10:33:59   round 1: 8000 self-play games in 65 s, trained c3_longships_r1 in 43 s
+10:34:16   c3_longships_r1        wins  76.1% ±3.7, margin  +14.8, score  71.5, longship penalty  -6.7,   27 ms/turn (test error 15.37)
+10:36:24   round 2: 8000 self-play games in 64 s, trained c3_longships_r2 in 63 s
+10:36:41   c3_longships_r2        wins  80.8% ±3.5, margin  +18.7, score  75.1, longship penalty  -4.2,   27 ms/turn (test error 14.70)
+10:40:02   round 3: 8000 self-play games in 65 s, trained c3_longships_r3 in 136 s
+10:40:20   c3_longships_r3        wins  80.1% ±3.5, margin  +18.0, score  76.1, longship penalty  -3.6,   28 ms/turn (test error 14.21)
+10:43:35   round 4: 8000 self-play games in 66 s, trained c3_longships_r4 in 129 s
+10:43:52   c3_longships_r4        wins  78.5% ±3.6, margin  +17.0, score  75.5, longship penalty  -3.5,   28 ms/turn (test error 13.38)
+10:47:09   round 5: 8000 self-play games in 66 s, trained c3_longships_r5 in 131 s
+10:47:27   c3_longships_r5        wins  86.3% ±3.0, margin  +21.6, score  77.9, longship penalty  -3.4,   28 ms/turn (test error 13.18)
+10:50:44   round 6: 8000 self-play games in 67 s, trained c3_longships_r6 in 130 s
+10:51:01   c3_longships_r6        wins  83.3% ±3.3, margin  +21.6, score  78.5, longship penalty  -3.1,   27 ms/turn (test error 12.96)
+10:54:17   round 7: 8000 self-play games in 65 s, trained c3_longships_r7 in 130 s
+10:54:34   c3_longships_r7        wins  84.8% ±3.1, margin  +21.5, score  77.6, longship penalty  -3.5,   27 ms/turn (test error 12.89)
+10:57:50   round 8: 8000 self-play games in 66 s, trained c3_longships_r8 in 130 s
+10:58:08   c3_longships_r8        wins  81.3% ±3.4, margin  +18.1, score  77.2, longship penalty  -3.5,   27 ms/turn (test error 13.00)
+11:01:24   round 9: 8000 self-play games in 65 s, trained c3_longships_r9 in 130 s
+11:01:41   c3_longships_r9        wins  80.2% ±3.5, margin  +16.8, score  75.5, longship penalty  -3.9,   27 ms/turn (test error 12.81)
+11:04:58   round 10: 8000 self-play games in 66 s, trained c3_longships_r10 in 130 s
+11:05:15   c3_longships_r10       wins  83.4% ±3.3, margin  +20.0, score  78.3, longship penalty  -2.8,   27 ms/turn (test error 12.80)
+11:05:15   best of stage longships: c3_longships_r5 (86.3% wins)
+11:05:15 === stage 5/5: full ===
+11:07:11   data: 8000 greedy games in 116 s
+11:07:31   trained c3_full_a in 20 s
+11:07:55   c3_full_a              wins  49.0% ±4.4, margin   -0.5, score  86.1, longship penalty  -3.4,   42 ms/turn (test error 12.98)
+11:09:58   round 1: 8000 self-play games in 83 s, trained c3_full_r1 in 40 s
+11:10:23   c3_full_r1             wins  72.2% ±3.9, margin  +10.9, score  94.5, longship penalty  -2.0,   46 ms/turn (test error 12.72)
+11:12:54   round 2: 8000 self-play games in 92 s, trained c3_full_r2 in 59 s
+11:13:21   c3_full_r2             wins  71.8% ±3.9, margin  +11.1, score  93.9, longship penalty  -2.1,   49 ms/turn (test error 12.62)
+11:16:17   round 3: 8000 self-play games in 97 s, trained c3_full_r3 in 79 s
+11:16:44   c3_full_r3             wins  71.8% ±3.9, margin  +10.9, score  94.5, longship penalty  -2.9,   50 ms/turn (test error 12.49)
+11:19:45   round 4: 8000 self-play games in 103 s, trained c3_full_r4 in 78 s
+11:20:12   c3_full_r4             wins  72.4% ±3.9, margin  +12.5, score  96.6, longship penalty  -2.7,   50 ms/turn (test error 12.70)
+11:23:14   round 5: 8000 self-play games in 104 s, trained c3_full_r5 in 78 s
+11:23:43   c3_full_r5             wins  76.2% ±3.7, margin  +13.6, score  97.8, longship penalty  -2.6,   52 ms/turn (test error 12.81)
+11:26:44   round 6: 8000 self-play games in 103 s, trained c3_full_r6 in 78 s
+11:27:12   c3_full_r6             wins  74.4% ±3.8, margin  +12.3, score  96.8, longship penalty  -2.8,   53 ms/turn (test error 12.88)
+11:30:18   round 7: 8000 self-play games in 107 s, trained c3_full_r7 in 78 s
+11:30:47   c3_full_r7             wins  71.6% ±4.0, margin  +10.2, score  94.9, longship penalty  -2.8,   55 ms/turn (test error 12.70)
+11:33:55   round 8: 8000 self-play games in 110 s, trained c3_full_r8 in 78 s
+11:34:25   c3_full_r8             wins  80.8% ±3.5, margin  +14.8, score  98.5, longship penalty  -2.2,   56 ms/turn (test error 12.66)
+11:37:39   round 9: 8000 self-play games in 116 s, trained c3_full_r9 in 78 s
+11:38:08   c3_full_r9             wins  72.0% ±3.9, margin  +10.9, score  94.9, longship penalty  -2.9,   55 ms/turn (test error 12.65)
+11:41:21   round 10: 8000 self-play games in 115 s, trained c3_full_r10 in 78 s
+11:41:51   c3_full_r10            wins  71.4% ±4.0, margin  +12.9, score  96.9, longship penalty  -2.7,   56 ms/turn (test error 12.82)
+11:45:03   round 11: 8000 self-play games in 114 s, trained c3_full_r11 in 78 s
+11:45:32   c3_full_r11            wins  72.6% ±3.9, margin  +13.1, score  96.4, longship penalty  -3.3,   54 ms/turn (test error 12.83)
+11:48:43   round 12: 8000 self-play games in 112 s, trained c3_full_r12 in 78 s
+11:49:12   c3_full_r12            wins  70.6% ±4.0, margin  +11.6, score  95.2, longship penalty  -3.5,   55 ms/turn (test error 12.69)
+11:52:23   round 13: 8000 self-play games in 113 s, trained c3_full_r13 in 78 s
+11:52:53   c3_full_r13            wins  69.8% ±4.0, margin  +10.9, score  95.1, longship penalty  -3.1,   56 ms/turn (test error 12.68)
+11:56:03   round 14: 8000 self-play games in 112 s, trained c3_full_r14 in 78 s
+11:56:33   c3_full_r14            wins  66.4% ±4.1, margin   +8.8, score  93.3, longship penalty  -3.6,   55 ms/turn (test error 12.78)
+11:59:43   round 15: 8000 self-play games in 112 s, trained c3_full_r15 in 78 s
+12:00:11   c3_full_r15            wins  68.4% ±4.1, margin   +9.8, score  95.1, longship penalty  -2.8,   53 ms/turn (test error 12.92)
+12:03:22   round 16: 8000 self-play games in 112 s, trained c3_full_r16 in 78 s
+12:03:50   c3_full_r16            wins  64.2% ±4.2, margin   +6.8, score  91.4, longship penalty  -3.5,   53 ms/turn (test error 12.83)
+12:06:59   round 17: 8000 self-play games in 110 s, trained c3_full_r17 in 78 s
+12:07:28   c3_full_r17            wins  69.8% ±4.0, margin  +10.9, score  95.7, longship penalty  -2.9,   56 ms/turn (test error 12.87)
+12:10:40   round 18: 8000 self-play games in 114 s, trained c3_full_r18 in 78 s
+12:11:09   c3_full_r18            wins  62.0% ±4.3, margin   +7.3, score  91.9, longship penalty  -3.1,   53 ms/turn (test error 13.09)
+12:14:19   round 19: 8000 self-play games in 112 s, trained c3_full_r19 in 78 s
+12:14:48   c3_full_r19            wins  67.6% ±4.1, margin   +9.0, score  93.9, longship penalty  -2.9,   54 ms/turn (test error 12.98)
+12:17:57   round 20: 8000 self-play games in 111 s, trained c3_full_r20 in 78 s
+12:18:25   c3_full_r20            wins  60.2% ±4.3, margin   +5.0, score  90.8, longship penalty  -3.2,   51 ms/turn (test error 12.81)
+12:21:31   round 21: 8000 self-play games in 108 s, trained c3_full_r21 in 78 s
+12:21:59   c3_full_r21            wins  59.2% ±4.3, margin   +5.4, score  91.0, longship penalty  -2.9,   52 ms/turn (test error 12.84)
+12:25:09   round 22: 8000 self-play games in 111 s, trained c3_full_r22 in 78 s
+12:25:37   c3_full_r22            wins  57.6% ±4.3, margin   +4.0, score  90.0, longship penalty  -3.3,   53 ms/turn (test error 12.96)
+12:28:46   round 23: 8000 self-play games in 110 s, trained c3_full_r23 in 79 s
+12:29:15   c3_full_r23            wins  69.4% ±4.0, margin  +10.7, score  94.4, longship penalty  -3.0,   54 ms/turn (test error 12.98)
+12:32:28   round 24: 8000 self-play games in 115 s, trained c3_full_r24 in 78 s
+12:32:57   c3_full_r24            wins  62.2% ±4.3, margin   +7.4, score  92.8, longship penalty  -2.7,   55 ms/turn (test error 12.91)
+12:36:10   round 25: 8000 self-play games in 114 s, trained c3_full_r25 in 78 s
+12:36:38   c3_full_r25            wins  55.0% ±4.4, margin   +1.4, score  88.6, longship penalty  -3.4,   50 ms/turn (test error 12.88)
+12:39:48   round 26: 8000 self-play games in 112 s, trained c3_full_r26 in 78 s
+12:40:16   c3_full_r26            wins  51.2% ±4.4, margin   -0.4, score  86.6, longship penalty  -4.0,   52 ms/turn (test error 12.76)
+12:43:25   round 27: 8000 self-play games in 110 s, trained c3_full_r27 in 78 s
+12:43:53   c3_full_r27            wins  50.4% ±4.4, margin   -1.0, score  86.4, longship penalty  -3.9,   52 ms/turn (test error 13.03)
+12:47:01   round 28: 8000 self-play games in 109 s, trained c3_full_r28 in 78 s
+12:47:30   c3_full_r28            wins  57.2% ±4.3, margin   +3.8, score  89.4, longship penalty  -4.0,   55 ms/turn (test error 13.24)
+12:50:40   round 29: 8000 self-play games in 111 s, trained c3_full_r29 in 78 s
+12:51:09   c3_full_r29            wins  63.2% ±4.2, margin   +6.8, score  92.1, longship penalty  -3.0,   55 ms/turn (test error 13.53)
+12:54:17   round 30: 8000 self-play games in 110 s, trained c3_full_r30 in 78 s
+12:54:46   c3_full_r30            wins  67.0% ±4.1, margin   +8.6, score  93.3, longship penalty  -3.1,   54 ms/turn (test error 13.13)
+12:57:57   round 31: 8000 self-play games in 114 s, trained c3_full_r31 in 78 s
+12:58:26   c3_full_r31            wins  60.8% ±4.3, margin   +6.8, score  91.2, longship penalty  -2.6,   52 ms/turn (test error 12.88)
+13:01:34   round 32: 8000 self-play games in 110 s, trained c3_full_r32 in 78 s
+13:02:03   c3_full_r32            wins  54.4% ±4.4, margin   +2.2, score  89.1, longship penalty  -2.7,   52 ms/turn (test error 12.63)
+13:05:13   round 33: 8000 self-play games in 112 s, trained c3_full_r33 in 78 s
+13:05:41   c3_full_r33            wins  63.4% ±4.2, margin   +7.8, score  93.4, longship penalty  -3.0,   52 ms/turn (test error 12.97)
+13:08:47   round 34: 8000 self-play games in 108 s, trained c3_full_r34 in 78 s
+13:09:16   c3_full_r34            wins  60.4% ±4.3, margin   +5.4, score  91.7, longship penalty  -3.3,   52 ms/turn (test error 13.10)
+13:12:26   round 35: 8000 self-play games in 112 s, trained c3_full_r35 in 78 s
+13:12:55   c3_full_r35            wins  64.0% ±4.2, margin   +8.2, score  92.4, longship penalty  -2.9,   54 ms/turn (test error 12.96)
+13:16:07   round 36: 8000 self-play games in 114 s, trained c3_full_r36 in 78 s
+13:16:37   c3_full_r36            wins  61.6% ±4.3, margin   +8.0, score  92.9, longship penalty  -3.0,   55 ms/turn (test error 12.81)
+13:19:46   round 37: 8000 self-play games in 110 s, trained c3_full_r37 in 78 s
+13:20:14   c3_full_r37            wins  59.2% ±4.3, margin   +4.3, score  89.8, longship penalty  -3.4,   53 ms/turn (test error 12.59)
+13:23:26   round 38: 8000 self-play games in 113 s, trained c3_full_r38 in 78 s
+13:23:54   c3_full_r38            wins  53.6% ±4.4, margin   +2.8, score  89.2, longship penalty  -3.2,   54 ms/turn (test error 12.86)
+13:27:07   round 39: 8000 self-play games in 115 s, trained c3_full_r39 in 78 s
+13:27:36   c3_full_r39            wins  54.2% ±4.4, margin   +2.6, score  88.3, longship penalty  -3.5,   52 ms/turn (test error 12.86)
+13:30:44   round 40: 8000 self-play games in 110 s, trained c3_full_r40 in 78 s
+13:31:13   c3_full_r40            wins  65.4% ±4.2, margin   +8.0, score  92.1, longship penalty  -3.3,   55 ms/turn (test error 13.12)
+13:34:24   round 41: 8000 self-play games in 113 s, trained c3_full_r41 in 78 s
+13:34:52   c3_full_r41            wins  48.8% ±4.4, margin   +0.2, score  86.9, longship penalty  -3.3,   51 ms/turn (test error 13.11)
+13:38:01   round 42: 8000 self-play games in 111 s, trained c3_full_r42 in 79 s
+13:38:30   c3_full_r42            wins  48.4% ±4.4, margin   -0.5, score  86.2, longship penalty  -3.5,   52 ms/turn (test error 13.28)
+13:41:38   round 43: 8000 self-play games in 110 s, trained c3_full_r43 in 78 s
+13:42:06   c3_full_r43            wins  50.6% ±4.4, margin   +0.3, score  87.1, longship penalty  -3.8,   52 ms/turn (test error 13.28)
+13:45:13   round 44: 8000 self-play games in 109 s, trained c3_full_r44 in 78 s
+13:45:42   c3_full_r44            wins  58.0% ±4.3, margin   +5.6, score  90.7, longship penalty  -3.1,   52 ms/turn (test error 13.43)
+13:48:51   round 45: 8000 self-play games in 110 s, trained c3_full_r45 in 78 s
+13:49:19   c3_full_r45            wins  61.6% ±4.3, margin   +6.7, score  91.6, longship penalty  -2.9,   53 ms/turn (test error 13.38)
+13:52:26   round 46: 8000 self-play games in 108 s, trained c3_full_r46 in 78 s
+13:52:54   c3_full_r46            wins  62.4% ±4.2, margin   +7.0, score  92.6, longship penalty  -2.9,   53 ms/turn (test error 13.25)
+13:56:04   round 47: 8000 self-play games in 111 s, trained c3_full_r47 in 78 s
+13:56:33   c3_full_r47            wins  58.0% ±4.3, margin   +4.3, score  90.1, longship penalty  -3.3,   54 ms/turn (test error 13.07)
+13:59:43   round 48: 8000 self-play games in 112 s, trained c3_full_r48 in 78 s
+14:00:11   c3_full_r48            wins  57.4% ±4.3, margin   +4.3, score  89.6, longship penalty  -2.9,   52 ms/turn (test error 13.01)
+14:03:19   round 49: 8000 self-play games in 110 s, trained c3_full_r49 in 78 s
+14:03:47   c3_full_r49            wins  54.4% ±4.4, margin   +3.4, score  89.1, longship penalty  -3.1,   52 ms/turn (test error 12.91)
+14:06:56   round 50: 8000 self-play games in 111 s, trained c3_full_r50 in 78 s
+14:07:23   c3_full_r50            wins  50.8% ±4.4, margin   +1.0, score  88.1, longship penalty  -3.3,   50 ms/turn (test error 12.78)
+14:10:28   round 51: 8000 self-play games in 106 s, trained c3_full_r51 in 78 s
+14:10:55   c3_full_r51            wins  48.2% ±4.4, margin   -0.8, score  86.1, longship penalty  -3.5,   50 ms/turn (test error 12.84)
+14:14:00   round 52: 8000 self-play games in 106 s, trained c3_full_r52 in 78 s
+14:14:28   c3_full_r52            wins  58.8% ±4.3, margin   +5.1, score  90.2, longship penalty  -3.2,   51 ms/turn (test error 13.07)
+14:17:33   round 53: 8000 self-play games in 107 s, trained c3_full_r53 in 78 s
+14:18:02   c3_full_r53            wins  60.4% ±4.3, margin   +6.1, score  90.9, longship penalty  -2.7,   54 ms/turn (test error 13.23)
+14:21:11   round 54: 8000 self-play games in 111 s, trained c3_full_r54 in 78 s
+14:21:39   c3_full_r54            wins  51.8% ±4.4, margin   +1.0, score  87.3, longship penalty  -3.0,   53 ms/turn (test error 13.28)
+14:24:47   round 55: 8000 self-play games in 110 s, trained c3_full_r55 in 78 s
+14:25:16   c3_full_r55            wins  46.0% ±4.4, margin   -2.5, score  84.8, longship penalty  -3.1,   52 ms/turn (test error 13.11)
+14:28:24   round 56: 8000 self-play games in 110 s, trained c3_full_r56 in 78 s
+14:28:53   c3_full_r56            wins  62.2% ±4.3, margin   +6.9, score  92.3, longship penalty  -2.6,   54 ms/turn (test error 12.88)
+14:32:01   round 57: 8000 self-play games in 110 s, trained c3_full_r57 in 79 s
+14:32:31   c3_full_r57            wins  59.8% ±4.3, margin   +6.3, score  91.8, longship penalty  -2.6,   56 ms/turn (test error 13.07)
+14:35:40   round 58: 8000 self-play games in 112 s, trained c3_full_r58 in 78 s
+14:36:10   c3_full_r58            wins  59.6% ±4.3, margin   +4.9, score  89.8, longship penalty  -2.4,   54 ms/turn (test error 13.10)
+14:39:19   round 59: 8000 self-play games in 111 s, trained c3_full_r59 in 78 s
+14:39:47   c3_full_r59            wins  49.8% ±4.4, margin   +0.1, score  86.2, longship penalty  -3.2,   50 ms/turn (test error 12.85)
+14:42:56   round 60: 8000 self-play games in 110 s, trained c3_full_r60 in 78 s
+14:43:24   c3_full_r60            wins  52.0% ±4.4, margin   +1.3, score  88.0, longship penalty  -3.1,   52 ms/turn (test error 12.56)
+14:46:30   round 61: 8000 self-play games in 109 s, trained c3_full_r61 in 78 s
+14:46:59   c3_full_r61            wins  59.6% ±4.3, margin   +4.9, score  90.6, longship penalty  -3.0,   53 ms/turn (test error 12.70)
+14:50:11   round 62: 8000 self-play games in 113 s, trained c3_full_r62 in 78 s
+14:50:40   c3_full_r62            wins  58.6% ±4.3, margin   +4.4, score  90.0, longship penalty  -3.2,   56 ms/turn (test error 13.07)
+14:53:52   round 63: 8000 self-play games in 114 s, trained c3_full_r63 in 78 s
+14:54:20   c3_full_r63            wins  53.6% ±4.4, margin   +1.9, score  88.0, longship penalty  -3.6,   54 ms/turn (test error 13.30)
+14:57:33   round 64: 8000 self-play games in 115 s, trained c3_full_r64 in 78 s
+14:58:02   c3_full_r64            wins  51.2% ±4.4, margin   +2.0, score  88.9, longship penalty  -3.3,   53 ms/turn (test error 13.27)
+15:01:13   round 65: 8000 self-play games in 113 s, trained c3_full_r65 in 78 s
+15:01:42   c3_full_r65            wins  53.8% ±4.4, margin   +3.9, score  89.4, longship penalty  -3.4,   54 ms/turn (test error 13.11)
+15:04:54   round 66: 8000 self-play games in 114 s, trained c3_full_r66 in 78 s
+15:05:22   c3_full_r66            wins  53.0% ±4.4, margin   +0.6, score  87.4, longship penalty  -3.4,   53 ms/turn (test error 13.04)
+15:08:33   round 67: 8000 self-play games in 113 s, trained c3_full_r67 in 78 s
+15:09:02   c3_full_r67            wins  53.4% ±4.4, margin   +2.4, score  88.8, longship penalty  -2.9,   54 ms/turn (test error 13.14)
+15:12:11   round 68: 8000 self-play games in 111 s, trained c3_full_r68 in 78 s
+15:12:40   c3_full_r68            wins  52.0% ±4.4, margin   +2.8, score  89.3, longship penalty  -3.2,   54 ms/turn (test error 13.16)
+15:15:48   round 69: 8000 self-play games in 110 s, trained c3_full_r69 in 78 s
+15:16:17   c3_full_r69            wins  50.4% ±4.4, margin   +0.4, score  87.7, longship penalty  -3.5,   54 ms/turn (test error 13.01)
+15:19:26   round 70: 8000 self-play games in 111 s, trained c3_full_r70 in 78 s
+15:19:55   c3_full_r70            wins  63.4% ±4.2, margin   +7.5, score  92.8, longship penalty  -3.1,   55 ms/turn (test error 12.92)
+15:23:05   round 71: 8000 self-play games in 112 s, trained c3_full_r71 in 78 s
+15:23:34   c3_full_r71            wins  53.4% ±4.4, margin   +1.9, score  88.5, longship penalty  -3.3,   54 ms/turn (test error 12.84)
+15:26:44   round 72: 8000 self-play games in 112 s, trained c3_full_r72 in 78 s
+15:27:11   c3_full_r72            wins  53.6% ±4.4, margin   +2.2, score  89.5, longship penalty  -2.8,   51 ms/turn (test error 12.78)
+15:30:19   round 73: 8000 self-play games in 109 s, trained c3_full_r73 in 78 s
+15:30:47   c3_full_r73            wins  53.2% ±4.4, margin   +1.2, score  87.5, longship penalty  -2.5,   53 ms/turn (test error 12.86)
+15:33:56   round 74: 8000 self-play games in 111 s, trained c3_full_r74 in 78 s
+15:34:24   c3_full_r74            wins  52.8% ±4.4, margin   +1.4, score  87.0, longship penalty  -3.0,   52 ms/turn (test error 12.94)
+15:37:32   round 75: 8000 self-play games in 110 s, trained c3_full_r75 in 78 s
+15:38:01   c3_full_r75            wins  62.4% ±4.2, margin   +7.1, score  92.4, longship penalty  -2.6,   53 ms/turn (test error 13.00)
+15:41:10   round 76: 8000 self-play games in 111 s, trained c3_full_r76 in 78 s
+15:41:38   c3_full_r76            wins  57.8% ±4.3, margin   +4.2, score  89.7, longship penalty  -3.0,   53 ms/turn (test error 13.12)
+15:44:46   round 77: 8000 self-play games in 110 s, trained c3_full_r77 in 78 s
+15:45:15   c3_full_r77            wins  47.4% ±4.4, margin   +0.4, score  86.4, longship penalty  -3.3,   53 ms/turn (test error 13.31)
+15:48:20   round 78: 8000 self-play games in 107 s, trained c3_full_r78 in 78 s
+15:48:49   c3_full_r78            wins  60.4% ±4.3, margin   +5.3, score  90.5, longship penalty  -3.1,   54 ms/turn (test error 13.44)
+15:51:57   round 79: 8000 self-play games in 110 s, trained c3_full_r79 in 78 s
+15:52:26   c3_full_r79            wins  52.2% ±4.4, margin   +2.2, score  88.3, longship penalty  -3.5,   53 ms/turn (test error 13.26)
+15:52:26   time budget reached: no more rounds (15 min left)
+15:52:26   best of stage full: c3_full_r8 (80.8% wins)
+15:52:56 FINAL c3_full_r8 vs greedy: wins 75.6% ±3.8, margin +13.4, longship penalty -2.6, 57 ms/turn
+15:53:32 FINAL c3_full_r8+2 (looks 2 turns ahead) vs greedy: wins 76.0% ±5.9, margin +12.7, longship penalty -2.9, 192 ms/turn
+15:54:02 FINAL c3_full_r8 vs original greedy: wins 82.2% ±3.4, margin +16.7, longship penalty -2.6, 57 ms/turn
+15:54:02 Curriculum finished.

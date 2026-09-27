@@ -795,6 +795,64 @@ class Game:
         return [p.idx for p in self.players if rank(p) == best]
 
     # ------------------------------------------------------------------
+    # Saving the whole game (the web page sends it to server.py, which
+    # lets the neural network play a turn on it and sends it back)
+    # ------------------------------------------------------------------
+    def save_state(self):
+        """Everything needed to rebuild this game exactly, as plain JSON data."""
+        return {
+            "rules": self.rules, "seed": self.seed,
+            "land": {key(c): t for c, t in self.land.items()},
+            "vikings": {key(c): v for c, v in self.vikings.items()},
+            "bag": self.bag, "ocean_ships": self.ocean_ships,
+            "stock": {key(c): n for c, n in self.stock.items()},
+            "trophy_owner": self.trophy_owner, "current": self.current,
+            "log": self.log, "game_over": self.game_over, "phase": self.phase,
+            "pending": self.pending, "placed_this_turn": self.placed_this_turn,
+            "took_ship": self.took_ship, "held_ship": self.held_ship,
+            "extra_active": self.extra_active,
+            "players": [{
+                "idx": p.idx, "name": p.name, "color": p.color, "ai": p.ai,
+                "nn": getattr(p, "nn", False), "vikings_left": p.vikings_left,
+                "shields": p.shields, "fjord": {key(c): it for c, it in p.fjord.items()},
+                "trophy": p.trophy, "castle_taken": p.castle_taken,
+                "wt_pairs": sorted(p.wt_pairs)} for p in self.players],
+        }
+
+    @classmethod
+    def load_state(cls, d):
+        """The game saved by save_state()."""
+        g = cls.__new__(cls)
+        g.rules = dict(d["rules"])
+        g.seed = d["seed"]
+        g.rng = random.Random(g.seed)          # only used while setting up
+        g.land = {unkey(k): t for k, t in d["land"].items()}
+        g.vikings = {unkey(k): list(v) for k, v in d["vikings"].items()}
+        g.ocean = list(OCEAN_CELLS)
+        g.bag = list(d["bag"])
+        g.ocean_ships = list(d["ocean_ships"])
+        g.stock = {unkey(k): n for k, n in d["stock"].items()}
+        g.trophy_owner = list(d["trophy_owner"])
+        for name in ("current", "game_over", "phase", "placed_this_turn",
+                     "took_ship", "held_ship", "extra_active"):
+            setattr(g, name, d[name])
+        g.log = list(d["log"])
+        g.pending = [dict(it) for it in d["pending"]]
+        g.players = []
+        cells, _ = fjord_cells()
+        for pd in d["players"]:
+            p = Player.__new__(Player)
+            for name in ("idx", "name", "color", "ai", "nn", "vikings_left", "trophy"):
+                setattr(p, name, pd[name])
+            p.shields = dict(pd["shields"])
+            p.fjord_cells = cells
+            p.fjord = {unkey(k): dict(it) for k, it in pd["fjord"].items()}
+            p.castle_taken = dict(pd["castle_taken"])
+            p.wt_pairs = set(pd["wt_pairs"])
+            g.players.append(p)
+        return g
+
+    # ------------------------------------------------------------------
     # Serialisation for the browser
     # ------------------------------------------------------------------
     def to_dict(self):
@@ -847,6 +905,7 @@ class Game:
                 fj.append(d)
             state["players"].append({
                 "name": pl.name, "color": pl.color, "ai": pl.ai,
+                "nn": getattr(pl, "nn", False),
                 "vikings_left": pl.vikings_left, "shields": pl.shields,
                 "trophy": pl.trophy, "axes": self.axes(pl),
                 "fjord": fj, "score": pl.score(),
@@ -1152,8 +1211,13 @@ class Api:
             return self._state(str(e))
 
     def new_game(self, players_json, seed=-1):
-        players = [(p["name"], bool(p["ai"])) for p in json.loads(players_json)]
+        seats = json.loads(players_json)
+        players = [(p["name"], bool(p["ai"])) for p in seats]
         self.game = Game(players, None if seed < 0 else seed, self.layout)
+        for p, s in zip(self.game.players, seats):
+            p.nn = bool(s.get("nn")) and p.ai     # played by the neural network
+            if p.nn and len(seats) != 2:
+                raise ValueError("The neural network only plays 2-player games.")
         self.game.say("A new game begins. %s goes first." %
                       self.game.player().name)
         return self._state()
@@ -1184,6 +1248,13 @@ class Api:
 
     def end_turn(self):
         return self._do(self.game.end_turn)
+
+    def save_state(self):
+        return json.dumps(self.game.save_state())
+
+    def load_state(self, text):
+        self.game = Game.load_state(json.loads(text))
+        return self._state()
 
     def ai_turn(self):
         g = self.game

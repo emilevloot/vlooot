@@ -436,7 +436,7 @@
     $('players').innerHTML = S.players.map((p, i) => `
       <div class="pchip${i === S.current && !S.game_over ? ' turn' : ''}${i === view ? ' viewing' : ''}" data-view="${i}" tabindex="0" role="button" aria-label="Show ${esc(p.name)}'s fjord">
         <span class="dot" style="background:${PCOL[p.color]}"></span>
-        <span class="nm">${esc(p.name)}${p.ai ? ' <small style="color:var(--mist);font-weight:500">(computer)</small>' : ''}</span>
+        <span class="nm">${esc(p.name)}${p.ai ? ` <small style="color:var(--mist);font-weight:500">(${p.nn ? 'network' : 'computer'})</small>` : ''}</span>
         <span class="meta">${p.vikings_left} Vikings · ${p.score.total} pts · ${p.axes} axes</span>
       </div>`).join('');
   }
@@ -447,7 +447,7 @@
     if (S.game_over) {
       what = `<b>Game over.</b> ${S.winners.map(i => esc(S.players[i].name)).join(' & ')} ${S.winners.length > 1 ? 'share' : 'wins'} the title of Jarl.`;
     } else if (p.ai) {
-      what = 'The computer is thinking…';
+      what = p.nn ? 'The network is thinking…' : 'The computer is thinking…';
     } else if (S.phase === 'place') {
       what = sel.occupy ? '<b>Stack</b> your Viking on an occupied space (gold rings).' : '<b>Place a Viking</b> on a gold-ringed space.';
       if (S.extra_active) what = '<b>Second Viking</b> from your shield: ' + what;
@@ -543,14 +543,38 @@
     const p = S.players[S.current];
     if (!p.ai) { if (view !== S.current && !S.players[view].ai) {} return; }
     busy = true;
-    setTimeout(() => {
+    setTimeout(async () => {
+      const res = p.nn ? await nnTurn() : api.ai_turn();
       busy = false;
-      S = JSON.parse(api.ai_turn());
+      S = JSON.parse(res);
       const nxt = S.players[S.current];
       if (!nxt.ai) view = S.current;
       render();
       maybeAI();
     }, 850);
+  }
+
+  // The neural network runs in server.py (it needs numpy/numba): send it the
+  // whole game, get the game back after its turn. If that fails, the normal
+  // computer player takes this turn.
+  async function nnTurn() {
+    try {
+      const r = await fetch('ai-turn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Looot': '1' },
+        body: api.save_state(),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || ('error ' + r.status));
+      lastError = '';
+      return api.load_state(d.state);
+    } catch (err) {
+      const res = JSON.parse(api.ai_turn());
+      res.error = 'The network could not play (' + (err && err.message || err) +
+                  '); the normal computer player took this turn.';
+      lastError = res.error;
+      return JSON.stringify(res);
+    }
   }
 
   // ---------- events ----------
@@ -604,9 +628,11 @@
     const ov = $('overlay');
     ov.hidden = false;
     const n = seats.filter(s => s.on).length;
+    const nnBad = n !== 2 && seats.some(s => s.on && s.nn);
     ov.innerHTML = `<div class="card" role="dialog" aria-label="New game">
       <h2>New game</h2>
-      <p>2 to 4 Vikings share one screen. Any seat can be played by the computer.</p>
+      <p>2 to 4 Vikings share one screen. Any seat can be played by the computer: <b>Computer</b> is the
+        greedy player, <b>Network</b> the neural network (2-player games only).</p>
       ${seats.map((s, i) => `
         <div class="seat" style="${s.on ? '' : 'opacity:.45'}">
           <span class="dot" style="width:14px;height:14px;border-radius:50%;background:${PCOL[SEAT_COL[i]]}"></span>
@@ -614,17 +640,18 @@
           <span class="seg">
             ${i >= 2 ? `<button data-seat="${i}" data-mode="off" class="${!s.on ? 'on' : ''}">Empty</button>` : ''}
             <button data-seat="${i}" data-mode="human" class="${s.on && !s.ai ? 'on' : ''}">Human</button>
-            <button data-seat="${i}" data-mode="ai" class="${s.on && s.ai ? 'on' : ''}">Computer</button>
+            <button data-seat="${i}" data-mode="ai" class="${s.on && s.ai && !s.nn ? 'on' : ''}">Computer</button>
+            <button data-seat="${i}" data-mode="nn" class="${s.on && s.nn ? 'on' : ''}" title="The neural network (2-player games only)">Network</button>
           </span>
         </div>`).join('')}
       <div class="row" style="justify-content:space-between;margin-top:14px">
-        <span style="color:var(--mist);font-size:14px">${n} players · ${n * 13} Vikings · ${n} landscape boards</span>
-        <span class="row">${S ? '<button class="btn" id="cancelSetup">Cancel</button>' : ''}<button class="btn primary" id="startGame">Start</button></span>
+        <span style="color:var(--mist);font-size:14px">${nnBad ? '<b style="color:var(--snow)">The Network only plays 2-player games: switch a seat off.</b>' : `${n} players · ${n * 13} Vikings · ${n} landscape boards`}</span>
+        <span class="row">${S ? '<button class="btn" id="cancelSetup">Cancel</button>' : ''}<button class="btn primary" id="startGame" ${nnBad ? 'disabled' : ''}>Start</button></span>
       </div></div>`;
     ov.querySelectorAll('[data-seat]').forEach(b => b.onclick = () => {
       saveNames();
       const s = seats[+b.dataset.seat], m = b.dataset.mode;
-      if (m === 'off') s.on = false; else { s.on = true; s.ai = m === 'ai'; }
+      if (m === 'off') s.on = false; else { s.on = true; s.ai = m !== 'human'; s.nn = m === 'nn'; }
       if (seats.filter(x => x.on).length < 2) seats[1].on = true;
       showSetup();
     });
@@ -632,7 +659,7 @@
     if (cancel) cancel.onclick = () => { ov.hidden = true; };
     $('startGame').onclick = () => {
       saveNames();
-      const ps = seats.filter(s => s.on).map((s, i) => ({ name: (s.name || 'Player').slice(0, 18), ai: s.ai }));
+      const ps = seats.filter(s => s.on).map((s, i) => ({ name: (s.name || 'Player').slice(0, 18), ai: s.ai, nn: !!s.nn }));
       ov.hidden = true;
       render.shownEnd = false;
       S = JSON.parse(api.new_game(JSON.stringify(ps), -1));

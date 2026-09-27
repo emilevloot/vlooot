@@ -1,0 +1,1487 @@
+{
+ "prefix": "c3",
+ "stages": {
+  "resources": {
+   "steps": [
+    {
+     "model": "c3_resources_a",
+     "kind": "greedy data",
+     "test_mae": 1.72,
+     "arena": {
+      "games": 300,
+      "win": 1.0,
+      "margin": 7.4366666666666665,
+      "score": 16.186666666666667,
+      "win_ci": 0.0,
+      "penalty": 0.0,
+      "ms_per_turn": 12.792699923072806
+     }
+    },
+    {
+     "model": "c3_resources_r1",
+     "kind": "self-play round 1",
+     "test_mae": 1.63,
+     "arena": {
+      "games": 300,
+      "win": 1.0,
+      "margin": 8.353333333333333,
+      "score": 16.583333333333332,
+      "win_ci": 0.0,
+      "penalty": 0.0,
+      "ms_per_turn": 14.458660205088494
+     }
+    },
+    {
+     "model": "c3_resources_r2",
+     "kind": "self-play round 2",
+     "test_mae": 1.51,
+     "arena": {
+      "games": 300,
+      "win": 1.0,
+      "margin": 8.313333333333333,
+      "score": 16.60333333333333,
+      "win_ci": 0.0,
+      "penalty": 0.0,
+      "ms_per_turn": 13.847849359000788
+     }
+    }
+   ],
+   "best": "c3_resources_r1"
+  },
+  "buildings": {
+   "steps": [
+    {
+     "model": "c3_buildings_a",
+     "kind": "greedy data",
+     "test_mae": 5.21,
+     "arena": {
+      "games": 500,
+      "win": 0.813,
+      "margin": 6.632,
+      "score": 31.638,
+      "win_ci": 0.03417725236469427,
+      "penalty": 0.0,
+      "ms_per_turn": 13.4032947999423
+     }
+    },
+    {
+     "model": "c3_buildings_r1",
+     "kind": "self-play round 1",
+     "test_mae": 5.23,
+     "arena": {
+      "games": 500,
+      "win": 0.944,
+      "margin": 10.954,
+      "score": 34.76,
+      "win_ci": 0.020153527849982002,
+      "penalty": 0.0,
+      "ms_per_turn": 14.268265399954263
+     }
+    },
+    {
+     "model": "c3_buildings_r2",
+     "kind": "self-play round 2",
+     "test_mae": 4.77,
+     "arena": {
+      "games": 500,
+      "win": 0.972,
+      "margin": 11.872,
+      "score": 35.794,
+      "win_ci": 0.014460496920922192,
+      "penalty": 0.0,
+      "ms_per_turn": 14.539535138506416
+     }
+    },
+    {
+     "model": "c3_buildings_r3",
+     "kind": "self-play round 3",
+     "test_mae": 4.54,
+     "arena": {
+      "games": 500,
+      "win": 0.98,
+      "margin": 12.746,
+      "score": 36.248,
+      "win_ci": 0.01227154106051885,
+      "penalty": 0.0,
+      "ms_per_turn": 23.28227810770197
+     }
+    }
+   ],
+   "best": "c3_buildings_r3"
+  },
+  "sites": {
+   "steps": [
+    {
+     "model": "c3_sites_a",
+     "kind": "greedy data",
+     "test_mae": 8.25,
+     "arena": {
+      "games": 500,
+      "win": 0.941,
+      "margin": 17.238,
+      "score": 51.978,
+      "win_ci": 0.02065341571750301,
+      "penalty": 0.0,
+      "ms_per_turn": 14.795546861578119
+     }
+    },
+    {
+     "model": "c3_sites_r1",
+     "kind": "self-play round 1",
+     "test_mae": 7.86,
+     "arena": {
+      "games": 500,
+      "win": 0.987,
+      "margin": 22.124,
+      "score": 55.6,
+      "win_ci": 0.009928904229571362,
+      "penalty": 0.0,
+      "ms_per_turn": 14.66387624616954
+     }
+    },
+    {
+     "model": "c3_sites_r2",
+     "kind": "self-play round 2",
+     "test_mae": 7.38,
+     "arena": {
+      "games": 500,
+      "win": 0.984,
+      "margin": 22.144,
+      "score": 55.026,
+      "win_ci": 0.010998377189385717,
+      "penalty": 0.0,
+      "ms_per_turn": 14.393120230787854
+     }
+    },
+    {
+     "model": "c3_sites_r3",
+     "kind": "self-play round 3",
+     "test_mae": 7.22,
+     "arena": {
+      "games": 500,
+      "win": 0.971,
+      "margin": 22.15,
+      "score": 54.324,
+      "win_ci": 0.01470888264961007,
+      "penalty": 0.0,
+      "ms_per_turn": 14.524405476960684
+     }
+    }
+   ],
+   "best": "c3_sites_r1"
+  },
+  "longships": {
+   "steps": [
+    {
+     "model": "c3_longships_a",
+     "kind": "greedy data",
+     "test_mae": 14.37,
+     "arena": {
+      "games": 500,
+      "win": 0.371,
+      "margin": -6.566,
+      "score": 51.864,
+      "win_ci": 0.04234316791171865,
+      "penalty": -20.56,
+      "ms_per_turn": 26.920015030759924
+     }
+    },
+    {
+     "model": "c3_longships_r1",
+     "kind": "self-play round 1",
+     "test_mae": 15.37,
+     "arena": {
+      "games": 500,
+      "win": 0.761,
+      "margin": 14.824,
+      "score": 71.458,
+      "win_ci": 0.03738198406719472,
+      "penalty": -6.71,
+      "ms_per_turn": 27.052476630756594
+     }
+    },
+    {
+     "model": "c3_longships_r2",
+     "kind": "self-play round 2",
+     "test_mae": 14.7,
+     "arena": {
+      "games": 500,
+      "win": 0.808,
+      "margin": 18.734,
+      "score": 75.118,
+      "win_ci": 0.03452449732001901,
+      "penalty": -4.18,
+      "ms_per_turn": 27.14791409236988
+     }
+    },
+    {
+     "model": "c3_longships_r3",
+     "kind": "self-play round 3",
+     "test_mae": 14.21,
+     "arena": {
+      "games": 500,
+      "win": 0.801,
+      "margin": 18.038,
+      "score": 76.134,
+      "win_ci": 0.03499563396768231,
+      "penalty": -3.57,
+      "ms_per_turn": 27.51199604609708
+     }
+    },
+    {
+     "model": "c3_longships_r4",
+     "kind": "self-play round 4",
+     "test_mae": 13.38,
+     "arena": {
+      "games": 500,
+      "win": 0.785,
+      "margin": 16.986,
+      "score": 75.546,
+      "win_ci": 0.036010166342298394,
+      "penalty": -3.53,
+      "ms_per_turn": 27.691113800039883
+     }
+    },
+    {
+     "model": "c3_longships_r5",
+     "kind": "self-play round 5",
+     "test_mae": 13.18,
+     "arena": {
+      "games": 500,
+      "win": 0.863,
+      "margin": 21.65,
+      "score": 77.93,
+      "win_ci": 0.03013954908753613,
+      "penalty": -3.37,
+      "ms_per_turn": 27.5012015229944
+     }
+    },
+    {
+     "model": "c3_longships_r6",
+     "kind": "self-play round 6",
+     "test_mae": 12.96,
+     "arena": {
+      "games": 500,
+      "win": 0.833,
+      "margin": 21.616,
+      "score": 78.474,
+      "win_ci": 0.032692776498792514,
+      "penalty": -3.07,
+      "ms_per_turn": 27.21604947695652
+     }
+    },
+    {
+     "model": "c3_longships_r7",
+     "kind": "self-play round 7",
+     "test_mae": 12.89,
+     "arena": {
+      "games": 500,
+      "win": 0.848,
+      "margin": 21.452,
+      "score": 77.562,
+      "win_ci": 0.03146956858935311,
+      "penalty": -3.49,
+      "ms_per_turn": 27.333159692298906
+     }
+    },
+    {
+     "model": "c3_longships_r8",
+     "kind": "self-play round 8",
+     "test_mae": 13.0,
+     "arena": {
+      "games": 500,
+      "win": 0.813,
+      "margin": 18.084,
+      "score": 77.15,
+      "win_ci": 0.03417725236469427,
+      "penalty": -3.45,
+      "ms_per_turn": 27.437102507672254
+     }
+    },
+    {
+     "model": "c3_longships_r9",
+     "kind": "self-play round 9",
+     "test_mae": 12.81,
+     "arena": {
+      "games": 500,
+      "win": 0.802,
+      "margin": 16.846,
+      "score": 75.464,
+      "win_ci": 0.0349293777098877,
+      "penalty": -3.85,
+      "ms_per_turn": 27.18832519998362
+     }
+    },
+    {
+     "model": "c3_longships_r10",
+     "kind": "self-play round 10",
+     "test_mae": 12.8,
+     "arena": {
+      "games": 500,
+      "win": 0.834,
+      "margin": 19.99,
+      "score": 78.318,
+      "win_ci": 0.032614305769094645,
+      "penalty": -2.81,
+      "ms_per_turn": 27.45222944609458
+     }
+    }
+   ],
+   "best": "c3_longships_r5"
+  },
+  "full": {
+   "steps": [
+    {
+     "model": "c3_full_a",
+     "kind": "greedy data",
+     "test_mae": 12.98,
+     "arena": {
+      "games": 500,
+      "win": 0.49,
+      "margin": -0.496,
+      "score": 86.062,
+      "win_ci": 0.043818166095810074,
+      "penalty": -3.43,
+      "ms_per_turn": 41.700804066716955
+     }
+    },
+    {
+     "model": "c3_full_r1",
+     "kind": "self-play round 1",
+     "test_mae": 12.72,
+     "arena": {
+      "games": 500,
+      "win": 0.722,
+      "margin": 10.926,
+      "score": 94.482,
+      "win_ci": 0.03927010531180175,
+      "penalty": -2.05,
+      "ms_per_turn": 46.06667088338023
+     }
+    },
+    {
+     "model": "c3_full_r2",
+     "kind": "self-play round 2",
+     "test_mae": 12.62,
+     "arena": {
+      "games": 500,
+      "win": 0.718,
+      "margin": 11.078,
+      "score": 93.912,
+      "win_ci": 0.03944190161744233,
+      "penalty": -2.13,
+      "ms_per_turn": 48.646296283367214
+     }
+    },
+    {
+     "model": "c3_full_r3",
+     "kind": "self-play round 3",
+     "test_mae": 12.49,
+     "arena": {
+      "games": 500,
+      "win": 0.718,
+      "margin": 10.86,
+      "score": 94.466,
+      "win_ci": 0.03944190161744233,
+      "penalty": -2.93,
+      "ms_per_turn": 50.04085479997715
+     }
+    },
+    {
+     "model": "c3_full_r4",
+     "kind": "self-play round 4",
+     "test_mae": 12.7,
+     "arena": {
+      "games": 500,
+      "win": 0.724,
+      "margin": 12.464,
+      "score": 96.646,
+      "win_ci": 0.03918274820376947,
+      "penalty": -2.67,
+      "ms_per_turn": 50.30804598331573
+     }
+    },
+    {
+     "model": "c3_full_r5",
+     "kind": "self-play round 5",
+     "test_mae": 12.81,
+     "arena": {
+      "games": 500,
+      "win": 0.762,
+      "margin": 13.564,
+      "score": 97.836,
+      "win_ci": 0.03732819871357309,
+      "penalty": -2.61,
+      "ms_per_turn": 51.85528871669036
+     }
+    },
+    {
+     "model": "c3_full_r6",
+     "kind": "self-play round 6",
+     "test_mae": 12.88,
+     "arena": {
+      "games": 500,
+      "win": 0.744,
+      "margin": 12.272,
+      "score": 96.798,
+      "win_ci": 0.03825405867094366,
+      "penalty": -2.76,
+      "ms_per_turn": 52.79185450002236
+     }
+    },
+    {
+     "model": "c3_full_r7",
+     "kind": "self-play round 7",
+     "test_mae": 12.7,
+     "arena": {
+      "games": 500,
+      "win": 0.716,
+      "margin": 10.17,
+      "score": 94.904,
+      "win_ci": 0.03952635349738197,
+      "penalty": -2.81,
+      "ms_per_turn": 54.9980243833755
+     }
+    },
+    {
+     "model": "c3_full_r8",
+     "kind": "self-play round 8",
+     "test_mae": 12.66,
+     "arena": {
+      "games": 500,
+      "win": 0.808,
+      "margin": 14.768,
+      "score": 98.506,
+      "win_ci": 0.03452449732001901,
+      "penalty": -2.22,
+      "ms_per_turn": 55.99967750750899
+     }
+    },
+    {
+     "model": "c3_full_r9",
+     "kind": "self-play round 9",
+     "test_mae": 12.65,
+     "arena": {
+      "games": 500,
+      "win": 0.72,
+      "margin": 10.888,
+      "score": 94.932,
+      "win_ci": 0.03935648764816291,
+      "penalty": -2.93,
+      "ms_per_turn": 54.77986585001539
+     }
+    },
+    {
+     "model": "c3_full_r10",
+     "kind": "self-play round 10",
+     "test_mae": 12.82,
+     "arena": {
+      "games": 500,
+      "win": 0.714,
+      "margin": 12.88,
+      "score": 96.938,
+      "win_ci": 0.039609849441773946,
+      "penalty": -2.73,
+      "ms_per_turn": 55.98772679999335
+     }
+    },
+    {
+     "model": "c3_full_r11",
+     "kind": "self-play round 11",
+     "test_mae": 12.83,
+     "arena": {
+      "games": 500,
+      "win": 0.726,
+      "margin": 13.07,
+      "score": 96.39,
+      "win_ci": 0.039094409789636166,
+      "penalty": -3.29,
+      "ms_per_turn": 53.65973223336672
+     }
+    },
+    {
+     "model": "c3_full_r12",
+     "kind": "self-play round 12",
+     "test_mae": 12.69,
+     "arena": {
+      "games": 500,
+      "win": 0.706,
+      "margin": 11.632,
+      "score": 95.202,
+      "win_ci": 0.03993439275611938,
+      "penalty": -3.51,
+      "ms_per_turn": 55.001857499992184
+     }
+    },
+    {
+     "model": "c3_full_r13",
+     "kind": "self-play round 13",
+     "test_mae": 12.68,
+     "arena": {
+      "games": 500,
+      "win": 0.698,
+      "margin": 10.874,
+      "score": 95.074,
+      "win_ci": 0.04024410301149723,
+      "penalty": -3.13,
+      "ms_per_turn": 55.551552250008776
+     }
+    },
+    {
+     "model": "c3_full_r14",
+     "kind": "self-play round 14",
+     "test_mae": 12.78,
+     "arena": {
+      "games": 500,
+      "win": 0.664,
+      "margin": 8.822,
+      "score": 93.294,
+      "win_ci": 0.04140232665925914,
+      "penalty": -3.56,
+      "ms_per_turn": 54.85688541665513
+     }
+    },
+    {
+     "model": "c3_full_r15",
+     "kind": "self-play round 15",
+     "test_mae": 12.92,
+     "arena": {
+      "games": 500,
+      "win": 0.684,
+      "margin": 9.78,
+      "score": 95.11,
+      "win_ci": 0.040751412009892365,
+      "penalty": -2.81,
+      "ms_per_turn": 53.349480616683046
+     }
+    },
+    {
+     "model": "c3_full_r16",
+     "kind": "self-play round 16",
+     "test_mae": 12.83,
+     "arena": {
+      "games": 500,
+      "win": 0.642,
+      "margin": 6.82,
+      "score": 91.404,
+      "win_ci": 0.042022326865608,
+      "penalty": -3.45,
+      "ms_per_turn": 52.82092394999199
+     }
+    },
+    {
+     "model": "c3_full_r17",
+     "kind": "self-play round 17",
+     "test_mae": 12.87,
+     "arena": {
+      "games": 500,
+      "win": 0.698,
+      "margin": 10.904,
+      "score": 95.672,
+      "win_ci": 0.04024410301149723,
+      "penalty": -2.85,
+      "ms_per_turn": 56.08820354995623
+     }
+    },
+    {
+     "model": "c3_full_r18",
+     "kind": "self-play round 18",
+     "test_mae": 13.09,
+     "arena": {
+      "games": 500,
+      "win": 0.62,
+      "margin": 7.276,
+      "score": 91.88,
+      "win_ci": 0.04254599769661066,
+      "penalty": -3.09,
+      "ms_per_turn": 52.86248864998561
+     }
+    },
+    {
+     "model": "c3_full_r19",
+     "kind": "self-play round 19",
+     "test_mae": 12.98,
+     "arena": {
+      "games": 500,
+      "win": 0.676,
+      "margin": 9.024,
+      "score": 93.858,
+      "win_ci": 0.041022008688020146,
+      "penalty": -2.94,
+      "ms_per_turn": 53.69854153336079
+     }
+    },
+    {
+     "model": "c3_full_r20",
+     "kind": "self-play round 20",
+     "test_mae": 12.81,
+     "arena": {
+      "games": 500,
+      "win": 0.602,
+      "margin": 5.042,
+      "score": 90.812,
+      "win_ci": 0.04290529089984125,
+      "penalty": -3.16,
+      "ms_per_turn": 50.753839533391634
+     }
+    },
+    {
+     "model": "c3_full_r21",
+     "kind": "self-play round 21",
+     "test_mae": 12.84,
+     "arena": {
+      "games": 500,
+      "win": 0.592,
+      "margin": 5.42,
+      "score": 90.952,
+      "win_ci": 0.04307864198416658,
+      "penalty": -2.9,
+      "ms_per_turn": 51.96285910001825
+     }
+    },
+    {
+     "model": "c3_full_r22",
+     "kind": "self-play round 22",
+     "test_mae": 12.96,
+     "arena": {
+      "games": 500,
+      "win": 0.576,
+      "margin": 3.976,
+      "score": 89.996,
+      "win_ci": 0.04331768503509854,
+      "penalty": -3.29,
+      "ms_per_turn": 52.663501616628004
+     }
+    },
+    {
+     "model": "c3_full_r23",
+     "kind": "self-play round 23",
+     "test_mae": 12.98,
+     "arena": {
+      "games": 500,
+      "win": 0.694,
+      "margin": 10.73,
+      "score": 94.404,
+      "win_ci": 0.04039350300233937,
+      "penalty": -2.99,
+      "ms_per_turn": 53.833887366691975
+     }
+    },
+    {
+     "model": "c3_full_r24",
+     "kind": "self-play round 24",
+     "test_mae": 12.91,
+     "arena": {
+      "games": 500,
+      "win": 0.622,
+      "margin": 7.442,
+      "score": 92.752,
+      "win_ci": 0.0425022734827209,
+      "penalty": -2.69,
+      "ms_per_turn": 54.60349193332877
+     }
+    },
+    {
+     "model": "c3_full_r25",
+     "kind": "self-play round 25",
+     "test_mae": 12.88,
+     "arena": {
+      "games": 500,
+      "win": 0.55,
+      "margin": 1.426,
+      "score": 88.554,
+      "win_ci": 0.0436072471041225,
+      "penalty": -3.42,
+      "ms_per_turn": 50.23463764997481
+     }
+    },
+    {
+     "model": "c3_full_r26",
+     "kind": "self-play round 26",
+     "test_mae": 12.76,
+     "arena": {
+      "games": 500,
+      "win": 0.512,
+      "margin": -0.39,
+      "score": 86.602,
+      "win_ci": 0.043814308384362295,
+      "penalty": -4.0,
+      "ms_per_turn": 51.54328974999347
+     }
+    },
+    {
+     "model": "c3_full_r27",
+     "kind": "self-play round 27",
+     "test_mae": 13.03,
+     "arena": {
+      "games": 500,
+      "win": 0.504,
+      "margin": -0.994,
+      "score": 86.382,
+      "win_ci": 0.043825529874720284,
+      "penalty": -3.93,
+      "ms_per_turn": 51.64031786665146
+     }
+    },
+    {
+     "model": "c3_full_r28",
+     "kind": "self-play round 28",
+     "test_mae": 13.24,
+     "arena": {
+      "games": 500,
+      "win": 0.572,
+      "margin": 3.766,
+      "score": 89.444,
+      "win_ci": 0.04337015438293943,
+      "penalty": -4.0,
+      "ms_per_turn": 54.55616008333042
+     }
+    },
+    {
+     "model": "c3_full_r29",
+     "kind": "self-play round 29",
+     "test_mae": 13.53,
+     "arena": {
+      "games": 500,
+      "win": 0.632,
+      "margin": 6.78,
+      "score": 92.054,
+      "win_ci": 0.04227207024975238,
+      "penalty": -3.03,
+      "ms_per_turn": 54.82453180001054
+     }
+    },
+    {
+     "model": "c3_full_r30",
+     "kind": "self-play round 30",
+     "test_mae": 13.13,
+     "arena": {
+      "games": 500,
+      "win": 0.67,
+      "margin": 8.582,
+      "score": 93.298,
+      "win_ci": 0.04121596195650418,
+      "penalty": -3.08,
+      "ms_per_turn": 54.22002233328991
+     }
+    },
+    {
+     "model": "c3_full_r31",
+     "kind": "self-play round 31",
+     "test_mae": 12.88,
+     "arena": {
+      "games": 500,
+      "win": 0.608,
+      "margin": 6.844,
+      "score": 91.21,
+      "win_ci": 0.042792325891449275,
+      "penalty": -2.56,
+      "ms_per_turn": 52.1577302500397
+     }
+    },
+    {
+     "model": "c3_full_r32",
+     "kind": "self-play round 32",
+     "test_mae": 12.63,
+     "arena": {
+      "games": 500,
+      "win": 0.544,
+      "margin": 2.238,
+      "score": 89.124,
+      "win_ci": 0.043656904663523725,
+      "penalty": -2.71,
+      "ms_per_turn": 51.62549759997031
+     }
+    },
+    {
+     "model": "c3_full_r33",
+     "kind": "self-play round 33",
+     "test_mae": 12.97,
+     "arena": {
+      "games": 500,
+      "win": 0.634,
+      "margin": 7.756,
+      "score": 93.352,
+      "win_ci": 0.04222369548961815,
+      "penalty": -2.96,
+      "ms_per_turn": 51.52952596661029
+     }
+    },
+    {
+     "model": "c3_full_r34",
+     "kind": "self-play round 34",
+     "test_mae": 13.1,
+     "arena": {
+      "games": 500,
+      "win": 0.604,
+      "margin": 5.39,
+      "score": 91.746,
+      "win_ci": 0.042868385889837275,
+      "penalty": -3.29,
+      "ms_per_turn": 52.18240913326978
+     }
+    },
+    {
+     "model": "c3_full_r35",
+     "kind": "self-play round 35",
+     "test_mae": 12.96,
+     "arena": {
+      "games": 500,
+      "win": 0.64,
+      "margin": 8.2,
+      "score": 92.44,
+      "win_ci": 0.04207385506463604,
+      "penalty": -2.93,
+      "ms_per_turn": 53.765260433336756
+     }
+    },
+    {
+     "model": "c3_full_r36",
+     "kind": "self-play round 36",
+     "test_mae": 12.81,
+     "arena": {
+      "games": 500,
+      "win": 0.616,
+      "margin": 7.952,
+      "score": 92.91,
+      "win_ci": 0.04263114895003418,
+      "penalty": -3.04,
+      "ms_per_turn": 55.03131811671483
+     }
+    },
+    {
+     "model": "c3_full_r37",
+     "kind": "self-play round 37",
+     "test_mae": 12.59,
+     "arena": {
+      "games": 500,
+      "win": 0.592,
+      "margin": 4.304,
+      "score": 89.82,
+      "win_ci": 0.04307864198416658,
+      "penalty": -3.41,
+      "ms_per_turn": 53.27328136667711
+     }
+    },
+    {
+     "model": "c3_full_r38",
+     "kind": "self-play round 38",
+     "test_mae": 12.86,
+     "arena": {
+      "games": 500,
+      "win": 0.536,
+      "margin": 2.824,
+      "score": 89.19,
+      "win_ci": 0.043713185342640036,
+      "penalty": -3.21,
+      "ms_per_turn": 53.65506681666375
+     }
+    },
+    {
+     "model": "c3_full_r39",
+     "kind": "self-play round 39",
+     "test_mae": 12.86,
+     "arena": {
+      "games": 500,
+      "win": 0.542,
+      "margin": 2.566,
+      "score": 88.302,
+      "win_ci": 0.043672037222918736,
+      "penalty": -3.54,
+      "ms_per_turn": 52.48720400000335
+     }
+    },
+    {
+     "model": "c3_full_r40",
+     "kind": "self-play round 40",
+     "test_mae": 13.12,
+     "arena": {
+      "games": 500,
+      "win": 0.654,
+      "margin": 7.968,
+      "score": 92.102,
+      "win_ci": 0.04169634550892919,
+      "penalty": -3.3,
+      "ms_per_turn": 55.24197931668338
+     }
+    },
+    {
+     "model": "c3_full_r41",
+     "kind": "self-play round 41",
+     "test_mae": 13.11,
+     "arena": {
+      "games": 500,
+      "win": 0.488,
+      "margin": 0.152,
+      "score": 86.866,
+      "win_ci": 0.043814308384362295,
+      "penalty": -3.31,
+      "ms_per_turn": 51.10064233328012
+     }
+    },
+    {
+     "model": "c3_full_r42",
+     "kind": "self-play round 42",
+     "test_mae": 13.28,
+     "arena": {
+      "games": 500,
+      "win": 0.484,
+      "margin": -0.528,
+      "score": 86.174,
+      "win_ci": 0.04380448722220133,
+      "penalty": -3.48,
+      "ms_per_turn": 52.075812683337666
+     }
+    },
+    {
+     "model": "c3_full_r43",
+     "kind": "self-play round 43",
+     "test_mae": 13.28,
+     "arena": {
+      "games": 500,
+      "win": 0.506,
+      "margin": 0.316,
+      "score": 87.072,
+      "win_ci": 0.043823776706258435,
+      "penalty": -3.77,
+      "ms_per_turn": 51.73662618333643
+     }
+    },
+    {
+     "model": "c3_full_r44",
+     "kind": "self-play round 44",
+     "test_mae": 13.43,
+     "arena": {
+      "games": 500,
+      "win": 0.58,
+      "margin": 5.608,
+      "score": 90.678,
+      "win_ci": 0.04326231061790389,
+      "penalty": -3.06,
+      "ms_per_turn": 52.3886232666664
+     }
+    },
+    {
+     "model": "c3_full_r45",
+     "kind": "self-play round 45",
+     "test_mae": 13.38,
+     "arena": {
+      "games": 500,
+      "win": 0.616,
+      "margin": 6.698,
+      "score": 91.578,
+      "win_ci": 0.04263114895003418,
+      "penalty": -2.88,
+      "ms_per_turn": 53.05579253337661
+     }
+    },
+    {
+     "model": "c3_full_r46",
+     "kind": "self-play round 46",
+     "test_mae": 13.25,
+     "arena": {
+      "games": 500,
+      "win": 0.624,
+      "margin": 6.984,
+      "score": 92.564,
+      "win_ci": 0.042457780403596226,
+      "penalty": -2.88,
+      "ms_per_turn": 52.98173023330795
+     }
+    },
+    {
+     "model": "c3_full_r47",
+     "kind": "self-play round 47",
+     "test_mae": 13.07,
+     "arena": {
+      "games": 500,
+      "win": 0.58,
+      "margin": 4.332,
+      "score": 90.098,
+      "win_ci": 0.04326231061790389,
+      "penalty": -3.34,
+      "ms_per_turn": 53.73402401664256
+     }
+    },
+    {
+     "model": "c3_full_r48",
+     "kind": "self-play round 48",
+     "test_mae": 13.01,
+     "arena": {
+      "games": 500,
+      "win": 0.574,
+      "margin": 4.298,
+      "score": 89.63,
+      "win_ci": 0.043344282169624174,
+      "penalty": -2.94,
+      "ms_per_turn": 52.43412291668695
+     }
+    },
+    {
+     "model": "c3_full_r49",
+     "kind": "self-play round 49",
+     "test_mae": 12.91,
+     "arena": {
+      "games": 500,
+      "win": 0.544,
+      "margin": 3.386,
+      "score": 89.112,
+      "win_ci": 0.043656904663523725,
+      "penalty": -3.08,
+      "ms_per_turn": 51.900494916689546
+     }
+    },
+    {
+     "model": "c3_full_r50",
+     "kind": "self-play round 50",
+     "test_mae": 12.78,
+     "arena": {
+      "games": 500,
+      "win": 0.508,
+      "margin": 1.042,
+      "score": 88.12,
+      "win_ci": 0.04382132215257773,
+      "penalty": -3.32,
+      "ms_per_turn": 49.54456314995938
+     }
+    },
+    {
+     "model": "c3_full_r51",
+     "kind": "self-play round 51",
+     "test_mae": 12.84,
+     "arena": {
+      "games": 500,
+      "win": 0.482,
+      "margin": -0.834,
+      "score": 86.112,
+      "win_ci": 0.04379852329930771,
+      "penalty": -3.46,
+      "ms_per_turn": 50.18233328334463
+     }
+    },
+    {
+     "model": "c3_full_r52",
+     "kind": "self-play round 52",
+     "test_mae": 13.07,
+     "arena": {
+      "games": 500,
+      "win": 0.588,
+      "margin": 5.096,
+      "score": 90.218,
+      "win_ci": 0.04314280124424004,
+      "penalty": -3.21,
+      "ms_per_turn": 51.13222174998251
+     }
+    },
+    {
+     "model": "c3_full_r53",
+     "kind": "self-play round 53",
+     "test_mae": 13.23,
+     "arena": {
+      "games": 500,
+      "win": 0.604,
+      "margin": 6.066,
+      "score": 90.896,
+      "win_ci": 0.042868385889837275,
+      "penalty": -2.67,
+      "ms_per_turn": 53.64288855002087
+     }
+    },
+    {
+     "model": "c3_full_r54",
+     "kind": "self-play round 54",
+     "test_mae": 13.28,
+     "arena": {
+      "games": 500,
+      "win": 0.518,
+      "margin": 0.954,
+      "score": 87.306,
+      "win_ci": 0.04379852329930771,
+      "penalty": -3.01,
+      "ms_per_turn": 52.815057816642366
+     }
+    },
+    {
+     "model": "c3_full_r55",
+     "kind": "self-play round 55",
+     "test_mae": 13.11,
+     "arena": {
+      "games": 500,
+      "win": 0.46,
+      "margin": -2.52,
+      "score": 84.794,
+      "win_ci": 0.043686461060607786,
+      "penalty": -3.13,
+      "ms_per_turn": 51.777134916669944
+     }
+    },
+    {
+     "model": "c3_full_r56",
+     "kind": "self-play round 56",
+     "test_mae": 12.88,
+     "arena": {
+      "games": 500,
+      "win": 0.622,
+      "margin": 6.882,
+      "score": 92.3,
+      "win_ci": 0.0425022734827209,
+      "penalty": -2.62,
+      "ms_per_turn": 53.73234910004127
+     }
+    },
+    {
+     "model": "c3_full_r57",
+     "kind": "self-play round 57",
+     "test_mae": 13.07,
+     "arena": {
+      "games": 500,
+      "win": 0.598,
+      "margin": 6.276,
+      "score": 91.792,
+      "win_ci": 0.04297686060195649,
+      "penalty": -2.58,
+      "ms_per_turn": 55.72322854999462
+     }
+    },
+    {
+     "model": "c3_full_r58",
+     "kind": "self-play round 58",
+     "test_mae": 13.1,
+     "arena": {
+      "games": 500,
+      "win": 0.596,
+      "margin": 4.888,
+      "score": 89.798,
+      "win_ci": 0.0430115290218797,
+      "penalty": -2.41,
+      "ms_per_turn": 54.29830503328412
+     }
+    },
+    {
+     "model": "c3_full_r59",
+     "kind": "self-play round 59",
+     "test_mae": 12.85,
+     "arena": {
+      "games": 500,
+      "win": 0.498,
+      "margin": 0.132,
+      "score": 86.236,
+      "win_ci": 0.04382658174213453,
+      "penalty": -3.16,
+      "ms_per_turn": 49.99508348333984
+     }
+    },
+    {
+     "model": "c3_full_r60",
+     "kind": "self-play round 60",
+     "test_mae": 12.56,
+     "arena": {
+      "games": 500,
+      "win": 0.52,
+      "margin": 1.28,
+      "score": 88.042,
+      "win_ci": 0.0437918567772594,
+      "penalty": -3.08,
+      "ms_per_turn": 51.593716083367326
+     }
+    },
+    {
+     "model": "c3_full_r61",
+     "kind": "self-play round 61",
+     "test_mae": 12.7,
+     "arena": {
+      "games": 500,
+      "win": 0.596,
+      "margin": 4.866,
+      "score": 90.596,
+      "win_ci": 0.0430115290218797,
+      "penalty": -3.05,
+      "ms_per_turn": 53.48282193326062
+     }
+    },
+    {
+     "model": "c3_full_r62",
+     "kind": "self-play round 62",
+     "test_mae": 13.07,
+     "arena": {
+      "games": 500,
+      "win": 0.586,
+      "margin": 4.384,
+      "score": 89.998,
+      "win_ci": 0.04317377737469818,
+      "penalty": -3.17,
+      "ms_per_turn": 55.78967054995883
+     }
+    },
+    {
+     "model": "c3_full_r63",
+     "kind": "self-play round 63",
+     "test_mae": 13.3,
+     "arena": {
+      "games": 500,
+      "win": 0.536,
+      "margin": 1.88,
+      "score": 88.034,
+      "win_ci": 0.043713185342640036,
+      "penalty": -3.59,
+      "ms_per_turn": 53.757529466687025
+     }
+    },
+    {
+     "model": "c3_full_r64",
+     "kind": "self-play round 64",
+     "test_mae": 13.27,
+     "arena": {
+      "games": 500,
+      "win": 0.512,
+      "margin": 2.022,
+      "score": 88.936,
+      "win_ci": 0.043814308384362295,
+      "penalty": -3.28,
+      "ms_per_turn": 53.30650256666437
+     }
+    },
+    {
+     "model": "c3_full_r65",
+     "kind": "self-play round 65",
+     "test_mae": 13.11,
+     "arena": {
+      "games": 500,
+      "win": 0.538,
+      "margin": 3.928,
+      "score": 89.362,
+      "win_ci": 0.04370017687836057,
+      "penalty": -3.41,
+      "ms_per_turn": 53.73605443332175
+     }
+    },
+    {
+     "model": "c3_full_r66",
+     "kind": "self-play round 66",
+     "test_mae": 13.04,
+     "arena": {
+      "games": 500,
+      "win": 0.53,
+      "margin": 0.596,
+      "score": 87.358,
+      "win_ci": 0.043747972753031654,
+      "penalty": -3.43,
+      "ms_per_turn": 53.07273338333107
+     }
+    },
+    {
+     "model": "c3_full_r67",
+     "kind": "self-play round 67",
+     "test_mae": 13.14,
+     "arena": {
+      "games": 500,
+      "win": 0.534,
+      "margin": 2.402,
+      "score": 88.802,
+      "win_ci": 0.04372548708476556,
+      "penalty": -2.85,
+      "ms_per_turn": 53.83864488333105
+     }
+    },
+    {
+     "model": "c3_full_r68",
+     "kind": "self-play round 68",
+     "test_mae": 13.16,
+     "arena": {
+      "games": 500,
+      "win": 0.52,
+      "margin": 2.81,
+      "score": 89.318,
+      "win_ci": 0.0437918567772594,
+      "penalty": -3.17,
+      "ms_per_turn": 53.780647816682176
+     }
+    },
+    {
+     "model": "c3_full_r69",
+     "kind": "self-play round 69",
+     "test_mae": 13.01,
+     "arena": {
+      "games": 500,
+      "win": 0.504,
+      "margin": 0.442,
+      "score": 87.734,
+      "win_ci": 0.043825529874720284,
+      "penalty": -3.45,
+      "ms_per_turn": 54.370383250031104
+     }
+    },
+    {
+     "model": "c3_full_r70",
+     "kind": "self-play round 70",
+     "test_mae": 12.92,
+     "arena": {
+      "games": 500,
+      "win": 0.634,
+      "margin": 7.506,
+      "score": 92.846,
+      "win_ci": 0.04222369548961815,
+      "penalty": -3.14,
+      "ms_per_turn": 55.379733566666495
+     }
+    },
+    {
+     "model": "c3_full_r71",
+     "kind": "self-play round 71",
+     "test_mae": 12.84,
+     "arena": {
+      "games": 500,
+      "win": 0.534,
+      "margin": 1.882,
+      "score": 88.506,
+      "win_ci": 0.04372548708476556,
+      "penalty": -3.28,
+      "ms_per_turn": 54.13847185000486
+     }
+    },
+    {
+     "model": "c3_full_r72",
+     "kind": "self-play round 72",
+     "test_mae": 12.78,
+     "arena": {
+      "games": 500,
+      "win": 0.536,
+      "margin": 2.21,
+      "score": 89.46,
+      "win_ci": 0.043713185342640036,
+      "penalty": -2.81,
+      "ms_per_turn": 51.000635583442396
+     }
+    },
+    {
+     "model": "c3_full_r73",
+     "kind": "self-play round 73",
+     "test_mae": 12.86,
+     "arena": {
+      "games": 500,
+      "win": 0.532,
+      "margin": 1.186,
+      "score": 87.46,
+      "win_ci": 0.04373708270106729,
+      "penalty": -2.5,
+      "ms_per_turn": 52.59874548334119
+     }
+    },
+    {
+     "model": "c3_full_r74",
+     "kind": "self-play round 74",
+     "test_mae": 12.94,
+     "arena": {
+      "games": 500,
+      "win": 0.528,
+      "margin": 1.412,
+      "score": 87.018,
+      "win_ci": 0.043758157767438056,
+      "penalty": -2.99,
+      "ms_per_turn": 51.917702199922736
+     }
+    },
+    {
+     "model": "c3_full_r75",
+     "kind": "self-play round 75",
+     "test_mae": 13.0,
+     "arena": {
+      "games": 500,
+      "win": 0.624,
+      "margin": 7.082,
+      "score": 92.384,
+      "win_ci": 0.042457780403596226,
+      "penalty": -2.6,
+      "ms_per_turn": 53.17386323341028
+     }
+    },
+    {
+     "model": "c3_full_r76",
+     "kind": "self-play round 76",
+     "test_mae": 13.12,
+     "arena": {
+      "games": 500,
+      "win": 0.578,
+      "margin": 4.214,
+      "score": 89.736,
+      "win_ci": 0.04329036164321106,
+      "penalty": -3.0,
+      "ms_per_turn": 53.24989046666087
+     }
+    },
+    {
+     "model": "c3_full_r77",
+     "kind": "self-play round 77",
+     "test_mae": 13.31,
+     "arena": {
+      "games": 500,
+      "win": 0.474,
+      "margin": 0.356,
+      "score": 86.422,
+      "win_ci": 0.043767638236487015,
+      "penalty": -3.31,
+      "ms_per_turn": 53.26956326665944
+     }
+    },
+    {
+     "model": "c3_full_r78",
+     "kind": "self-play round 78",
+     "test_mae": 13.44,
+     "arena": {
+      "games": 500,
+      "win": 0.604,
+      "margin": 5.304,
+      "score": 90.476,
+      "win_ci": 0.042868385889837275,
+      "penalty": -3.08,
+      "ms_per_turn": 54.42845663331536
+     }
+    },
+    {
+     "model": "c3_full_r79",
+     "kind": "self-play round 79",
+     "test_mae": 13.26,
+     "arena": {
+      "games": 500,
+      "win": 0.522,
+      "margin": 2.248,
+      "score": 88.344,
+      "win_ci": 0.04378448733512817,
+      "penalty": -3.55,
+      "ms_per_turn": 53.34037058340376
+     }
+    }
+   ],
+   "best": "c3_full_r8"
+  }
+ },
+ "final": {
+  "c3_full_r8 vs greedy": {
+   "games": 500,
+   "win": 0.756,
+   "margin": 13.43,
+   "score": 96.814,
+   "penalty": -2.58,
+   "ms_per_turn": 56.717282449981816,
+   "win_ci": 0.03764669713002722
+  },
+  "c3_full_r8+2 (looks 2 turns ahead) vs greedy": {
+   "games": 200,
+   "win": 0.76,
+   "margin": 12.68,
+   "score": 96.0,
+   "penalty": -2.875,
+   "ms_per_turn": 191.9778533750529,
+   "win_ci": 0.05919070197252268
+  },
+  "c3_full_r8 vs original greedy": {
+   "games": 500,
+   "win": 0.822,
+   "margin": 16.722,
+   "score": 96.782,
+   "penalty": -2.65,
+   "ms_per_turn": 56.706086283352,
+   "win_ci": 0.033528720393119694
+  }
+ }
+}

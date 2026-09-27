@@ -3,8 +3,8 @@ data/
 
 # Trained networks: only the best one is kept in Git
 models/*
-!models/c2_full_r5.pt
-!models/c2_full_r5.npz
+!models/c3_full_r8.pt
+!models/c3_full_r8.npz
 
 # Python and Numba caches
 __pycache__/
