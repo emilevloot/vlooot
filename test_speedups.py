@@ -3,7 +3,8 @@ Checks that every fast version gives exactly the results of the simple one.
 
     python test_speedups.py
 
-  1. nn_encode.encode()  == nn_encode.encode_reference()   (every number)
+  1. nn_encode.encode()  == nn_encode.encode_reference()   (every number;
+                                                            encode() runs fastgame.py)
   2. nn_bot.FastNet      == nn_bot.NumpyNet                (to 1e-4 points)
   3. the rules still pass the scenario tests (tower groups, stacks, ...)
 """

@@ -48,7 +48,8 @@ class NumpyNet:
         d = np.load(path)
         self.p = {k: d[k].astype(np.float32) if d[k].dtype != np.int64 else d[k]
                   for k in d.files}
-        if self.p["fjord.c1.w"].shape[1] != E.FJORD_F or self.p["glob.weight"].shape[1] != E.GLOB_F:
+        if (self.p["land.c1.w"].shape[1] != E.LAND_F or self.p["fjord.c1.w"].shape[1] != E.FJORD_F
+                or self.p["glob.weight"].shape[1] != E.GLOB_F):
             raise ValueError("%s was trained for an older encoding (nn_encode.py "
                              "has changed since); train it again." % os.path.basename(path))
 
@@ -98,7 +99,8 @@ class FastNet:
         d = np.load(path)
         p = {k: d[k] for k in d.files}
         f32 = lambda a: np.ascontiguousarray(a, dtype=np.float32)
-        if p["fjord.c1.w"].shape[1] != E.FJORD_F or p["glob.weight"].shape[1] != E.GLOB_F:
+        if (p["land.c1.w"].shape[1] != E.LAND_F or p["fjord.c1.w"].shape[1] != E.FJORD_F
+                or p["glob.weight"].shape[1] != E.GLOB_F):
             raise ValueError("%s was trained for an older encoding; train it again." % path)
         self.boards = {}
         for pre, nb in (("land", E.LAND_NB), ("fjord", E.FJORD_NB)):

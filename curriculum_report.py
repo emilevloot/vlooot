@@ -14,7 +14,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPORT = os.path.join(HERE, "curriculum_report.html")
 STAGES = ["resources", "buildings", "sites", "longships", "full"]
 LABELS = {"cur": "Run 1: basic features, final results only",
-          "c2": "Run 2: helper features + TD learning"}
+          "c2": "Run 2: helper features + TD learning",
+          "c3": "Run 3: land encoding v3 (placement gains, shopping list), GPU self-play"}
 
 
 def _old_format(res):

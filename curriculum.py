@@ -3,6 +3,9 @@ Teach the value network the game step by step ("curriculum learning").
 
     python curriculum.py --prefix c2          # all stages; continues where it stopped
     python curriculum.py --prefix c2 --report # only (re)make the report
+    python curriculum.py --prefix c3 --hours 6 --rounds longships=12
+                         # a time budget: the last stage keeps playing
+                         # self-play rounds until the time is almost up
 
 The stages are looot.RULE_STAGES: resources -> buildings -> sites ->
 longships -> full. For every stage:
@@ -36,6 +39,7 @@ import looot as L          # noqa: E402
 
 STAGES = [s for s, _ in L.RULE_STAGES]
 ROUNDS = {"resources": 0, "buildings": 1, "sites": 1, "longships": 6, "full": 8}
+FINALS_RESERVE = 15 * 60        # seconds kept free for the final tests
 
 
 class Run:
@@ -67,6 +71,15 @@ class Run:
         return out, time.time() - t
 
 
+def keep_awake():
+    """Ask Windows not to go to sleep while this program runs (the way a video
+    player does). No setting is changed: it ends when the program ends."""
+    if sys.platform == "win32":
+        import ctypes
+        ES_CONTINUOUS, ES_SYSTEM_REQUIRED = 0x80000000, 0x00000001
+        ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
+
+
 def kept(out):
     """The 'Keeping epoch N (x points off)' line of train_nn.py, as a number."""
     for l in out:
@@ -94,7 +107,7 @@ def stage_run(R, si, a, prev):
     st = STAGES[si]
     P = R.prefix
     seed = 1_000_000 * (si + 1) + (0 if P == "cur" else 50_000_000)
-    games_arena = a.arena_games if ROUNDS[st] < 3 else a.arena_games_long
+    games_arena = a.arena_games if a.rounds[st] < 3 else a.arena_games_long
     r = R.results["stages"].setdefault(st, {"steps": []})
     R.log("=== stage %d/%d: %s ===" % (si + 1, len(STAGES), st))
 
@@ -127,7 +140,17 @@ def stage_run(R, si, a, prev):
 
     # 3. self-play rounds
     sp = []
-    for k in range(1, min(ROUNDS[st], a.max_rounds) + 1):
+    last = st == STAGES[-1]
+    n_rounds = a.max_rounds if (last and a.hours) else min(a.rounds[st], a.max_rounds)
+    round_time = 0
+    for k in range(1, n_rounds + 1):
+        if a.hours:
+            # stop when the next round would eat into the time for the finals
+            left = a.deadline - time.time()
+            if left < round_time + FINALS_RESERVE:
+                R.log("  time budget reached: no more rounds (%.0f min left)" % (left / 60))
+                break
+        t_round = time.time()
         name = "%s_%s_sp%d" % (P, st, k)
         _, t = R.run(["gen_data.py", "--games", str(a.selfplay_games), "--rules", st,
                       "--player", "nn:" + model, "--name", name,
@@ -144,6 +167,7 @@ def stage_run(R, si, a, prev):
               % (k, a.selfplay_games, t, new, t2))
         record(new, "self-play round %d" % k, kept(out))
         model = new
+        round_time = time.time() - t_round
 
     # the best network of the stage moves on
     best = max(r["steps"], key=lambda s: s["arena"]["win"] + 0.002 * s["arena"]["margin"])
@@ -194,10 +218,24 @@ def main():
                     help="arena games in stages with many rounds (more precise)")
     ap.add_argument("--report", action="store_true", help="only make the report")
     ap.add_argument("--max-rounds", type=int, default=99, help="cap on rounds per stage")
+    ap.add_argument("--rounds", default="",
+                    help="self-play rounds per stage, e.g. buildings=3,longships=12 "
+                         "(the rest as in ROUNDS)")
+    ap.add_argument("--hours", type=float, default=0,
+                    help="time budget: the last stage keeps going until it is used up")
     a = ap.parse_args()
+    rounds = dict(ROUNDS)
+    for part in filter(None, a.rounds.split(",")):
+        st, n = part.split("=")
+        if st not in rounds:
+            raise SystemExit("unknown stage %r (stages: %s)" % (st, ", ".join(STAGES)))
+        rounds[st] = int(n)
+    a.rounds = rounds
+    a.deadline = time.time() + 3600 * a.hours
 
     R = Run(a.prefix)
     if not a.report:
+        keep_awake()
         # input scaling for every stage comes from full-game data
         if not os.path.exists(os.path.join(HERE, "data", a.prefix + "_stats_000.npz")):
             R.run(["gen_data.py", "--games", str(min(2000, a.greedy_games)),

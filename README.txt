@@ -66,14 +66,19 @@ NEURAL NETWORK PLAYER (2-player games, needs PyTorch + an NVIDIA GPU)
                   (resources, buildings, sites, longships, full game),
                   with self-play rounds and TD learning in every step
   curriculum_report.py / curriculum_report.html   graphs of the runs
+  start_training.bat   the long run (prefix c3, about 6 hours; the last
+                       stage keeps training until the time is used up)
   Try a trained network in the arena:
-      python arena.py nn:c2_full_r8 greedy
-      python arena.py nn:c2_full_r8+2 greedy     (looks 2 turns ahead)
-      python arena.py nn:c2_full_r8@2 greedy     (only takes a longship
+      python arena.py nn:c3_full_r8 greedy
+      python arena.py nn:c3_full_r8+2 greedy     (looks 2 turns ahead)
+      python arena.py nn:c3_full_r8@2 greedy     (only takes a longship
                                                    if it looks 2 points better)
   Play with only some rules:  python arena.py greedy random --rules sites
   data\ and models\ hold the training data and networks. Networks from
-  before encoding version 2 (v1, cur_*) no longer load.
+  before encoding version 3 (cur_*, c2_*) no longer load. Version 3 tells
+  the network per landscape space what a Viking there would give each
+  player (tiles, chain size, items on their "shopping list": what their
+  unfinished longships and construction sites still miss).
 
 FAST TRAINING ENGINE (needs: pip install numba)
   fastgame.py     the game for 2 players as numpy arrays, compiled with

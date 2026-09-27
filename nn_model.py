@@ -77,7 +77,7 @@ class ValueNet(nn.Module):
         self.register_buffer("glob_sd", torch.ones(E.GLOB_F))
 
     def forward(self, land, fjord, glob):
-        """land [B,55,19], fjord [B,2,37,30], glob [B,104] (raw numbers).
+        """land [B,55,19], fjord [B,2,37,33], glob [B,110] (raw numbers).
         Returns (margin / 20, win logit), each [B]."""
         land = (land.float() - self.land_mu) / self.land_sd
         fjord = (fjord.float() - self.fjord_mu) / self.fjord_sd

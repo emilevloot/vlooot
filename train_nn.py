@@ -44,12 +44,12 @@ def load(prefixes):
                    for f in globmod.glob(os.path.join(DATA_DIR, p + "_*.npz")))
     if not files:
         raise SystemExit("No data files found for %s in data/" % prefixes)
-    parts = {k: [] for k in ("land", "fjord", "glob", "margin", "win", "game")}
-    for f in files:
-        d = np.load(f)
-        for k in parts:
-            parts[k].append(d[k])
-    out = {k: np.concatenate(v) for k, v in parts.items()}
+    # one kind of array at a time, so only that kind is in memory twice
+    # while it is glued together (the data can be several GB)
+    zips = [np.load(f) for f in files]
+    out = {}
+    for k in ("land", "fjord", "glob", "margin", "win", "game"):
+        out[k] = np.concatenate([z[k] for z in zips])
     print("Loaded %d positions from %d games (%d files)."
           % (len(out["margin"]), len(np.unique(out["game"])), len(files)))
     return out

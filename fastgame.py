@@ -75,11 +75,8 @@ SITE_OF_CELL[SITE_CELL] = np.arange(len(SITE_KINDS))
 COORD_ORDER = np.array(sorted(range(NB), key=lambda i: tuple(E.LAND_CELLS[i])), dtype=np.int64)
 COORD_RANK = np.zeros(NL, dtype=np.int64)
 COORD_RANK[COORD_ORDER] = np.arange(NB)
-# rank of each space's "q,r" text key (nn_encode counts tower links by it)
-_keys = [L.key(tuple(E.LAND_CELLS[i])) for i in range(NB)]
-KEY_RANK = np.zeros(NL, dtype=np.int64)
-for _rank, _i in enumerate(sorted(range(NB), key=lambda i: _keys[i])):
-    KEY_RANK[_i] = _rank
+# terrain codes 0-3 give the resources in E.RES order
+assert [L.TERRAIN_RESOURCE[t] for t in E.TERRAINS[:4]] == E.RES
 
 # ---------------------------------------------------------------------------
 # State layout: offsets into the int32 state array `s`
@@ -129,15 +126,14 @@ def bot_weights(w=None):
 
 
 # ---------------------------------------------------------------------------
-# Encoding layout (the same numbers as nn_encode.encode)
+# Encoding layout (the same numbers as nn_encode.encode_reference)
 # ---------------------------------------------------------------------------
 
 LAND_F, FJORD_F, GLOB_F = E.LAND_F, E.FJORD_F, E.GLOB_F
-LF_TERRAIN, LF_OCEAN, LF_SHIP = E.LF_TERRAIN, E.LF_OCEAN, E.LF_SHIP
-LF_MY_VIK, LF_OPP_VIK, LF_STOCK = E.LF_MY_VIK, E.LF_OPP_VIK, E.LF_STOCK
-LF_MY_CHAIN, LF_OPP_CHAIN = E.LF_MY_CHAIN, E.LF_OPP_CHAIN
-LF_MY_CASTLE, LF_OPP_CASTLE = E.LF_MY_CASTLE, E.LF_OPP_CASTLE
-LF_MY_TOWERS, LF_OPP_TOWERS, LF_ANCHOR = E.LF_MY_TOWERS, E.LF_OPP_TOWERS, E.LF_ANCHOR
+LF_TERRAIN, LF_OCEAN, LF_SHIP, LF_VIK = E.LF_TERRAIN, E.LF_OCEAN, E.LF_SHIP, E.LF_VIK
+LF_FREE, LF_STACK, LF_CHAIN, LF_STOCK = E.LF_FREE, E.LF_STACK, E.LF_CHAIN, E.LF_STOCK
+LF_TLINKS, LF_TTOUCH, LF_CLEVEL, LF_CNEXT = E.LF_TLINKS, E.LF_TTOUCH, E.LF_CLEVEL, E.LF_CNEXT
+LF_GAIN, N_GAIN = E.LF_GAIN, len(E.GAIN)
 FF_EMPTY, FF_RES, FF_BLD = E.FF_EMPTY, E.FF_RES, E.FF_BLD
 FF_SHIP, FF_SHIP_DONE, FF_SHIP_MISSING, FF_SHIP_BONUS = (
     E.FF_SHIP, E.FF_SHIP_DONE, E.FF_SHIP_MISSING, E.FF_SHIP_BONUS)
@@ -161,6 +157,9 @@ GI_TROPHY = np.array([[G_["trophy%d_me" % i], G_["trophy%d_opp" % i]] for i in r
 GI_OCEAN_RES = np.array([[G_["ocean%d_%s" % (k, r)] for r in E.RES] for k in range(5)])
 GI_OCEAN_BONUS = np.array([[G_["ocean%d_bonus_%s" % (k, c)] for c in E.CATS] for k in range(5)])
 GI_ANCHORS = np.array([G_["anchors_" + r] for r in E.RES])
+GI_NEED = np.array([[G_["need_%s_%s" % (t, w)] for t in E.SITE_ITEMS] for w in ("me", "opp")])
+GI_BEST_GAIN = np.array([G_["best_gain_me"], G_["best_gain_opp"]])
+GI_BEST_USEFUL = np.array([G_["best_useful_me"], G_["best_useful_opp"]])
 GI_TOMOVE, GI_BAG = G_["to_move_me"], G_["bag"]
 
 
@@ -389,10 +388,9 @@ def take(s, a, k):
 
 
 @njit(cache=True)
-def tower_tiles(s, gs, p, towers, m, c, pay):
-    """Towers that pay 1 tile (see Game.tower_tiles). towers: the m towers the
-    chain touches, in (q, r) order. Writes them into `pay`, returns how many."""
-    grp = np.full(m, -1, np.int64)
+def tower_groups(s, gs, p, towers, m, grp):
+    """Split the m towers into groups of towers player p linked before:
+    grp[j] = group of towers[j]. Returns the number of groups."""
     stack = np.empty(m, np.int64)
     ng = 0
     for j in range(m):
@@ -413,14 +411,13 @@ def tower_tiles(s, gs, p, towers, m, c, pay):
                         stack[top] = b
                         top += 1
         ng += 1
-    # from now on all these towers count as linked to each other
-    for a in range(m):
-        sa = gs[G_TSLOT + towers[a]]
-        for b in range(m):
-            if a != b:
-                s[S_PAIRS + p * MAXT + sa] |= 1 << gs[G_TSLOT + towers[b]]
-    if ng < 2:
-        return 0
+    return ng
+
+
+@njit(cache=True)
+def tower_choice(s, towers, m, grp, ng, c, pay):
+    """The tower of each group that pays: the one next to the new Viking on
+    c, otherwise the one with most tiles left (then the highest (q, r))."""
     for gi in range(ng):
         best = -1
         bk0 = -1
@@ -452,6 +449,23 @@ def tower_tiles(s, gs, p, towers, m, c, pay):
                 bk1 = k1
                 bk2 = k2
         pay[gi] = best
+
+
+@njit(cache=True)
+def tower_tiles(s, gs, p, towers, m, c, pay):
+    """Towers that pay 1 tile (see Game.tower_tiles). towers: the m towers the
+    chain touches, in (q, r) order. Writes them into `pay`, returns how many."""
+    grp = np.full(m, -1, np.int64)
+    ng = tower_groups(s, gs, p, towers, m, grp)
+    # from now on all these towers count as linked to each other
+    for a in range(m):
+        sa = gs[G_TSLOT + towers[a]]
+        for b in range(m):
+            if a != b:
+                s[S_PAIRS + p * MAXT + sa] |= 1 << gs[G_TSLOT + towers[b]]
+    if ng < 2:
+        return 0
+    tower_choice(s, towers, m, grp, ng, c, pay)
     return ng
 
 
@@ -698,42 +712,122 @@ def outcome(s, me):
 
 
 # ---------------------------------------------------------------------------
-# Encoding: exactly the numbers of nn_encode.encode
+# Encoding: exactly the numbers of nn_encode.encode_reference
 # ---------------------------------------------------------------------------
 
 @njit(cache=True)
-def _chain_sizes(s, p, col, land):
-    seen = np.zeros(NL, np.bool_)
-    comp = np.empty(NB, np.int64)
+def _chains(s, gs, p, comp, size, adj):
+    """Label the chains of player p's Vikings: comp[i] = chain number of
+    board space i (-1: none of p's Vikings), size[k] = its number of spaces,
+    adj[k] = bitmask (bit = board space) of the watchtowers and castles next
+    to it. Returns the number of chains."""
+    for i in range(NL):
+        comp[i] = -1
+    todo = np.empty(NB, np.int64)
+    nc = 0
     for start in range(NB):
-        if seen[start] or s[S_VIK + p * NL + start] == 0:
+        if comp[start] >= 0 or s[S_VIK + p * NL + start] == 0:
             continue
-        seen[start] = True
-        comp[0] = start
-        size = 1
+        comp[start] = nc
+        todo[0] = start
+        n = 1
         head = 0
-        while head < size:
-            c = comp[head]
+        mask = np.int64(0)
+        while head < n:
+            c = todo[head]
             head += 1
             for d in range(6):
                 nb = LAND_NB[c, d]
-                if nb < NB and not seen[nb] and s[S_VIK + p * NL + nb] > 0:
-                    seen[nb] = True
-                    comp[size] = nb
-                    size += 1
-        v = min(size, 127)
-        for j in range(size):
-            land[comp[j], col] = v
+                if nb >= NB:
+                    continue
+                t = gs[G_TERR + nb]
+                if t == T_TOWER or t == T_CASTLE:
+                    mask |= np.int64(1) << nb
+                if comp[nb] < 0 and s[S_VIK + p * NL + nb] > 0:
+                    comp[nb] = nc
+                    todo[n] = nb
+                    n += 1
+        size[nc] = n
+        adj[nc] = mask
+        nc += 1
+    return nc
 
 
 @njit(cache=True)
-def _encode_fjord(s, gs, p, out, glob, w):
-    """nn_encode's fjord numbers for player p into out[NF, FJORD_F], and that
-    player's score numbers into glob (w = 0 for me, 1 for the opponent)."""
+def _placement_gain(s, gs, p, c, comp, size, adj, need, out):
+    """What player p would get from a Viking on free space c (no shields),
+    without changing the game: out = [chain size, house, watchtower and
+    castle tiles, useful items] (see nn_encode._placement_gain)."""
+    seen = np.full(6, -1, np.int64)
+    ns = 0
+    total = 1
+    mask = np.int64(0)
+    for d in range(6):
+        nb = LAND_NB[c, d]
+        if nb >= NB:
+            continue
+        t = gs[G_TERR + nb]
+        if t == T_TOWER or t == T_CASTLE:
+            mask |= np.int64(1) << nb
+        k = comp[nb]
+        if k >= 0:
+            new = True
+            for j in range(ns):
+                if seen[j] == k:
+                    new = False
+            if new:
+                seen[ns] = k
+                ns += 1
+                total += size[k]
+                mask |= adj[k]
+    houses = 0
+    towers_got = 0
+    castles = 0
+    if gs[G_RULES + R_BUILD] > 0:
+        for d in range(6):
+            nb = LAND_NB[c, d]
+            if nb < NB and gs[G_TERR + nb] == T_HOUSE and s[S_STOCK + nb] > 0:
+                houses += 1
+        towers = np.empty(MAXT, np.int64)
+        m = 0
+        for j in range(NB):
+            a = COORD_ORDER[j]
+            if (mask >> a) & 1 and gs[G_TERR + a] == T_TOWER:
+                towers[m] = a
+                m += 1
+        grp = np.full(m, -1, np.int64)
+        ng = tower_groups(s, gs, p, towers, m, grp)
+        if ng >= 2:
+            pay = np.empty(MAXT, np.int64)
+            tower_choice(s, towers, m, grp, ng, c, pay)
+            for j in range(ng):
+                if s[S_STOCK + pay[j]] > 0:
+                    towers_got += 1
+        level = min(3, total // 4)
+        for a in range(NB):
+            if (mask >> a) & 1 and gs[G_TERR + a] == T_CASTLE:
+                have = s[S_CASTLE + p * NL + a]
+                if level > have:
+                    castles += min(level - have, s[S_STOCK + a])
+    out[0] = total
+    out[1] = houses
+    out[2] = towers_got
+    out[3] = castles
+    out[4] = (min(1, need[gs[G_TERR + c]]) + min(houses, need[4])
+              + min(towers_got, need[5]) + min(castles, need[6]))
+
+
+@njit(cache=True)
+def _encode_fjord(s, gs, p, out, glob, w, need):
+    """nn_encode's fjord numbers for player p into out[NF, FJORD_F], that
+    player's score numbers into glob (w = 0 for me, 1 for the opponent), and
+    the items still missing on ships/sites that can be finished into need[7]."""
     gain = s[S_VLEFT + p] + (1 if s[S_SHIELD + p * 3 + 2] > 0 else 0)
     cnt = np.zeros(7, np.int64)
     empty = 0
     spots = 0
+    for t in range(7):
+        need[t] = 0
     for c in range(NF):
         code = s[S_FJ + p * NF + c]
         room = 0
@@ -770,8 +864,12 @@ def _encode_fjord(s, gs, p, out, glob, w):
                     if m > 0:
                         out[c, FF_SHIP_MISSING + r] = m
                         nmiss += m
-                out[c, FF_FILLABLE] = 1 if (nmiss <= room and nmiss <= gain) else 0
+                ok = nmiss <= room and nmiss <= gain
+                out[c, FF_FILLABLE] = 1 if ok else 0
                 out[c, FF_SLACK] = max(-13, min(13, gain - nmiss))
+                if ok:
+                    for r in range(4):
+                        need[r] += out[c, FF_SHIP_MISSING + r]
         else:
             k = SITE_OF_CELL[c]
             done = s[S_FJFLAG + p * NF + c] > 0
@@ -788,8 +886,12 @@ def _encode_fjord(s, gs, p, out, glob, w):
                         nmiss += m
                         if t < 4:
                             nres += m
-                out[c, FF_FILLABLE] = 1 if (nmiss <= room and nres <= gain) else 0
+                ok = nmiss <= room and nres <= gain
+                out[c, FF_FILLABLE] = 1 if ok else 0
                 out[c, FF_SLACK] = max(-13, min(13, gain - nmiss))
+                if ok:
+                    for t in range(7):
+                        need[t] += out[c, FF_SITE_MISSING + t]
     count = np.zeros(6, np.int64)
     value = np.zeros(6, np.int64)
     sites, unfilled, total = score_parts(s, p, count, value)
@@ -805,47 +907,82 @@ def _encode_fjord(s, gs, p, out, glob, w):
     glob[GI_UNFILLED[w]] = unfilled
     glob[GI_TOTAL[w]] = total
     glob[GI_ROOM[w]] = empty
+    for t in range(7):
+        glob[GI_NEED[w, t]] = need[t]
 
 
 @njit(cache=True)
 def encode(s, gs, me, land, fjord, glob):
     """Fill the ZEROED arrays land[NL, LAND_F], fjord[2, NF, FJORD_F] and
-    glob[GLOB_F] with the numbers of nn_encode.encode for player `me`."""
+    glob[GLOB_F] with the numbers of nn_encode.encode_reference for `me`."""
     opp = 1 - me
-    for i in range(NB):
-        land[i, LF_TERRAIN + gs[G_TERR + i]] = 1
-        land[i, LF_MY_VIK] = s[S_VIK + me * NL + i]
-        land[i, LF_OPP_VIK] = s[S_VIK + opp * NL + i]
-        land[i, LF_STOCK] = s[S_STOCK + i]
-        land[i, LF_MY_CASTLE] = s[S_CASTLE + me * NL + i]
-        land[i, LF_OPP_CASTLE] = s[S_CASTLE + opp * NL + i]
+    build = gs[G_RULES + R_BUILD] > 0
+    # fjords first: the shopping lists are needed for the land
+    need = np.zeros((2, 7), np.int64)
+    _encode_fjord(s, gs, me, fjord[0], glob, 0, need[0])
+    _encode_fjord(s, gs, opp, fjord[1], glob, 1, need[1])
+
+    comp = np.empty((2, NL), np.int64)
+    size = np.zeros((2, NB), np.int64)
+    adj = np.zeros((2, NB), np.int64)
+    for w in range(2):
+        _chains(s, gs, me if w == 0 else opp, comp[w], size[w], adj[w])
     for k in range(5):
         land[NB + k, LF_OCEAN] = 1
         if s[S_OCEAN + k] >= 0:
             land[NB + k, LF_SHIP] = 1
-    _chain_sizes(s, me, LF_MY_CHAIN, land)
-    _chain_sizes(s, opp, LF_OPP_CHAIN, land)
-    # tower links, counted on the tower whose "q,r" text comes first
-    nt = gs[G_NT]
-    for w in range(2):
-        p = me if w == 0 else opp
-        col = LF_MY_TOWERS if w == 0 else LF_OPP_TOWERS
-        for a in range(nt):
-            ma = s[S_PAIRS + p * MAXT + a]
-            for b in range(a + 1, nt):
-                if (ma >> b) & 1:
-                    ca = gs[G_TCELL + a]
-                    cb = gs[G_TCELL + b]
-                    first = ca if KEY_RANK[ca] < KEY_RANK[cb] else cb
-                    land[first, col] += 1
-    # free resource spaces where a Viking may be placed
+    gain = np.zeros(N_GAIN, np.int64)
+    best = np.zeros((2, 2), np.int64)
     for i in range(NB):
         t = gs[G_TERR + i]
-        if t <= 3 and s[S_VIK + i] + s[S_VIK + NL + i] == 0 and is_anchor(s, gs, i):
-            land[i, LF_ANCHOR] = 1
-            glob[GI_ANCHORS[t]] += 1
-    _encode_fjord(s, gs, me, fjord[0], glob, 0)
-    _encode_fjord(s, gs, opp, fjord[1], glob, 1)
+        land[i, LF_TERRAIN + t] = 1
+        occupied = s[S_VIK + i] + s[S_VIK + NL + i] > 0
+        for w in range(2):
+            p = me if w == 0 else opp
+            land[i, LF_VIK + w] = s[S_VIK + p * NL + i]
+            k = comp[w, i]
+            if k >= 0:
+                land[i, LF_CHAIN + w] = min(size[w, k], 127)
+            if t == T_TOWER:
+                links = s[S_PAIRS + p * MAXT + gs[G_TSLOT + i]]
+                nl = 0
+                while links:
+                    nl += links & 1
+                    links >>= 1
+                land[i, LF_TLINKS + w] = nl
+                for d in range(6):
+                    nb = LAND_NB[i, d]
+                    if nb < NB and s[S_VIK + p * NL + nb] > 0:
+                        land[i, LF_TTOUCH + w] = 1
+            elif t == T_CASTLE:
+                have = s[S_CASTLE + p * NL + i]
+                land[i, LF_CLEVEL + w] = have
+                if build and have < 3 and s[S_STOCK + i] > 0:
+                    biggest = 0
+                    for d in range(6):
+                        nb = LAND_NB[i, d]
+                        if nb < NB and comp[w, nb] >= 0:
+                            biggest = max(biggest, size[w, comp[w, nb]])
+                    land[i, LF_CNEXT + w] = max(1, 4 * (have + 1) - biggest)
+        if t >= T_HOUSE:
+            land[i, LF_STOCK + t - T_HOUSE] = s[S_STOCK + i]
+        elif is_anchor(s, gs, i):
+            if occupied:
+                land[i, LF_STACK] = 1
+            else:
+                land[i, LF_FREE] = 1
+                glob[GI_ANCHORS[t]] += 1
+                for w in range(2):
+                    p = me if w == 0 else opp
+                    _placement_gain(s, gs, p, i, comp[w], size[w], adj[w], need[w], gain)
+                    for j in range(N_GAIN):
+                        land[i, LF_GAIN + w * N_GAIN + j] = min(gain[j], 127)
+                    best[w, 0] = max(best[w, 0], 1 + gain[1] + gain[2] + gain[3])
+                    best[w, 1] = max(best[w, 1], gain[4])
+    for w in range(2):
+        glob[GI_BEST_GAIN[w]] = best[w, 0]
+        glob[GI_BEST_USEFUL[w]] = best[w, 1]
+
     glob[GI_TOMOVE] = 1 if (s[S_CUR] == me and s[S_OVER] == 0) else 0
     for i in range(5):
         o = s[S_TOWNER + i]

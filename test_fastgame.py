@@ -5,7 +5,7 @@ looot.py, the real game.
     python test_fastgame.py            # all checks
     python test_fastgame.py quick      # fewer games
 
-  1. encoding   fastgame's encoding of a position == nn_encode.encode
+  1. encoding   fastgame's encoding of a position == nn_encode.encode_reference
   2. rules      random turns (random placements, shields, tile spaces,
                 longships, trophies) done in BOTH engines; after every single
                 action the whole state must be identical
@@ -37,7 +37,7 @@ def games(n, seed0):
 
 def same_encoding(s, gs, g, where):
     for me in range(2):
-        a = E.encode(g, me)
+        a = E.encode_reference(g, me)
         b = F.encode_state(s, gs, me)
         for x, y, name in zip(a, b, ("land", "fjord", "glob")):
             if not np.array_equal(x, y):
