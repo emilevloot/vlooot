@@ -485,11 +485,11 @@ def transfer_to_mp(src, stats=None):
         o = ss[k]
         if o.shape == v.shape:
             out[k] = o.clone()
-        elif k == "land.c1.w":                        # [7, 38, 48] -> [7, 39, 48]
+        elif k.endswith("land.c1.w"):                 # [7, 38, 48] -> [7, 39, 48] (also pol_land)
             w = torch.zeros_like(v)
             w[:, :o.shape[1]] = o
             out[k] = w
-        elif k == "land.fc.weight":                   # [128, 55*16] -> [128, 105*16]
+        elif k.endswith("land.fc.weight"):            # [128, 55*16] -> [128, 105*16] (also pol_land)
             w = torch.zeros_like(v)
             sq = o.shape[1] // E2.N_LAND
             for i, j in enumerate(cell_map):

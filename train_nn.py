@@ -218,13 +218,15 @@ def main():
             # give back the GPU memory of this step, or it stays reserved next
             # to what training needs and the GPU runs out (and crawls)
             torch.cuda.empty_cache()
-        # rows per turn: one per player (the multi-player encoding says how
-        # many play; the 2-player one always has 2)
-        per_turn = 2
-        if D["glob"].shape[1] == mp_encode.GLOB_F:
-            per_turn = 1 + int(D["glob"][0, mp_encode.PRESENT_COLS].sum())
-        step = per_turn * a.td
+        # rows per turn: one per player - the multi-player encoding says how
+        # many play (per row: 3- and 4-player games can be mixed); the
+        # 2-player one always has 2
         n = len(D["margin"])
+        if D["glob"].shape[1] == mp_encode.GLOB_F:
+            per_turn = 1 + D["glob"][:, mp_encode.PRESENT_COLS].astype(np.int64).sum(1)
+            step = torch.from_numpy(per_turn * a.td).to(dev)
+        else:
+            step = 2 * a.td
         later = torch.arange(n, device=dev) + step
         game = torch.from_numpy(D["game"]).to(dev)
         ok = later < n

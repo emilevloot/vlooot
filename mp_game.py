@@ -1560,6 +1560,15 @@ POLICY_TAU = 1.0            # points: candidates within ~1 point share the weigh
 
 
 @njit(cache=True)
+def _any_viking(s, i):
+    """A Viking of any player on space i."""
+    for p in range(MAXPL):
+        if s[S_VIK + p * NL + i] > 0:
+            return True
+    return False
+
+
+@njit(cache=True)
 def policy_target(s0, s1, w, place, tile, ship):
     """Add weight w to the moves that lead from s0 (start of the turn) to s1
     (a candidate's end): place[NL, 3] Viking spaces (plain, double shield,
@@ -1570,7 +1579,7 @@ def policy_target(s0, s1, w, place, tile, ship):
     first = True
     for i in range(NB):
         if s1[S_VIK + p * NL + i] > s0[S_VIK + p * NL + i]:
-            if s0[S_VIK + i] + s0[S_VIK + NL + i] > 0:
+            if _any_viking(s0, i):
                 v = 2                                   # stacked (occupy shield)
             elif dbl and first:
                 v = 1                                   # double shield
@@ -1773,8 +1782,9 @@ def record(states, gs, seed_, targets=None):
     """Training data of a finished game: every turn-start position seen by
     every player, labelled with how the game ended for that player. Rows:
     turn 0 (player 0, 1, ...), turn 1 (player 0, 1, ...), ... - the format
-    of gen_data.play_and_record. (The proposals' targets are for 2
-    players only so far: `targets` is not used here.)"""
+    of gen_data.play_and_record. With `targets` (one per turn, from
+    FastPlayer.target) also what the proposals should learn, on the row of
+    the player whose turn it was (pol_on = 1 there)."""
     n = len(states)
     npl = int(gs[G_NP])
     arr = np.stack(states)
@@ -1788,7 +1798,19 @@ def record(states, gs, seed_, targets=None):
     margin = np.array([res[k % npl][0] for k in range(npl * n)], np.float32)
     win = np.array([res[k % npl][1] for k in range(npl * n)], np.float32)
     game = np.full(npl * n, seed_, np.int64)
-    return land, fjord, glob, margin, win, game
+    if targets is None:
+        return land, fjord, glob, margin, win, game
+    pp = np.zeros((npl * n, NL, 3), np.float16)
+    pt = np.zeros((npl * n, NF, 8), np.float16)
+    ps = np.zeros((npl * n, 6), np.float16)
+    on = np.zeros(npl * n, np.int8)
+    for t, tg in enumerate(targets):
+        if tg is None:
+            continue
+        r = npl * t + int(states[t][S_CUR])
+        pp[r], pt[r], ps[r] = tg
+        on[r] = 1
+    return land, fjord, glob, margin, win, game, pp, pt, ps, on
 
 
 def selfplay_game(seed_, layout, rules, net, explore=0.0, noise=True, players=4):

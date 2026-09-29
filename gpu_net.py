@@ -23,9 +23,10 @@ class TorchNet:
         self.dev = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.model = nn_model.load(path).eval().to(self.dev)
         self.has_proposals = hasattr(self.model, "pol_land")
-        if self.model.ARCH == "attn":
-            # attention compares every token with every other: fewer
-            # positions per step, or 6 processes together fill the GPU
+        if self.model.ARCH == "attn" or hasattr(self.model.E, "PRESENT_COLS"):
+            # attention compares every token with every other, and a 2-4-player
+            # position is twice as big: fewer positions per step, or 6
+            # processes together fill the GPU (and everything crawls)
             self.CHUNK = 1024
 
     @staticmethod

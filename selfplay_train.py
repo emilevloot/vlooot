@@ -24,15 +24,18 @@ import curriculum as C
 import looot as L
 
 
-def match(a, b, games, seed):
-    """Share of the games network a wins against network b (draws count half)."""
+def match(a, b, games, seed, players=2):
+    """Share of the games network a wins against network b (draws count half).
+    With 4 players: a, b, a, b at one table (a's two seats together)."""
     import arena
-    res = arena.run(["nn:" + a, "nn:" + b], games, seed, L.read_layout_file())
+    seats = ["nn:" + a, "nn:" + b] * (players // 2)
+    res = arena.run(seats, games, seed, L.read_layout_file())
+    per_game = [sum(r["win"] for r in g if r["name"] == "nn:" + a) for g in res]
     rows = [r for g in res for r in g if r["name"] == "nn:" + a]
-    n = len(rows)
-    win = sum(r["win"] for r in rows) / n
+    n = len(per_game)
+    win = sum(per_game) / n
     return {"games": games, "win": win, "win_ci": 1.96 * (win * (1 - win) / n) ** 0.5,
-            "margin": sum(r["margin"] for r in rows) / n}
+            "margin": sum(r["margin"] for r in rows) / len(rows)}
 
 
 def main():
@@ -49,7 +52,16 @@ def main():
     ap.add_argument("--accept", type=float, default=0.53,
                     help="the challenger must win more than this share of the match")
     ap.add_argument("--arena-games", type=int, default=300, help="games against greedy per round")
+    ap.add_argument("--players", default="2",
+                    help="players per game, e.g. 3,4: the self-play games are split over "
+                         "these (a 2-4-player network: transfer_mp.py); the match is played "
+                         "at a table of 4 (challenger, champion, challenger, champion) and the "
+                         "test is against 3 greedy players")
+    ap.add_argument("--batch", default="4096", help="positions per training step")
     a = ap.parse_args()
+    counts = [int(x) for x in a.players.split(",")]
+    table = 4 if max(counts) > 2 else 2
+    C.PLAYERS = table                     # the tests against greedy: 1 network, the rest greedy
     deadline = time.time() + 3600 * a.hours
 
     R = C.Run(a.prefix)
@@ -70,14 +82,19 @@ def main():
         t0 = time.time()
         k += 1
         name = "%s_sp%d" % (a.prefix, k)
-        _, t1 = R.run(["gen_data.py", "--games", str(a.games), "--player", "nn:" + champion,
-                       "--name", name, "--seed", str(70_000_000 + 100_000 * k), "--batch", "750"])
+        t1 = 0
+        for j, npl in enumerate(counts):          # the games split over the player counts
+            _, t = R.run(["gen_data.py", "--games", str(a.games // len(counts)), "--player",
+                          "nn:" + champion, "--players", str(npl),
+                          "--name", name if len(counts) == 1 else "%s_p%d" % (name, npl),
+                          "--seed", str(70_000_000 + 100_000 * k + 10_000 * j), "--batch", "750"])
+            t1 += t
         sp.append(name)
         new = "%s_r%d" % (a.prefix, k)
         out, t2 = R.run(["train_nn.py", "--data"] + sp[-a.window:] +
                         ["--name", new, "--epochs", str(a.epochs), "--init", champion,
-                         "--lr", a.lr, "--td", str(a.td), "--td-mix", "0.5"])
-        m = match(new, champion, a.match_games, 80_000_000 + 1000 * k)
+                         "--lr", a.lr, "--td", str(a.td), "--td-mix", "0.5", "--batch", a.batch])
+        m = match(new, champion, a.match_games, 80_000_000 + 1000 * k, table)
         g = C.arena_vs_greedy(new, None, a.arena_games, 81_000_000 + 1000 * k)
         won = m["win"] > a.accept
         st["steps"].append({"model": new, "kind": "challenger %d" % k, "test_mae": C.kept(out),
@@ -97,7 +114,7 @@ def main():
     R.log("  champion: %s" % champion)
     C.finals(R, argparse.Namespace(arena_games=a.arena_games, arena_games_long=500))
     if champion != a.init:
-        m = match(champion, a.init, 500, 88_500_000)
+        m = match(champion, a.init, 500, 88_500_000, table)
         R.results["final"]["%s vs %s (the start)" % (champion, a.init)] = m
         R.save()
         R.log("FINAL %s vs %s (where it started): %.1f%% ±%.1f, margin %+.1f"
