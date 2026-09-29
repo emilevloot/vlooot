@@ -9,8 +9,12 @@ PLAY
   "python" with "py" in start_game.bat.)
   Computer players: "Computer" is the greedy player, "Network" the neural
   network (2-player games only). The network's turns are played by
-  server.py (it needs numpy and numba; NN_MODEL in server.py says which
-  network plays). Without them, the greedy player takes its turns.
+  server.py (it needs numpy and numba), with the best full-game network of
+  the newest training run. Without them, the greedy player takes its turns.
+  With a Network player in the game, the panel "What the network thinks"
+  shows its win chance and, for the three-part network, how much it wants
+  each item, how well each longship in the ocean fits its fjord, and (dotted
+  blue rings) where a Viking is worth most to it.
 
 EDIT THE LANDSCAPE BOARDS
   Click "Board editor" in the game (or open
@@ -62,7 +66,16 @@ TUNING THE COMPUTER PLAYER
 
 NEURAL NETWORK PLAYER (2-player games, needs PyTorch + an NVIDIA GPU)
   nn_encode.py    turns a position into numbers for the network
-  nn_model.py     the network (hex convolutions over the boards)
+  nn_model.py     the networks (hex convolutions over the boards):
+                    value  land, fjords and the rest combined at the end
+                    attn   the value network's hex layers, then attention
+                           (a small transformer) over all spaces of land,
+                           both fjords and the 5 longships
+                    three  three parts passing each other messages:
+                           fjord part   -> a value for every item
+                           board part   -> what a Viking on each space is worth
+                           ship part    -> how well each longship fits
+  gpu_net.py      the network on the GPU for self-play
   gen_data.py     plays games and saves positions + how they ended
   train_nn.py     trains a network on that data (on the GPU)
   nn_bot.py       a player that uses a trained network
@@ -70,12 +83,33 @@ NEURAL NETWORK PLAYER (2-player games, needs PyTorch + an NVIDIA GPU)
                   (resources, buildings, sites, longships, full game),
                   with self-play rounds and TD learning in every step
   curriculum_report.py / curriculum_report.html   graphs of the runs
-  start_training.bat   the long run (prefix c3, about 6 hours; the last
+  3-4 PLAYERS
+  mp_encode.py    the encoding for 2-4 players: all 4 boards (spaces not
+                  in the game are switched off), "the opponent" = the
+                  strongest opponent / all opponents together
+  mp_game.py      fastgame.py for 2-4 players (test_mp.py checks it plays
+                  exactly like looot.py)
+  transfer_mp.py  turns a 2-player network into a 2-4-player one that
+                  starts with everything it learned
+  run_4p.py       the 4-player training: the best 2-player network (from
+                  the compare_*.json matches), transferred, then trained
+                  on 4-player games (prefix m4)
+  gen_data.py / curriculum.py take --players 3 or 4.
+  selfplay_train.py    training by playing only against itself: a new
+                       network must beat the champion to replace it
+  start_experiments.bat  6 hours: the attention network (c7a) and
+                       c5t_full_r10 trained further against itself (s1),
+                       then everything against each other
+  start_compare.bat    6 hours: the value network (c5v) and the three-part
+                       network (c5t) 3 hours each, then they play each
+                       other (compare_runs.py, result in compare_log.txt)
+  start_training.bat   the long run (prefix c6, the three-part network,
+                       about 6 hours; the last
                        stage keeps training until the time is used up)
   Try a trained network in the arena:
-      python arena.py nn:c3_full_r8 greedy
-      python arena.py nn:c3_full_r8+2 greedy     (looks 2 turns ahead)
-      python arena.py nn:c3_full_r8@2 greedy     (only takes a longship
+      python arena.py nn:c4_full_r8 greedy
+      python arena.py nn:c4_full_r8+2 greedy     (looks 2 turns ahead)
+      python arena.py nn:c4_full_r8@2 greedy     (only takes a longship
                                                    if it looks 2 points better)
   Play with only some rules:  python arena.py greedy random --rules sites
   data\ and models\ hold the training data and networks. Networks from

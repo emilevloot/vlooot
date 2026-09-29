@@ -1,22 +1,11 @@
 """
-Looot for 2 players as numpy arrays, compiled with Numba: a fast copy of the
-game rules and of the neural-network player, for training. Not for playing
-by people - looot.py stays the real game, and test_fastgame.py checks that
-both give exactly the same results.
+Looot for 2, 3 or 4 players as numpy arrays, compiled with Numba: the
+multi-player copy of fastgame.py (same rules, same network player), with
+the encoding of mp_encode.py. Up to 4 players in one state array: every
+per-player block has room for MAXPL = 4; gs[G_NP] says how many play.
+Spaces of landscape boards that are not in the game have terrain T_OUT.
 
-The whole changing state of a game is ONE int32 array `s` (see the S_*
-offsets below), so copying a game is a single small memory copy. What never
-changes during a game (terrain, which spaces are towers, what the
-construction sites need, which rules are on) is a second array, `gs`.
-
-Every rule is a function compiled by Numba (@njit): plain loops over
-numbers, turned into machine code, so they run about as fast as C. Numba
-can't handle dicts of tuples or Python objects, which is why the game is
-written again here as arrays.
-
-Self-play:  selfplay_game(seed, layout, rules, net, ...)  plays one game
-between two copies of the network player and returns the encoded positions,
-in the same format as gen_data.py.
+test_mp.py checks that it plays exactly like looot.py.
 """
 
 import glob
@@ -27,7 +16,7 @@ import numpy as np
 from numba import njit
 
 import looot as L
-import nn_encode as E
+import mp_encode as E
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -44,12 +33,12 @@ FJ_NB = np.ascontiguousarray(E.FJORD_NB, dtype=np.int64)      # padding = NF
 
 MAXT = 16            # watchtowers on the gameboard
 MAXP = 48            # tiles waiting to be placed after one Viking
-MAXO = 160           # placement options in one turn
+MAXO = 400           # placement options in one turn
 
 # terrain codes = index in E.TERRAINS; the ocean gets 7
 assert E.TERRAINS == ["forest", "field", "mountain", "battlefield",
                       "house", "watchtower", "castle"]
-T_HOUSE, T_TOWER, T_CASTLE, T_OCEAN = 4, 5, 6, 7
+T_HOUSE, T_TOWER, T_CASTLE, T_OCEAN, T_OUT = 4, 5, 6, 7, 8   # T_OUT: board not in this game
 # fjord codes: 0 empty, 1..7 = item type + 1, 8 longship, 9 construction site
 assert E.SITE_ITEMS == ["wood", "sheep", "gold", "axe", "house", "watchtower", "castle"]
 FJ_SHIP, FJ_SITE = 8, 9
@@ -82,21 +71,22 @@ assert [L.TERRAIN_RESOURCE[t] for t in E.TERRAINS[:4]] == E.RES
 # State layout: offsets into the int32 state array `s`
 # ---------------------------------------------------------------------------
 
-S_VIK = 0                       # [2][NL] Vikings per player per space
-S_STOCK = S_VIK + 2 * NL        # [NL] tiles left on a building
+MAXPL = E.MAX_PLAYERS
+S_VIK = 0                       # [MAXPL][NL] Vikings per player per space
+S_STOCK = S_VIK + MAXPL * NL    # [NL] tiles left on a building
 S_OCEAN = S_STOCK + NL          # [5] longship id, or -1
 S_BAG = S_OCEAN + 5             # [30] the bag; the top is S_BAG + bag size - 1
 S_BAGN = S_BAG + 30
-S_VLEFT = S_BAGN + 1            # [2] Vikings left
-S_SHIELD = S_VLEFT + 2          # [2][3] extra, occupy, double
-S_TROPHY = S_SHIELD + 6         # [2] trophy index, or -1
-S_TOWNER = S_TROPHY + 2         # [5] owner of each trophy, or -1
-S_CASTLE = S_TOWNER + 5         # [2][NL] castle tiles taken per castle space
-S_PAIRS = S_CASTLE + 2 * NL     # [2][MAXT] bitmask of linked towers per tower
-S_FJ = S_PAIRS + 2 * MAXT       # [2][NF] fjord codes
-S_FJSHIP = S_FJ + 2 * NF        # [2][NF] longship id on a fjord space
-S_FJFLAG = S_FJSHIP + 2 * NF    # [2][NF] longship filled / site done
-S_CUR = S_FJFLAG + 2 * NF       # player to move
+S_VLEFT = S_BAGN + 1            # [MAXPL] Vikings left
+S_SHIELD = S_VLEFT + MAXPL      # [MAXPL][3] extra, occupy, double
+S_TROPHY = S_SHIELD + 3 * MAXPL # [MAXPL] trophy index, or -1
+S_TOWNER = S_TROPHY + MAXPL     # [5] owner of each trophy, or -1
+S_CASTLE = S_TOWNER + 5         # [MAXPL][NL] castle tiles taken per castle space
+S_PAIRS = S_CASTLE + MAXPL * NL # [MAXPL][MAXT] bitmask of linked towers per tower
+S_FJ = S_PAIRS + MAXPL * MAXT   # [MAXPL][NF] fjord codes
+S_FJSHIP = S_FJ + MAXPL * NF    # [MAXPL][NF] longship id on a fjord space
+S_FJFLAG = S_FJSHIP + MAXPL * NF  # [MAXPL][NF] longship filled / site done
+S_CUR = S_FJFLAG + MAXPL * NF   # player to move
 S_OVER = S_CUR + 1              # game over
 S_PHASE = S_OVER + 1
 S_PLACED = S_PHASE + 1          # Vikings placed this turn
@@ -109,9 +99,10 @@ G_TERR = 0                      # [NL] terrain code
 G_TSLOT = G_TERR + NL           # [NL] tower slot, or -1
 G_TCELL = G_TSLOT + NL          # [MAXT] space of each tower slot, or -1
 G_NT = G_TCELL + MAXT           # number of towers
-G_SITENEED = G_NT + 1           # [2][3][7] what each construction site needs
-G_RULES = G_SITENEED + 2 * 3 * 7   # [5] buildings, sites, longships, shields, trophies
-G_LEN = G_RULES + 5
+G_SITENEED = G_NT + 1           # [MAXPL][3][7] what each construction site needs
+G_RULES = G_SITENEED + MAXPL * 3 * 7   # [5] buildings, sites, longships, shields, trophies
+G_NP = G_RULES + 5              # number of players
+G_LEN = G_NP + 1
 R_BUILD, R_SITES, R_LONG, R_SHIELDS, R_TROPHIES = 0, 1, 2, 3, 4
 RULE_KEYS = ["buildings", "sites", "longships", "shields", "trophies"]
 
@@ -133,7 +124,7 @@ LAND_F, FJORD_F, GLOB_F = E.LAND_F, E.FJORD_F, E.GLOB_F
 LF_TERRAIN, LF_OCEAN, LF_SHIP, LF_VIK = E.LF_TERRAIN, E.LF_OCEAN, E.LF_SHIP, E.LF_VIK
 LF_FREE, LF_STACK, LF_CHAIN, LF_STOCK = E.LF_FREE, E.LF_STACK, E.LF_CHAIN, E.LF_STOCK
 LF_TLINKS, LF_TTOUCH, LF_CLEVEL, LF_CNEXT = E.LF_TLINKS, E.LF_TTOUCH, E.LF_CLEVEL, E.LF_CNEXT
-LF_GAIN, N_GAIN, LF_TURNS = E.LF_GAIN, len(E.GAIN), E.LF_TURNS
+LF_GAIN, N_GAIN, LF_TURNS, LF_INPLAY = E.LF_GAIN, len(E.GAIN), E.LF_TURNS, E.LF_INPLAY
 FF_EMPTY, FF_RES, FF_BLD = E.FF_EMPTY, E.FF_RES, E.FF_BLD
 FF_SHIP, FF_SHIP_DONE, FF_SHIP_MISSING, FF_SHIP_BONUS = (
     E.FF_SHIP, E.FF_SHIP_DONE, E.FF_SHIP_MISSING, E.FF_SHIP_BONUS)
@@ -164,6 +155,9 @@ GI_TURNS = np.array([G_["turns_left_me"], G_["turns_left_opp"]])
 GI_TURNS_HOT = np.array([[G_["turns_%s_%d" % (w, t)] for t in range(E.MAX_TURNS + 1)]
                          for w in ("me", "opp")])
 GI_TOMOVE, GI_BAG = G_["to_move_me"], G_["bag"]
+GI_PLAYERS = np.array([G_["players_%d" % n] for n in (2, 3, 4)])
+GI_SEAT = np.array([[G_["%s_%s" % (w, s_)] for w in ("present", "total", "vik", "turns", "strongest")]
+                    for s_ in E.SEATS])
 
 
 def _check_cache():
@@ -175,10 +169,10 @@ def _check_cache():
                              L.FJORD_SITE_SPOTS, L.OCEAN_CELLS, L.BOARD_PLACEMENT,
                              L.BOARD_SHAPE, sorted(L.FJORD_COLUMNS.items()))).encode()).hexdigest()
     cache = os.path.join(HERE, "__pycache__")
-    stamp = os.path.join(cache, "fastgame.sig")
+    stamp = os.path.join(cache, "mp_game.sig")
     old = open(stamp).read() if os.path.exists(stamp) else None
     if old != sig:
-        for f in glob.glob(os.path.join(cache, "fastgame.*.nb[ic]")):
+        for f in glob.glob(os.path.join(cache, "mp_game.*.nb[ic]")):
             try:
                 os.remove(f)
             except OSError:
@@ -201,15 +195,20 @@ PHASES = {"place": PH_PLACE, "tiles": PH_TILES, "actions": PH_ACTIONS, "over": P
 def from_game(g):
     """(s, gs) arrays for a 2-player looot.Game. Tiles still waiting to be
     placed (g.pending) are not part of `s`."""
-    assert len(g.players) == 2, "fastgame is for 2-player games"
+    assert 2 <= len(g.players) <= MAXPL
     s = np.zeros(S_LEN, dtype=np.int32)
     gs = np.zeros(G_LEN, dtype=np.int64)
     gs[G_TERR:G_TERR + NL] = T_OCEAN
     gs[G_TSLOT:G_TSLOT + NL] = -1
     gs[G_TCELL:G_TCELL + MAXT] = -1
     nt = 0
+    gs[G_NP] = len(g.players)
     for i in range(NB):
-        code = E.TERRAINS.index(g.land[E.LAND_CELLS[i]])
+        cell = E.LAND_CELLS[i]
+        if cell not in g.land:
+            gs[G_TERR + i] = T_OUT
+            continue
+        code = E.TERRAINS.index(g.land[cell])
         gs[G_TERR + i] = code
         if code == T_TOWER:
             assert nt < MAXT, "too many watchtowers"
@@ -228,8 +227,8 @@ def from_game(g):
 
     for c, v in g.vikings.items():
         i = E.LAND_INDEX[c]
-        s[S_VIK + i] = v.count(0)
-        s[S_VIK + NL + i] = v.count(1)
+        for p in range(len(g.players)):
+            s[S_VIK + p * NL + i] = v.count(p)
     for c, n in g.stock.items():
         s[S_STOCK + E.LAND_INDEX[c]] = n
     for k, sid in enumerate(g.ocean_ships):
@@ -274,6 +273,15 @@ def from_game(g):
 # ---------------------------------------------------------------------------
 
 @njit(cache=True)
+def occupied(s, gs, i):
+    """Any player's Viking on space i."""
+    for p in range(gs[G_NP]):
+        if s[S_VIK + p * NL + i] > 0:
+            return True
+    return False
+
+
+@njit(cache=True)
 def is_anchor(s, gs, i):
     """Next to a Viking, or to an ocean space that counts."""
     for d in range(6):
@@ -283,7 +291,7 @@ def is_anchor(s, gs, i):
         if n >= NB:
             if s[S_OCEAN + n - NB] >= 0 or gs[G_RULES + R_LONG] == 0:
                 return True
-        elif s[S_VIK + n] + s[S_VIK + NL + n] > 0:
+        elif occupied(s, gs, n):
             return True
     return False
 
@@ -296,7 +304,7 @@ def legal_cells(s, gs, occupy, out):
     for i in range(NB):
         if gs[G_TERR + i] > 3:
             continue
-        occ = s[S_VIK + i] + s[S_VIK + NL + i] > 0
+        occ = occupied(s, gs, i)
         if occ != occupy:
             continue
         if is_anchor(s, gs, i):
@@ -327,8 +335,9 @@ def new_turn(s, gs):
 @njit(cache=True)
 def end_turn(s, gs):
     cur = s[S_CUR]
-    for step in range(1, 3):
-        nxt = (cur + step) % 2
+    npl = gs[G_NP]
+    for step in range(1, npl + 1):
+        nxt = (cur + step) % npl
         if s[S_VLEFT + nxt] > 0:
             s[S_CUR] = nxt
             new_turn(s, gs)
@@ -699,23 +708,35 @@ def total_score(s, p):
 
 
 @njit(cache=True)
-def outcome(s, me):
-    """(margin, win) for player `me` of a finished game (see Game.winners)."""
-    a = total_score(s, me)
-    b = total_score(s, 1 - me)
-    ta = T_VP[s[S_TROPHY + me]] if s[S_TROPHY + me] >= 0 else -1
-    tb = T_VP[s[S_TROPHY + 1 - me]] if s[S_TROPHY + 1 - me] >= 0 else -1
-    if a > b or (a == b and ta > tb):
-        win = 1.0
-    elif a == b and ta == tb:
-        win = 0.5
-    else:
-        win = 0.0
-    return float(a - b), win
+def outcome(s, gs, me):
+    """(margin, win) for player `me` of a finished game (see Game.winners):
+    my score minus the best other score; my share of the win."""
+    npl = gs[G_NP]
+    best_other = -1000000
+    best_s = -1000000
+    best_t = -2
+    for p in range(npl):
+        sc = total_score(s, p)
+        tv = T_VP[s[S_TROPHY + p]] if s[S_TROPHY + p] >= 0 else -1
+        if p != me:
+            best_other = max(best_other, sc)
+        if sc > best_s or (sc == best_s and tv > best_t):
+            best_s = sc
+            best_t = tv
+    n_win = 0
+    me_wins = False
+    for p in range(npl):
+        sc = total_score(s, p)
+        tv = T_VP[s[S_TROPHY + p]] if s[S_TROPHY + p] >= 0 else -1
+        if sc == best_s and tv == best_t:
+            n_win += 1
+            if p == me:
+                me_wins = True
+    return float(total_score(s, me) - best_other), (1.0 / n_win) if me_wins else 0.0
 
 
 # ---------------------------------------------------------------------------
-# Encoding: exactly the numbers of nn_encode.encode_reference
+# Encoding: exactly the numbers of mp_encode.encode_reference
 # ---------------------------------------------------------------------------
 
 @njit(cache=True)
@@ -723,7 +744,7 @@ def _chains(s, gs, p, comp, size, adj):
     """Label the chains of player p's Vikings: comp[i] = chain number of
     board space i (-1: none of p's Vikings), size[k] = its number of spaces,
     adj[k] = bitmask (bit = board space) of the watchtowers and castles next
-    to it. Returns the number of chains."""
+    to it (two int64 words: spaces 0-63 and 64-127). Returns the number of chains."""
     for i in range(NL):
         comp[i] = -1
     todo = np.empty(NB, np.int64)
@@ -735,7 +756,8 @@ def _chains(s, gs, p, comp, size, adj):
         todo[0] = start
         n = 1
         head = 0
-        mask = np.int64(0)
+        m0 = np.int64(0)
+        m1 = np.int64(0)
         while head < n:
             c = todo[head]
             head += 1
@@ -745,15 +767,26 @@ def _chains(s, gs, p, comp, size, adj):
                     continue
                 t = gs[G_TERR + nb]
                 if t == T_TOWER or t == T_CASTLE:
-                    mask |= np.int64(1) << nb
+                    if nb < 64:
+                        m0 |= np.int64(1) << nb
+                    else:
+                        m1 |= np.int64(1) << (nb - 64)
                 if comp[nb] < 0 and s[S_VIK + p * NL + nb] > 0:
                     comp[nb] = nc
                     todo[n] = nb
                     n += 1
         size[nc] = n
-        adj[nc] = mask
+        adj[nc, 0] = m0
+        adj[nc, 1] = m1
         nc += 1
     return nc
+
+
+@njit(cache=True)
+def _bit(m0, m1, a):
+    if a < 64:
+        return (m0 >> a) & 1
+    return (m1 >> (a - 64)) & 1
 
 
 @njit(cache=True)
@@ -764,14 +797,18 @@ def _placement_gain(s, gs, p, c, comp, size, adj, need, out):
     seen = np.full(6, -1, np.int64)
     ns = 0
     total = 1
-    mask = np.int64(0)
+    m0 = np.int64(0)
+    m1 = np.int64(0)
     for d in range(6):
         nb = LAND_NB[c, d]
         if nb >= NB:
             continue
         t = gs[G_TERR + nb]
         if t == T_TOWER or t == T_CASTLE:
-            mask |= np.int64(1) << nb
+            if nb < 64:
+                m0 |= np.int64(1) << nb
+            else:
+                m1 |= np.int64(1) << (nb - 64)
         k = comp[nb]
         if k >= 0:
             new = True
@@ -782,7 +819,8 @@ def _placement_gain(s, gs, p, c, comp, size, adj, need, out):
                 seen[ns] = k
                 ns += 1
                 total += size[k]
-                mask |= adj[k]
+                m0 |= adj[k, 0]
+                m1 |= adj[k, 1]
     houses = 0
     towers_got = 0
     castles = 0
@@ -795,7 +833,7 @@ def _placement_gain(s, gs, p, c, comp, size, adj, need, out):
         m = 0
         for j in range(NB):
             a = COORD_ORDER[j]
-            if (mask >> a) & 1 and gs[G_TERR + a] == T_TOWER:
+            if _bit(m0, m1, a) and gs[G_TERR + a] == T_TOWER:
                 towers[m] = a
                 m += 1
         grp = np.full(m, -1, np.int64)
@@ -808,7 +846,7 @@ def _placement_gain(s, gs, p, c, comp, size, adj, need, out):
                     towers_got += 1
         level = min(3, total // 4)
         for a in range(NB):
-            if (mask >> a) & 1 and gs[G_TERR + a] == T_CASTLE:
+            if _bit(m0, m1, a) and gs[G_TERR + a] == T_CASTLE:
                 have = s[S_CASTLE + p * NL + a]
                 if level > have:
                     castles += min(level - have, s[S_STOCK + a])
@@ -821,13 +859,13 @@ def _placement_gain(s, gs, p, c, comp, size, adj, need, out):
 
 
 @njit(cache=True)
-def _encode_fjord(s, gs, p, out, glob, w, need):
-    """nn_encode's fjord numbers for player p into out[NF, FJORD_F], that
-    player's score numbers into glob (w = 0 for me, 1 for the opponent), and
-    the items still missing on ships/sites that can be finished into need[7]."""
+def _encode_fjord(s, gs, p, out, need):
+    """nn_encode's fjord numbers for player p into out[NF, FJORD_F] (all but
+    the clock), and the items still missing on ships/sites that can be
+    finished into need[7]. Returns the number of empty spaces where a new
+    longship could still be filled."""
     gain = s[S_VLEFT + p] + (1 if s[S_SHIELD + p * 3 + 2] > 0 else 0)
     cnt = np.zeros(7, np.int64)
-    empty = 0
     spots = 0
     for t in range(7):
         need[t] = 0
@@ -845,7 +883,6 @@ def _encode_fjord(s, gs, p, out, glob, w, need):
                     hres += 1
         out[c, FF_ROOM] = room
         if code == 0:
-            empty += 1
             out[c, FF_EMPTY] = 1
             h = min(hres, 3)
             if h + room >= 3 and 3 - h <= gain:
@@ -895,6 +932,12 @@ def _encode_fjord(s, gs, p, out, glob, w, need):
                 if ok:
                     for t in range(7):
                         need[t] += out[c, FF_SITE_MISSING + t]
+    return spots
+
+
+@njit(cache=True)
+def _glob_player(s, p, glob, w, spots, need, tl):
+    """The global numbers of player p: w = 0 as "me", 1 as "opp"."""
     count = np.zeros(6, np.int64)
     value = np.zeros(6, np.int64)
     sites, unfilled, total = score_parts(s, p, count, value)
@@ -909,64 +952,123 @@ def _encode_fjord(s, gs, p, out, glob, w, need):
     glob[GI_SITES[w]] = sites
     glob[GI_UNFILLED[w]] = unfilled
     glob[GI_TOTAL[w]] = total
-    glob[GI_ROOM[w]] = empty
+    glob[GI_ROOM[w]] = fj_empty_count(s, p)
     for t in range(7):
         glob[GI_NEED[w, t]] = need[t]
+    glob[GI_TURNS[w]] = tl
+    glob[GI_TURNS_HOT[w, tl]] = 1
+
+
+@njit(cache=True)
+def turns_left(s, p):
+    """Turns player p still gets (the +1 Viking shield puts 2 in one turn)."""
+    v = s[S_VLEFT + p]
+    return v - 1 if (s[S_SHIELD + p * 3] > 0 and v >= 2) else v
 
 
 @njit(cache=True)
 def encode(s, gs, me, land, fjord, glob):
-    """Fill the ZEROED arrays land[NL, LAND_F], fjord[2, NF, FJORD_F] and
-    glob[GLOB_F] with the numbers of nn_encode.encode_reference for `me`."""
-    opp = 1 - me
+    """Fill the ZEROED arrays land[NL, LAND_F], fjord[MAXPL, NF, FJORD_F] and
+    glob[GLOB_F] with the numbers of mp_encode.encode_reference for `me`."""
+    npl = gs[G_NP]
     build = gs[G_RULES + R_BUILD] > 0
-    # fjords first: the shopping lists are needed for the land
-    need = np.zeros((2, 7), np.int64)
-    _encode_fjord(s, gs, me, fjord[0], glob, 0, need[0])
-    _encode_fjord(s, gs, opp, fjord[1], glob, 1, need[1])
+    seat = np.empty(npl, np.int64)
+    for k in range(npl):
+        seat[k] = (me + k) % npl
+    tl = np.zeros(MAXPL, np.int64)
+    for p in range(npl):
+        tl[p] = turns_left(s, p)
+    # fjords of every seat, shopping lists
+    need = np.zeros((MAXPL, 7), np.int64)
+    spots = np.zeros(MAXPL, np.int64)
+    for k in range(npl):
+        p = seat[k]
+        spots[p] = _encode_fjord(s, gs, p, fjord[k], need[p])
+        other = 0
+        for j in range(npl):
+            if j != p:
+                other = max(other, tl[j])
+        for c in range(NF):
+            fjord[k, c, FF_TURNS] = tl[p]
+            fjord[k, c, FF_TURNS + 1] = other
+    opp_tl = 0
+    for k in range(1, npl):
+        opp_tl = max(opp_tl, tl[seat[k]])
 
-    comp = np.empty((2, NL), np.int64)
-    size = np.zeros((2, NB), np.int64)
-    adj = np.zeros((2, NB), np.int64)
-    for w in range(2):
-        _chains(s, gs, me if w == 0 else opp, comp[w], size[w], adj[w])
+    comp = np.empty((MAXPL, NL), np.int64)
+    size = np.zeros((MAXPL, NB), np.int64)
+    adj = np.zeros((MAXPL, NB, 2), np.int64)
+    for p in range(npl):
+        _chains(s, gs, p, comp[p], size[p], adj[p])
     for k in range(5):
+        land[NB + k, LF_INPLAY] = 1
         land[NB + k, LF_OCEAN] = 1
         if s[S_OCEAN + k] >= 0:
             land[NB + k, LF_SHIP] = 1
     gain = np.zeros(N_GAIN, np.int64)
+    ogain = np.zeros(N_GAIN, np.int64)
     best = np.zeros((2, 2), np.int64)
     for i in range(NB):
         t = gs[G_TERR + i]
+        if t == T_OUT:
+            continue
+        land[i, LF_INPLAY] = 1
         land[i, LF_TERRAIN + t] = 1
-        occupied = s[S_VIK + i] + s[S_VIK + NL + i] > 0
-        for w in range(2):
-            p = me if w == 0 else opp
-            land[i, LF_VIK + w] = s[S_VIK + p * NL + i]
-            k = comp[w, i]
-            if k >= 0:
-                land[i, LF_CHAIN + w] = min(size[w, k], 127)
-            if t == T_TOWER:
+        occupied = False
+        vo = 0
+        for p in range(npl):
+            v = s[S_VIK + p * NL + i]
+            if v > 0:
+                occupied = True
+            if p != me:
+                vo += v
+        land[i, LF_VIK] = s[S_VIK + me * NL + i]
+        land[i, LF_VIK + 1] = min(vo, 127)
+        co = 0
+        for k in range(1, npl):
+            p = seat[k]
+            if comp[p, i] >= 0:
+                co = max(co, size[p, comp[p, i]])
+        if comp[me, i] >= 0:
+            land[i, LF_CHAIN] = min(size[me, comp[me, i]], 127)
+        land[i, LF_CHAIN + 1] = min(co, 127)
+        if t == T_TOWER:
+            for k in range(npl):
+                p = seat[k]
                 links = s[S_PAIRS + p * MAXT + gs[G_TSLOT + i]]
                 nl = 0
                 while links:
                     nl += links & 1
                     links >>= 1
-                land[i, LF_TLINKS + w] = nl
+                touch = 0
                 for d in range(6):
                     nb = LAND_NB[i, d]
                     if nb < NB and s[S_VIK + p * NL + nb] > 0:
-                        land[i, LF_TTOUCH + w] = 1
-            elif t == T_CASTLE:
+                        touch = 1
+                w = 0 if k == 0 else 1
+                land[i, LF_TLINKS + w] = max(land[i, LF_TLINKS + w], nl)
+                land[i, LF_TTOUCH + w] = max(land[i, LF_TTOUCH + w], touch)
+        elif t == T_CASTLE:
+            onext = 0
+            for k in range(npl):
+                p = seat[k]
                 have = s[S_CASTLE + p * NL + i]
-                land[i, LF_CLEVEL + w] = have
+                nxt = 0
                 if build and have < 3 and s[S_STOCK + i] > 0:
                     biggest = 0
                     for d in range(6):
                         nb = LAND_NB[i, d]
-                        if nb < NB and comp[w, nb] >= 0:
-                            biggest = max(biggest, size[w, comp[w, nb]])
-                    land[i, LF_CNEXT + w] = max(1, 4 * (have + 1) - biggest)
+                        if nb < NB and comp[p, nb] >= 0:
+                            biggest = max(biggest, size[p, comp[p, nb]])
+                    nxt = max(1, 4 * (have + 1) - biggest)
+                if k == 0:
+                    land[i, LF_CLEVEL] = have
+                    land[i, LF_CNEXT] = nxt
+                else:
+                    land[i, LF_CLEVEL + 1] = max(land[i, LF_CLEVEL + 1], have)
+                    if nxt > 0 and (onext == 0 or nxt < onext):
+                        onext = nxt
+            land[i, LF_CNEXT + 1] = onext
         if t >= T_HOUSE:
             land[i, LF_STOCK + t - T_HOUSE] = s[S_STOCK + i]
         elif is_anchor(s, gs, i):
@@ -975,38 +1077,51 @@ def encode(s, gs, me, land, fjord, glob):
             else:
                 land[i, LF_FREE] = 1
                 glob[GI_ANCHORS[t]] += 1
-                for w in range(2):
-                    p = me if w == 0 else opp
-                    _placement_gain(s, gs, p, i, comp[w], size[w], adj[w], need[w], gain)
-                    for j in range(N_GAIN):
-                        land[i, LF_GAIN + w * N_GAIN + j] = min(gain[j], 127)
-                    best[w, 0] = max(best[w, 0], 1 + gain[1] + gain[2] + gain[3])
-                    best[w, 1] = max(best[w, 1], gain[4])
+                for x in range(N_GAIN):
+                    ogain[x] = 0
+                obest0 = 0
+                obest1 = 0
+                for k in range(npl):
+                    p = seat[k]
+                    _placement_gain(s, gs, p, i, comp[p], size[p], adj[p], need[p], gain)
+                    g0 = 1 + gain[1] + gain[2] + gain[3]
+                    if k == 0:
+                        for x in range(N_GAIN):
+                            land[i, LF_GAIN + x] = min(gain[x], 127)
+                        best[0, 0] = max(best[0, 0], g0)
+                        best[0, 1] = max(best[0, 1], gain[4])
+                    else:
+                        for x in range(N_GAIN):
+                            ogain[x] = max(ogain[x], gain[x])
+                        obest0 = max(obest0, g0)
+                        obest1 = max(obest1, gain[4])
+                for x in range(N_GAIN):
+                    land[i, LF_GAIN + N_GAIN + x] = min(ogain[x], 127)
+                best[1, 0] = max(best[1, 0], obest0)
+                best[1, 1] = max(best[1, 1], obest1)
+    for i in range(NL):
+        land[i, LF_TURNS] = tl[me]
+        land[i, LF_TURNS + 1] = opp_tl
+
+    # global: me and the strongest opponent
+    top = seat[1]
+    top_s = total_score(s, top)
+    for k in range(2, npl):
+        sc = total_score(s, seat[k])
+        if sc > top_s:
+            top = seat[k]
+            top_s = sc
+    _glob_player(s, me, glob, 0, spots[me], need[me], tl[me])
+    _glob_player(s, top, glob, 1, spots[top], need[top], tl[top])
     for w in range(2):
         glob[GI_BEST_GAIN[w]] = best[w, 0]
         glob[GI_BEST_USEFUL[w]] = best[w, 1]
-
-    # the clock: turns left (the +1 Viking shield puts 2 Vikings in one turn)
-    tl = np.zeros(2, np.int64)
-    for w in range(2):
-        p = me if w == 0 else opp
-        v = s[S_VLEFT + p]
-        tl[w] = v - 1 if (s[S_SHIELD + p * 3] > 0 and v >= 2) else v
-    for w in range(2):
-        for i in range(NL):
-            land[i, LF_TURNS + w] = tl[w]
-        for c in range(NF):
-            fjord[w, c, FF_TURNS] = tl[w]
-            fjord[w, c, FF_TURNS + 1] = tl[1 - w]
-        glob[GI_TURNS[w]] = tl[w]
-        glob[GI_TURNS_HOT[w, tl[w]]] = 1
-
     glob[GI_TOMOVE] = 1 if (s[S_CUR] == me and s[S_OVER] == 0) else 0
     for i in range(5):
         o = s[S_TOWNER + i]
         if o == me:
             glob[GI_TROPHY[i, 0]] = 1
-        elif o == opp:
+        elif o >= 0:
             glob[GI_TROPHY[i, 1]] = 1
     glob[GI_BAG] = s[S_BAGN]
     for k in range(5):
@@ -1015,6 +1130,14 @@ def encode(s, gs, me, land, fjord, glob):
             for r in range(4):
                 glob[GI_OCEAN_RES[k, r]] += LS_NEED[sid, r]
             glob[GI_OCEAN_BONUS[k, LS_CAT[sid]]] = LS_BONUS[sid]
+    glob[GI_PLAYERS[npl - 2]] = 1
+    for k in range(1, npl):
+        p = seat[k]
+        glob[GI_SEAT[k - 1, 0]] = 1
+        glob[GI_SEAT[k - 1, 1]] = total_score(s, p)
+        glob[GI_SEAT[k - 1, 2]] = s[S_VLEFT + p]
+        glob[GI_SEAT[k - 1, 3]] = tl[p]
+        glob[GI_SEAT[k - 1, 4]] = 1 if p == top else 0
 
 
 @njit(cache=True)
@@ -1030,7 +1153,7 @@ def encode_many(states, n, gs, me, land, fjord, glob):
 def encode_state(s, gs, me):
     """nn_encode-style (land, fjord, glob) arrays for one state."""
     land = np.zeros((NL, LAND_F), np.int8)
-    fjord = np.zeros((2, NF, FJORD_F), np.int8)
+    fjord = np.zeros((MAXPL, NF, FJORD_F), np.int8)
     glob = np.zeros(GLOB_F, np.int16)
     encode(s, gs, me, land, fjord, glob)
     return land, fjord, glob
@@ -1494,7 +1617,7 @@ def proposal_maps(net, requests):
         return [None] * len(requests)
     n = len(requests)
     land = np.zeros((n, NL, LAND_F), np.int8)
-    fjord = np.zeros((n, 2, NF, FJORD_F), np.int8)
+    fjord = np.zeros((n, MAXPL, NF, FJORD_F), np.int8)
     glob = np.zeros((n, GLOB_F), np.int16)
     for i, (st, gs, me) in enumerate(requests):
         encode(st, gs, me, land[i], fjord[i], glob[i])
@@ -1514,14 +1637,14 @@ def judge_states(net, requests):
         v = np.empty(n)
         over = states[:n, S_OVER] == 1
         for k in np.where(over)[0]:
-            v[k] = outcome(states[k], me)[0]
+            v[k] = outcome(states[k], gs, me)[0]
         todo = np.where(~over)[0]
         rows.append((states, gs, me, todo))
         vals.append(v)
     total = sum(len(r[3]) for r in rows)
     if total:
         land = np.zeros((total, NL, LAND_F), np.int8)
-        fjord = np.zeros((total, 2, NF, FJORD_F), np.int8)
+        fjord = np.zeros((total, MAXPL, NF, FJORD_F), np.int8)
         glob = np.zeros((total, GLOB_F), np.int16)
         at = 0
         for states, gs, me, todo in rows:
@@ -1648,43 +1771,31 @@ class FastPlayer:
 
 def record(states, gs, seed_, targets=None):
     """Training data of a finished game: every turn-start position seen by
-    both players, labelled with how the game ended for that player. Rows:
-    turn 0 (player 0, player 1), turn 1 (player 0, player 1), ... - the
-    format of gen_data.play_and_record. With `targets` (one per turn, from
-    FastPlayer.target) also what the proposals should learn, on the row of
-    the player whose turn it was (pol_on = 1 there)."""
+    every player, labelled with how the game ended for that player. Rows:
+    turn 0 (player 0, 1, ...), turn 1 (player 0, 1, ...), ... - the format
+    of gen_data.play_and_record. (The proposals' targets are for 2
+    players only so far: `targets` is not used here.)"""
     n = len(states)
+    npl = int(gs[G_NP])
     arr = np.stack(states)
-    land = np.zeros((2 * n, NL, LAND_F), np.int8)
-    fjord = np.zeros((2 * n, 2, NF, FJORD_F), np.int8)
-    glob = np.zeros((2 * n, GLOB_F), np.int16)
-    for me in range(2):
-        l, f, gl = land[me::2], fjord[me::2], glob[me::2]
+    land = np.zeros((npl * n, NL, LAND_F), np.int8)
+    fjord = np.zeros((npl * n, MAXPL, NF, FJORD_F), np.int8)
+    glob = np.zeros((npl * n, GLOB_F), np.int16)
+    for me in range(npl):
+        l, f, gl = land[me::npl], fjord[me::npl], glob[me::npl]
         encode_many(arr, n, gs, me, l, f, gl)
-    res = [outcome(states[-1], me) for me in range(2)]
-    margin = np.array([res[k % 2][0] for k in range(2 * n)], np.float32)
-    win = np.array([res[k % 2][1] for k in range(2 * n)], np.float32)
-    game = np.full(2 * n, seed_, np.int64)
-    if targets is None:
-        return land, fjord, glob, margin, win, game
-    pp = np.zeros((2 * n, NL, 3), np.float16)
-    pt = np.zeros((2 * n, NF, 8), np.float16)
-    ps = np.zeros((2 * n, 6), np.float16)
-    on = np.zeros(2 * n, np.int8)
-    for t, tg in enumerate(targets):
-        if tg is None:
-            continue
-        r = 2 * t + int(states[t][S_CUR])
-        pp[r], pt[r], ps[r] = tg
-        on[r] = 1
-    return land, fjord, glob, margin, win, game, pp, pt, ps, on
+    res = [outcome(states[-1], gs, me) for me in range(npl)]
+    margin = np.array([res[k % npl][0] for k in range(npl * n)], np.float32)
+    win = np.array([res[k % npl][1] for k in range(npl * n)], np.float32)
+    game = np.full(npl * n, seed_, np.int64)
+    return land, fjord, glob, margin, win, game
 
 
-def selfplay_game(seed_, layout, rules, net, explore=0.0, noise=True):
+def selfplay_game(seed_, layout, rules, net, explore=0.0, noise=True, players=4):
     """One game between two network players, played on its own. Returns
     (land, fjord, glob, margin, win, game) like gen_data.play_and_record."""
     import random
-    g = L.Game([("p0", True), ("p1", True)], seed_, layout, L.rules_for(rules))
+    g = L.Game([("p%d" % i, True) for i in range(players)], seed_, layout, L.rules_for(rules))
     s, gs = from_game(g)
     seed(seed_ % (2 ** 31))
     player = FastPlayer(net, random.Random(seed_ * 7), explore, noise=noise, shuffle=noise)
@@ -1694,11 +1805,11 @@ def selfplay_game(seed_, layout, rules, net, explore=0.0, noise=True):
         s = player.turn(s, gs)
         states.append(s)
         targets.append(player.target)
-        assert len(states) < 200
+        assert len(states) < 400
     return record(states, gs, seed_, targets)
 
 
-def selfplay_batched(seeds, layout, rules, net, explore=0.0, parallel=64, noise=True):
+def selfplay_batched(seeds, layout, rules, net, explore=0.0, parallel=64, noise=True, players=4):
     """Self-play of many games at once, in step: every game runs until its
     player needs the network, then the positions of ALL games are judged in
     one batch (on the GPU with gpu_net.TorchNet), and every game gets its answers.
@@ -1709,7 +1820,7 @@ def selfplay_batched(seeds, layout, rules, net, explore=0.0, parallel=64, noise=
     slots = []                  # one per game being played
 
     def start(sd, player=None):
-        g = L.Game([("p0", True), ("p1", True)], sd, layout, L.rules_for(rules))
+        g = L.Game([("p%d" % i, True) for i in range(players)], sd, layout, L.rules_for(rules))
         s, gs = from_game(g)
         rng = random.Random(sd * 7)
         if player is None:

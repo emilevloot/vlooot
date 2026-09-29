@@ -18,6 +18,10 @@ Version 3 describes the land the way a player looks at it:
   - how close I am to the next tile of each castle and tower
   - which of those tiles are on my "shopping list": the items my unfinished
     longships and construction sites still miss (and the opponent's list)
+Version 4 adds the clock: how many turns each player still gets (13 Vikings
+are 12 turns, as the +1 Viking shield puts two Vikings in one turn), in the
+global part and on every space of the land and the fjords, so the layers
+that look at the boards know how much time is left too.
 
 encode_reference() below is the straightforward version. The players use
 encode(), which runs the compiled copy in fastgame.py; test_speedups.py and
@@ -88,7 +92,9 @@ LF_GAIN = 26                    # 2 x 5: if the player put a Viking on this free
 GAIN = ["chain", "house", "watchtower", "castle", "useful"]
                                 #    chain size, tiles of each building, and how many
                                 #    of the items gained are on the player's shopping list
-LAND_F = LF_GAIN + 2 * len(GAIN)          # 36
+LF_TURNS = LF_GAIN + 2 * len(GAIN)        # 2: turns I / the opponent still get
+                                          #    (the same on every space)
+LAND_F = LF_TURNS + 2                     # 38
 
 # fjord features
 FF_EMPTY = 0
@@ -104,9 +110,12 @@ FF_SITE_VP = 29
 FF_ROOM = 30                    # empty neighbouring spaces (every space)
 FF_FILLABLE = 31                # unfinished ship/site that can still be finished
 FF_SLACK = 32                   # unfinished ship/site: Vikings left - items missing
-FJORD_F = 33
+FF_TURNS = 33                   # 2: turns the owner of this fjord / the other player
+                                #    still get (the same on every space)
+FJORD_F = 35
 
-ENCODING_VERSION = 3
+ENCODING_VERSION = 4
+MAX_TURNS = L.VIKINGS_PER_PLAYER          # 13 without shields (curriculum stages)
 
 # global features
 GLOB_NAMES = (["to_move_me", "vik_me", "vik_opp"] +
@@ -129,9 +138,30 @@ GLOB_NAMES = (["to_move_me", "vik_me", "vik_opp"] +
               # that can still be finished miss), and the best single Viking
               # placement right now: most tiles, most useful tiles
               ["need_%s_%s" % (t, p) for p in ("me", "opp") for t in SITE_ITEMS] +
-              ["best_gain_me", "best_gain_opp", "best_useful_me", "best_useful_opp"])
+              ["best_gain_me", "best_gain_opp", "best_useful_me", "best_useful_opp"] +
+              # version 4: the clock, as a number and as one switch per turn
+              ["turns_left_me", "turns_left_opp"] +
+              ["turns_%s_%d" % (p, t) for p in ("me", "opp") for t in range(MAX_TURNS + 1)])
 GLOB_F = len(GLOB_NAMES)
 G = {n: i for i, n in enumerate(GLOB_NAMES)}
+
+# Where things are in the raw numbers, for the three-part network
+# (nn_model.ThreePartNet, and its numpy copy nn_bot.ThreeNet)
+CLOCK_COLS = [G["turns_left_me"], G["turns_left_opp"]]
+RES_COLS = [LF_TERRAIN + k for k in range(4)]              # the 4 resource terrains
+GAIN_BLD = [[LF_GAIN + w * len(GAIN) + 1 + k for k in range(3)] for w in range(2)]
+SHIP_NEED = [[G["ocean%d_%s" % (s, r)] for r in RES] for s in range(5)]
+# a longship's bonus in the column of its item (the axe has no bonus: 0 x column 0)
+SHIP_BONUS = [[G["ocean%d_bonus_%s" % (s, it)] if it in CATS else 0 for it in SITE_ITEMS]
+              for s in range(5)]
+BONUS_ON = [1.0 if it in CATS else 0.0 for it in SITE_ITEMS]
+
+
+def turns_left(p):
+    """Turns player p still gets: one per Viking, but the +1 Viking shield
+    puts two Vikings in one turn (13 Vikings = 12 turns)."""
+    v = p.vikings_left
+    return v - 1 if (p.shields["extra"] and v >= 2) else v
 
 
 def _missing(need, have):
@@ -284,6 +314,15 @@ def encode_reference(g, me):
         i = LAND_INDEX[c]
         land[i, LF_OCEAN] = 1
         land[i, LF_SHIP] = 1 if g.ocean_ships[slot] is not None else 0
+
+    # --- the clock: on every space, and in the global part ---
+    tl = [turns_left(g.players[idx]) for idx in order]
+    for w in range(2):
+        land[:, LF_TURNS + w] = tl[w]
+        fjord[w, :, FF_TURNS] = tl[w]              # the owner of this fjord
+        fjord[w, :, FF_TURNS + 1] = tl[1 - w]      # the other player
+        glob[G["turns_left_" + who[w]]] = tl[w]
+        glob[G["turns_%s_%d" % (who[w], tl[w])]] = 1
 
     # --- everything else ---
     glob[G["to_move_me"]] = 1 if (g.current == me and not g.game_over) else 0

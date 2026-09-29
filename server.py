@@ -8,9 +8,12 @@ turns of the neural-network player (2-player games).
 The game itself runs in the browser. For a turn of the "Network" player the
 page sends the whole game (Game.save_state) to /ai-turn; the network (see
 nn_bot.py, needs numpy and numba) plays the turn here and the new game goes
-back to the page.
+back to the page. /ai-view answers what the network thinks of a game (win
+chance, and for the three-part network the value it gives every item and
+how well each longship fits) - the page shows that next to the board.
 """
 
+import glob
 import http.server
 import json
 import os
@@ -21,21 +24,69 @@ import looot
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 PORT = 8000
-NN_MODEL = "c3_full_r8"          # models/<NN_MODEL>.npz: the network that plays
-
 _nn_lock = threading.Lock()      # one network turn at a time (the net keeps a cache)
+_models = {}                     # 2 -> the 2-player network, "mp" -> the 3-4-player one
+
+
+def pick_model(multi=False):
+    """The network that plays: of all curriculum runs
+    (curriculum_<prefix>_results.json), the best full-game network that
+    still loads with the current code - a 2-player network, or with
+    multi=True a network for 3-4 players (made from a 2-player network by
+    transfer_mp.py and trained further). Networks with final tests are
+    ranked by their win rate against greedy players there; the three-part
+    network wins ties, as the page can show what it thinks."""
+    import nn_bot
+    found = []
+    for f in glob.glob(os.path.join(ROOT, "curriculum_*_results.json")):
+        res = json.load(open(f))
+        best = res.get("stages", {}).get("full", {}).get("best")
+        if not best:
+            continue
+        try:
+            net = nn_bot.load_net(best)
+        except (OSError, ValueError, KeyError):
+            continue
+        if hasattr(net.E, "PRESENT_COLS") != multi:
+            continue
+        test = res.get("final", {}).get("%s vs greedy" % best)
+        found.append(((test is not None, test["win"] if test else 0,
+                       isinstance(net, nn_bot.ThreeNet)), best))
+    if not found:
+        raise ValueError("No trained %s network fits the current code yet."
+                         % ("3-4-player" if multi else "2-player"))
+    return max(found)[1]
+
+
+def model(n_players):
+    key = 2 if n_players == 2 else "mp"
+    if key not in _models:
+        _models[key] = pick_model(key == "mp")
+    return _models[key]
 
 
 def nn_turn(state):
     """Let the network play the current player's turn of a saved game."""
     import nn_bot                # numpy + numba: only loaded when needed
     g = looot.Game.load_state(state)
-    if len(g.players) != 2:
-        raise ValueError("The neural network only plays 2-player games.")
     if not g.game_over and g.player().ai:
         with _nn_lock:
-            nn_bot.NNBot(random.Random(), NN_MODEL).play_turn(g)
+            nn_bot.NNBot(random.Random(), model(len(g.players))).play_turn(g)
     return g.save_state()
+
+
+def nn_view(state):
+    """What the network thinks of a saved game, seen from its own seat."""
+    import nn_bot
+    g = looot.Game.load_state(state)
+    seat = next((p.idx for p in g.players if getattr(p, "nn", False)), None)
+    if seat is None:
+        raise ValueError("No network player in this game.")
+    name = model(len(g.players))
+    with _nn_lock:
+        out = nn_bot.thoughts(nn_bot.load_net(name), g, seat)
+    out["model"] = name
+    return out
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -64,8 +115,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/save-boards":
             self.save_boards()
-        elif self.path == "/ai-turn":
-            self.ai_turn()
+        elif self.path in ("/ai-turn", "/ai-view"):
+            self.ai_turn(view=self.path == "/ai-view")
         else:
             self.reply(404, {"error": "Unknown address."})
 
@@ -83,7 +134,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             f.write(looot.dump_layout(layout))
         self.reply(200, {"ok": True})
 
-    def ai_turn(self):
+    def ai_turn(self, view=False):
         # Only our own page sends this header. A request with a custom header
         # from another web site would first need a permission check
         # ("preflight") that this server never gives, so other sites can't
@@ -96,6 +147,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.reply(400, {"error": "No game sent."})
             return
         try:
+            if view:
+                self.reply(200, nn_view(json.loads(text)))
+                return
             state = nn_turn(json.loads(text))
         except (ValueError, KeyError, TypeError) as e:
             self.reply(400, {"error": str(e)})

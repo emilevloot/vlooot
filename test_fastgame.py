@@ -162,8 +162,8 @@ def latest_model():
     for path in sorted(glob.glob(os.path.join(nn_bot.MODEL_DIR, "*.npz")),
                        key=os.path.getmtime, reverse=True):
         try:
-            nn_bot.FastNet(path)
-            return path
+            if not hasattr(nn_bot.load_net(path).E, "PRESENT_COLS"):   # 2-player networks only
+                return path
         except (ValueError, KeyError):
             pass
     raise SystemExit("no trained network found")
@@ -178,7 +178,7 @@ def check_player(n_games):
         g = L.Game([("a", True), ("b", True)], sd, lay, L.rules_for(stage))
         s, gs = F.from_game(g)
         slow = nn_bot.NNBot(ZeroRng(), path)
-        fast = F.FastPlayer(nn_bot.FastNet(path), ZeroRng(), noise=False, shuffle=False)
+        fast = F.FastPlayer(nn_bot.load_net(path), ZeroRng(), noise=False, shuffle=False)
         ok = True
         while not g.game_over:
             slow.play_turn(g)
@@ -211,7 +211,7 @@ def speed(n_games=6):
                     turns += 1
             else:
                 s, gs = F.from_game(g)
-                pl = F.FastPlayer(nn_bot.FastNet(path), random.Random(k))
+                pl = F.FastPlayer(nn_bot.load_net(path), random.Random(k))
                 while s[F.S_OVER] == 0:
                     s = pl.turn(s, gs)
                     turns += 1

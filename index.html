@@ -135,6 +135,22 @@
   .troph.taken { background: #3a4650; color: #8a98a2; }
   .troph .o { font-size: 11px; }
 
+  /* what the network thinks */
+  .cell .want { stroke: #8fd3ff; stroke-width: 2.5; stroke-dasharray: 5 4; fill: none; pointer-events: none; }
+  .think { display: grid; gap: 5px; font-size: 14px; color: var(--mist); }
+  .think b { color: var(--snow); }
+  .vrow { display: grid; grid-template-columns: 24px 84px 1fr 46px; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+  .vrow svg { width: 22px; height: 22px; }
+  .vrow .n { text-align: right; color: var(--snow); }
+  .vbar { position: relative; height: 10px; background: var(--night); border-radius: 5px; }
+  .vbar::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--mist); }
+  .vbar i { position: absolute; top: 0; bottom: 0; border-radius: 5px; }
+  .shipfit { display: flex; gap: 6px; flex-wrap: wrap; }
+  .shipfit span { display: inline-flex; align-items: center; gap: 4px; background: var(--night); border: 1px solid var(--line);
+    border-radius: 6px; padding: 1px 8px 1px 2px; font-variant-numeric: tabular-nums; color: var(--snow); }
+  .shipfit span.top { border-color: #8fd3ff; }
+  .shipfit svg { width: 22px; height: 22px; }
+
   .log { font-size: 14px; color: var(--mist); max-height: 190px; overflow-y: auto; display: grid; gap: 2px; }
   .log div:last-child { color: var(--snow); }
 
@@ -214,6 +230,10 @@
         <div class="label">Trophies</div>
         <div class="trophies" id="trophies"></div>
       </div>
+      <div class="section" id="thinkBox" hidden>
+        <div class="label">What the network thinks</div>
+        <div class="think" id="think"></div>
+      </div>
       <div class="section">
         <div class="label">Saga</div>
         <div class="log" id="log"></div>
@@ -246,6 +266,7 @@
   let api = null, S = null, view = 0, busy = false;
   let sel = { occupy: false, double: false, tile: 0 };
   let lastError = '';
+  let thoughts = null, thinkSeq = 0;       // the network's view (server.py /ai-view)
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -293,6 +314,7 @@
     const legalSet = new Set(sel.occupy ? S.legal_occupy : S.legal);
     const me = S.players[S.current];
     const humanTurn = !me.ai && !S.game_over;
+    const wants = new Set(thoughts && thoughts.best_spaces || []);
     let out = '';
     for (const c of S.land) {
       const [x, y] = pos(c.q, c.r, s);
@@ -318,6 +340,7 @@
         out += viking(x + off, y - 2, S.players[pi].color, 1.15);
       });
       if (isLegal) out += `<polygon class="ring" points="${hexPts(x, y, s - 3)}"/>`;
+      if (wants.has(k)) out += `<polygon class="want" points="${hexPts(x, y, s - 7)}"/>`;
       out += `</g>`;
     }
     // ocean with longships
@@ -536,6 +559,7 @@
     S = res;
     render();
     maybeAI();
+    refreshThoughts();
   }
 
   function maybeAI() {
@@ -551,6 +575,7 @@
       if (!nxt.ai) view = S.current;
       render();
       maybeAI();
+      refreshThoughts();
     }, 850);
   }
 
@@ -575,6 +600,70 @@
       lastError = res.error;
       return JSON.stringify(res);
     }
+  }
+
+  // What the network thinks of the game right now, from its own seat: asked
+  // after every change. Only the newest answer counts.
+  async function refreshThoughts() {
+    const seq = ++thinkSeq;
+    let t = null;
+    if (S && S.players.some(p => p.nn)) {
+      try {
+        const r = await fetch('ai-view', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Looot': '1' },
+          body: api.save_state(),
+        });
+        const d = await r.json();
+        t = r.ok ? d : { error: d.error || ('error ' + r.status) };
+      } catch (err) {
+        t = { error: String(err && err.message || err) };
+      }
+    }
+    if (seq !== thinkSeq) return;
+    thoughts = t;
+    renderThink();
+    renderLand();
+  }
+
+  const ITEM_LBL = { wood: 'Wood', sheep: 'Sheep', gold: 'Gold', axe: 'Axe', house: 'House', watchtower: 'Watchtower', castle: 'Castle' };
+  const icon = t => `<svg viewBox="-11 -11 22 22">${glyph(t, 0, 0, 1)}</svg>`;
+
+  function renderThink() {
+    const box = $('thinkBox');
+    box.hidden = !thoughts;
+    if (!thoughts) return;
+    if (thoughts.error) {
+      $('think').innerHTML = `<span class="err">The network can't be asked: ${esc(thoughts.error)}</span>`;
+      return;
+    }
+    const p = S.players[thoughts.player];
+    const sgn = v => (v > 0 ? '+' : '') + v.toFixed(1);
+    let out = `<div><b style="color:${PCOL[p.color]}">${esc(p.name)}</b> thinks it has a <b>${Math.round(100 * thoughts.win)}%</b>
+      chance to win, by <b>${sgn(thoughts.margin)}</b> points.</div>`;
+    if (thoughts.values) {
+      const vals = Object.entries(thoughts.values);
+      const big = Math.max(0.5, ...vals.map(([, v]) => Math.abs(v)));
+      out += `<div style="margin-top:4px">Points one more of each item on its fjord would be worth now:</div>`;
+      out += vals.map(([it, v]) => {
+        const w = 50 * Math.abs(v) / big;
+        const bar = v >= 0 ? `left:50%;width:${w}%;background:var(--gold)` : `left:${50 - w}%;width:${w}%;background:#ff9f86`;
+        return `<div class="vrow">${icon(it)}<span>${ITEM_LBL[it]}</span><span class="vbar"><i style="${bar}"></i></span><span class="n">${sgn(v)}</span></div>`;
+      }).join('');
+      const opp = Object.entries(thoughts.values_opp).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([it]) => ITEM_LBL[it].toLowerCase());
+      out += `<div>It thinks the opponent wants <b>${opp.join('</b> and <b>')}</b> most.</div>`;
+      const fits = thoughts.ships.map((f, i) => [f, i]).filter(([f]) => f !== null);
+      if (fits.length) {
+        const best = Math.max(...fits.map(([f]) => f));
+        out += `<div style="margin-top:4px">Points it would gain (or lose) by taking each longship now:</div><div class="shipfit">` +
+          fits.map(([f, i]) => {
+            const sh = S.ocean[i].ship;
+            return `<span class="${f === best ? 'top' : ''}" title="needs ${sh.need.join(', ')}, +${sh.bonus} ${sh.cat}">${icon(sh.cat)}+${sh.bonus}: ${sgn(f)}</span>`;
+          }).join('') + `</div>`;
+      }
+      if (thoughts.best_spaces.length) out += `<div>Dotted blue rings on the board: its 3 favourite spaces for a Viking.</div>`;
+    }
+    $('think').innerHTML = out;
   }
 
   // ---------- events ----------
@@ -628,11 +717,10 @@
     const ov = $('overlay');
     ov.hidden = false;
     const n = seats.filter(s => s.on).length;
-    const nnBad = n !== 2 && seats.some(s => s.on && s.nn);
     ov.innerHTML = `<div class="card" role="dialog" aria-label="New game">
       <h2>New game</h2>
       <p>2 to 4 Vikings share one screen. Any seat can be played by the computer: <b>Computer</b> is the
-        greedy player, <b>Network</b> the neural network (2-player games only).</p>
+        greedy player, <b>Network</b> the neural network (with 3-4 players: the multi-player network).</p>
       ${seats.map((s, i) => `
         <div class="seat" style="${s.on ? '' : 'opacity:.45'}">
           <span class="dot" style="width:14px;height:14px;border-radius:50%;background:${PCOL[SEAT_COL[i]]}"></span>
@@ -641,12 +729,12 @@
             ${i >= 2 ? `<button data-seat="${i}" data-mode="off" class="${!s.on ? 'on' : ''}">Empty</button>` : ''}
             <button data-seat="${i}" data-mode="human" class="${s.on && !s.ai ? 'on' : ''}">Human</button>
             <button data-seat="${i}" data-mode="ai" class="${s.on && s.ai && !s.nn ? 'on' : ''}">Computer</button>
-            <button data-seat="${i}" data-mode="nn" class="${s.on && s.nn ? 'on' : ''}" title="The neural network (2-player games only)">Network</button>
+            <button data-seat="${i}" data-mode="nn" class="${s.on && s.nn ? 'on' : ''}" title="The neural network">Network</button>
           </span>
         </div>`).join('')}
       <div class="row" style="justify-content:space-between;margin-top:14px">
-        <span style="color:var(--mist);font-size:14px">${nnBad ? '<b style="color:var(--snow)">The Network only plays 2-player games: switch a seat off.</b>' : `${n} players · ${n * 13} Vikings · ${n} landscape boards`}</span>
-        <span class="row">${S ? '<button class="btn" id="cancelSetup">Cancel</button>' : ''}<button class="btn primary" id="startGame" ${nnBad ? 'disabled' : ''}>Start</button></span>
+        <span style="color:var(--mist);font-size:14px">${n} players · ${n * 13} Vikings · ${n} landscape boards</span>
+        <span class="row">${S ? '<button class="btn" id="cancelSetup">Cancel</button>' : ''}<button class="btn primary" id="startGame">Start</button></span>
       </div></div>`;
     ov.querySelectorAll('[data-seat]').forEach(b => b.onclick = () => {
       saveNames();
@@ -666,7 +754,8 @@
       view = S.players.findIndex(p => !p.ai); if (view < 0) view = 0;
       if (!S.players[S.current].ai) view = S.current;
       lastError = '';
-      render(); maybeAI();
+      thoughts = null;
+      render(); maybeAI(); refreshThoughts();
     };
   }
   function saveNames() {

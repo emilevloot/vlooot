@@ -1,0 +1,4 @@
+09:35:31  c5v_full_r10 (c5v) vs c5t_full_r10 (c5t): 48.6% ±4.4 wins for c5v_full_r10, margin -0.6, scores 90.0 - 90.6 (500 games, 77 s)
+15:30:46  c5t_full_r10 (c5t) vs c7a_full_a (c7a): 84.6% ±3.2 wins for c5t_full_r10, margin +17.6, scores 96.3 - 78.6 (500 games, 156 s)
+15:32:08  c5t_full_r10 (c5t) vs s1_r20 (s1): 30.4% ±4.0 wins for c5t_full_r10, margin -9.1, scores 88.4 - 97.5 (500 games, 82 s)
+15:34:43  s1_r20 (s1) vs c7a_full_a (c7a): 87.8% ±2.9 wins for s1_r20, margin +23.8, scores 101.9 - 78.0 (500 games, 155 s)

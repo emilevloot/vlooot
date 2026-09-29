@@ -86,37 +86,49 @@ def gpu_available():
 def play_batch_on_gpu(args):
     """A group of self-play games in one process, played in step with the
     network on the GPU (fastgame.selfplay_batched). Returns their data."""
-    seeds, explore, layout, player, rules, parallel = args
-    import fastgame
+    seeds, explore, layout, player, rules, parallel, players = args
+    import gpu_net
     name = player.split(":", 1)[1]
     if name not in _TORCH_NETS:
-        _TORCH_NETS[name] = fastgame.TorchNet(name)
-    return list(fastgame.selfplay_batched(seeds, layout, rules, _TORCH_NETS[name],
-                                          explore=explore * 0.5, parallel=parallel))
+        _TORCH_NETS[name] = gpu_net.TorchNet(name)
+    if players == 2:
+        import fastgame
+        return list(fastgame.selfplay_batched(seeds, layout, rules, _TORCH_NETS[name],
+                                              explore=explore * 0.5, parallel=parallel))
+    import mp_game
+    return list(mp_game.selfplay_batched(seeds, layout, rules, _TORCH_NETS[name],
+                                         explore=explore * 0.5, parallel=parallel, players=players))
 
 
 def play_and_record(args):
     """Play one game; return the encoded positions and their labels."""
-    seed, explore, layout, player, rules = args
+    seed, explore, layout, player, rules, players = args
     if uses_fastgame(player):
-        import fastgame
         import nn_bot
         net = nn_bot.load_net(player.split(":", 1)[1])
-        return fastgame.selfplay_game(seed, layout, rules, net, explore=explore * 0.5)
+        if players == 2:
+            import fastgame
+            return fastgame.selfplay_game(seed, layout, rules, net, explore=explore * 0.5)
+        import mp_game
+        return mp_game.selfplay_game(seed, layout, rules, net, explore=explore * 0.5,
+                                     players=players)
     rng = random.Random(seed)
-    g = L.Game([("p0", True), ("p1", True)], seed, layout, L.rules_for(rules))
-    bots = [make_player(player, random.Random(seed * 7 + k), explore) for k in range(2)]
+    enc = E
+    if players != 2:                # 3-4 players: the multi-player encoding
+        import mp_encode as enc
+    g = L.Game([("p%d" % k, True) for k in range(players)], seed, layout, L.rules_for(rules))
+    bots = [make_player(player, random.Random(seed * 7 + k), explore) for k in range(players)]
     states = []                     # (land, fjord, glob, perspective)
     moves = 0
     while True:
-        for me in range(2):
-            states.append(E.encode(g, me) + (me,))
+        for me in range(players):
+            states.append(enc.encode(g, me) + (me,))
         if g.game_over:
             break
         bots[g.current].play_turn(g)
         moves += 1
-        assert moves < 200
-    labels = [E.outcome(g, me) for me in range(2)]
+        assert moves < 400
+    labels = [enc.outcome(g, me) for me in range(players)]
     land = np.stack([s[0] for s in states])
     fjord = np.stack([s[1] for s in states])
     glob = np.stack([s[2] for s in states])
@@ -146,9 +158,13 @@ def main():
                     help="network self-play on the CPU even if there is a GPU")
     ap.add_argument("--gpu-procs", type=int, default=6,
                     help="GPU self-play: processes (each plays --parallel games)")
-    ap.add_argument("--parallel", type=int, default=64,
+    ap.add_argument("--players", type=int, default=2, choices=[2, 3, 4],
+                    help="players per game (3-4: the multi-player encoding, mp_encode.py)")
+    ap.add_argument("--parallel", type=int, default=None,
                     help="GPU self-play: games per process played in step")
     a = ap.parse_args()
+    if a.parallel is None:          # 4-player positions are bigger: fewer at once
+        a.parallel = 64 if a.players == 2 else 32
 
     os.makedirs(DATA_DIR, exist_ok=True)
     layout = None if a.random_boards else L.read_layout_file()
@@ -161,13 +177,13 @@ def main():
         size = 128
         groups = [list(range(a.seed + i, a.seed + min(i + size, a.games)))
                   for i in range(0, a.games, size)]
-        jobs = [(g, a.explore, layout, a.player, a.rules, a.parallel) for g in groups]
+        jobs = [(g, a.explore, layout, a.player, a.rules, a.parallel, a.players) for g in groups]
         func, chunks = play_batch_on_gpu, 1
         print("Self-play on the GPU: %d processes x %d games at once" % (workers, a.parallel),
               flush=True)
     else:
         workers = max(1, (os.cpu_count() or 2) - 1)
-        jobs = [(a.seed + i, a.explore, layout, a.player, a.rules) for i in range(a.games)]
+        jobs = [(a.seed + i, a.explore, layout, a.player, a.rules, a.players) for i in range(a.games)]
         func, chunks = play_and_record, 4
     # The workers keep playing; each full batch of games is compressed and
     # written by a separate thread in the meantime.
@@ -194,15 +210,21 @@ def main():
     print("Done in %.0f s." % (time.time() - t0))
 
 
+POLICY_KEYS = ("pol_place", "pol_tile", "pol_ship", "pol_on")
+
+
 def save_batch(out, parts):
-    np.savez_compressed(
-        out,
+    arrays = dict(
         land=np.concatenate([p[0] for p in parts]),
         fjord=np.concatenate([p[1] for p in parts]),
         glob=np.concatenate([p[2] for p in parts]),
         margin=np.concatenate([p[3] for p in parts]),
         win=np.concatenate([p[4] for p in parts]),
         game=np.concatenate([p[5] for p in parts]))
+    if all(len(p) == 10 for p in parts):       # network self-play: what the proposals learn
+        for j, k in enumerate(POLICY_KEYS):
+            arrays[k] = np.concatenate([p[6 + j] for p in parts])
+    np.savez_compressed(out, **arrays)
 
 
 if __name__ == "__main__":

@@ -20,6 +20,9 @@ longships -> full. For every stage:
                the previous network's judgement a few turns later.
   4. arena     after every step: the network against the greedy player,
                under the stage's rules. The best network moves on.
+               With --gate (the default), the next self-play round also
+               starts from the best network so far instead of the newest,
+               so a worse round can't drag the training down.
 
 Results: curriculum_<prefix>_results.json and curriculum_<prefix>_log.txt,
 and curriculum_report.html (graphs, made by curriculum_report.py).
@@ -39,7 +42,13 @@ import looot as L          # noqa: E402
 
 STAGES = [s for s, _ in L.RULE_STAGES]
 ROUNDS = {"resources": 0, "buildings": 1, "sites": 1, "longships": 6, "full": 8}
-FINALS_RESERVE = 15 * 60        # seconds kept free for the final tests
+FINALS_RESERVE = 8 * 60         # seconds kept free for the final tests
+PLAYERS = 2                     # players per game (--players)
+
+
+def lineup(first, other):
+    """The network `first` against PLAYERS - 1 copies of `other`."""
+    return [first] + [other] * (PLAYERS - 1)
 
 
 class Run:
@@ -60,15 +69,46 @@ class Run:
         with open(self.res_file, "w") as f:
             json.dump(self.results, f, indent=1)
 
-    def run(self, args):
+    # The watchdog: a step that takes far longer than it ever should (a GPU
+    # or driver hiccup can leave processes waiting forever, as in run 5) is
+    # stopped and started again, once.
+    TIMEOUT = {"gen_data.py": 25 * 60, "train_nn.py": 30 * 60}
+
+    def run(self, args, tries=2):
         """Run one of our scripts; stop everything if it fails."""
         t = time.time()
-        p = subprocess.run([sys.executable] + args, cwd=HERE, capture_output=True, text=True)
-        out = (p.stdout + p.stderr).strip().splitlines()
+        limit = self.TIMEOUT.get(args[0], 60 * 60)
+        for attempt in range(tries):
+            p = subprocess.Popen([sys.executable] + args, cwd=HERE, text=True,
+                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            try:
+                text, _ = p.communicate(timeout=limit)
+                break
+            except subprocess.TimeoutExpired:
+                kill_tree(p)
+                self.log("WATCHDOG: %s took over %d min and was stopped%s"
+                         % (" ".join(args[:3]), limit // 60,
+                            "; trying again" if attempt + 1 < tries else ""))
+        else:
+            self.log("FAILED: %s kept hanging" % " ".join(args))
+            raise SystemExit(1)
+        out = text.strip().splitlines()
         if p.returncode != 0:
             self.log("FAILED: %s\n%s" % (" ".join(args), "\n".join(out[-25:])))
             raise SystemExit(1)
         return out, time.time() - t
+
+
+def kill_tree(p):
+    """Stop a process AND the worker processes it started."""
+    if sys.platform == "win32":
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(p.pid)], capture_output=True)
+    else:
+        p.kill()
+    try:
+        p.communicate(timeout=30)
+    except subprocess.TimeoutExpired:
+        pass
 
 
 def keep_awake():
@@ -90,7 +130,7 @@ def kept(out):
 
 def arena_vs_greedy(model, stage, games, seed):
     import arena
-    res = arena.run(["nn:" + model, "greedy"], games, seed,
+    res = arena.run(lineup("nn:" + model, "greedy"), games, seed,
                     L.read_layout_file(), rules=stage)
     rows = [r for g in res for r in g if r["name"] == "nn:" + model]
     n = len(rows)
@@ -101,6 +141,11 @@ def arena_vs_greedy(model, stage, games, seed):
     out["penalty"] = sum(r["parts"]["penalty"] for r in rows) / n
     out["ms_per_turn"] = 1000 * sum(r["think"] for r in rows) / max(1, sum(r["turns"] for r in rows))
     return out
+
+
+def score(step):
+    """How good an arena result is: win rate, ties broken by the margin."""
+    return step["arena"]["win"] + 0.002 * step["arena"]["margin"]
 
 
 def stage_run(R, si, a, prev):
@@ -126,14 +171,17 @@ def stage_run(R, si, a, prev):
     # 1. greedy data
     gdata = "%s_%s_g" % (P, st)
     _, t = R.run(["gen_data.py", "--games", str(a.greedy_games), "--rules", st,
+                  "--players", str(PLAYERS),
                   "--name", gdata, "--seed", str(seed), "--batch", "2000"])
     R.log("  data: %d greedy games in %.0f s" % (a.greedy_games, t))
 
     # 2. first network of this stage (no TD: the previous stage's network
     #    doesn't know this stage's new rule, so its judgement can't be used)
     model = "%s_%s_a" % (P, st)
-    args = ["train_nn.py", "--data", gdata, "--name", model, "--epochs", str(a.epochs)]
-    args += ["--init", prev, "--lr", "2e-3"] if prev else ["--stats-from", P + "_stats"]
+    args = ["train_nn.py", "--data", gdata, "--name", model, "--epochs", str(a.epochs),
+            "--batch", str(a.batch)]
+    args += ["--init", prev, "--lr", "2e-3"] if prev else ["--stats-from", P + "_stats",
+                                                            "--arch", a.arch]
     out, t = R.run(args)
     R.log("  trained %s in %.0f s" % (model, t))
     record(model, "greedy data", kept(out))
@@ -153,24 +201,28 @@ def stage_run(R, si, a, prev):
         t_round = time.time()
         name = "%s_%s_sp%d" % (P, st, k)
         _, t = R.run(["gen_data.py", "--games", str(a.selfplay_games), "--rules", st,
+                      "--players", str(PLAYERS),
                       "--player", "nn:" + model, "--name", name,
                       "--seed", str(seed + 100_000 * k), "--batch", "750"])
         sp.append(name)
         new = "%s_%s_r%d" % (P, st, k)
         data = [gdata] + sp[-a.window:]
         args = ["train_nn.py", "--data"] + data + ["--name", new, "--epochs", str(a.epochs),
-                                                   "--init", model, "--lr", "2e-3"]
+                                                   "--init", model, "--lr", "2e-3",
+                                                   "--batch", str(a.batch)]
         if a.td:
             args += ["--td", str(a.td), "--td-mix", str(a.td_mix)]
         out, t2 = R.run(args)
         R.log("  round %d: %d self-play games in %.0f s, trained %s in %.0f s"
               % (k, a.selfplay_games, t, new, t2))
         record(new, "self-play round %d" % k, kept(out))
-        model = new
+        model = max(r["steps"], key=score)["model"] if a.gate else new
+        if model != new:
+            R.log("  (next round starts from %s, the best so far)" % model)
         round_time = time.time() - t_round
 
     # the best network of the stage moves on
-    best = max(r["steps"], key=lambda s: s["arena"]["win"] + 0.002 * s["arena"]["margin"])
+    best = max(r["steps"], key=score)
     r["best"] = best["model"]
     R.save()
     R.log("  best of stage %s: %s (%.1f%% wins)" % (st, best["model"], 100 * best["arena"]["win"]))
@@ -180,14 +232,14 @@ def stage_run(R, si, a, prev):
 def finals(R, a):
     """Extra tests of the best full-game network."""
     best = R.results["stages"]["full"]["best"]
-    tests = [("%s vs greedy" % best, ["nn:" + best, "greedy"], a.arena_games_long),
-             ("%s+2 (looks 2 turns ahead) vs greedy" % best, ["nn:%s+2" % best, "greedy"],
+    tests = [("%s vs greedy" % best, lineup("nn:" + best, "greedy"), a.arena_games_long),
+             ("%s+2 (looks 2 turns ahead) vs greedy" % best, lineup("nn:%s+2" % best, "greedy"),
               min(200, a.arena_games_long)),
-             ("%s vs original greedy" % best, ["nn:" + best, "original"], a.arena_games_long)]
+             ("%s vs original greedy" % best, lineup("nn:" + best, "original"), a.arena_games_long)]
     import arena
-    for label, lineup, games in tests:
-        res = arena.run(lineup, games, 88_000_000, L.read_layout_file())
-        rows = [r for g in res for r in g if r["name"] == lineup[0]]
+    for label, seats, games in tests:
+        res = arena.run(seats, games, 88_000_000, L.read_layout_file())
+        rows = [r for g in res for r in g if r["name"] == seats[0]]
         n = len(rows)
         out = {"games": games, "win": sum(r["win"] for r in rows) / n,
                "margin": sum(r["margin"] for r in rows) / n,
@@ -221,6 +273,20 @@ def main():
     ap.add_argument("--rounds", default="",
                     help="self-play rounds per stage, e.g. buildings=3,longships=12 "
                          "(the rest as in ROUNDS)")
+    ap.add_argument("--arch", default="three",
+                    choices=["three", "value", "attn", "three4", "value4", "attn4"],
+                    help="kind of network (nn_model.ARCHS): the three-part network (default), "
+                         "the value network of runs 1-4, or the one with attention")
+    ap.add_argument("--batch", type=int, default=4096,
+                    help="positions per training step (smaller: less GPU memory)")
+    ap.add_argument("--players", type=int, default=2, choices=[2, 3, 4],
+                    help="players per game (3-4: a multi-player network, arch name + 4)")
+    ap.add_argument("--stages", default="",
+                    help="only these stages, e.g. full (default: all)")
+    ap.add_argument("--init-model", default=None,
+                    help="start the first stage from this network (e.g. one made by transfer_mp.py)")
+    ap.add_argument("--no-gate", dest="gate", action="store_false",
+                    help="always continue from the newest network, even if it is worse")
     ap.add_argument("--hours", type=float, default=0,
                     help="time budget: the last stage keeps going until it is used up")
     a = ap.parse_args()
@@ -231,18 +297,22 @@ def main():
             raise SystemExit("unknown stage %r (stages: %s)" % (st, ", ".join(STAGES)))
         rounds[st] = int(n)
     a.rounds = rounds
+    global PLAYERS
+    PLAYERS = a.players
     a.deadline = time.time() + 3600 * a.hours
 
     R = Run(a.prefix)
     if not a.report:
         keep_awake()
         # input scaling for every stage comes from full-game data
-        if not os.path.exists(os.path.join(HERE, "data", a.prefix + "_stats_000.npz")):
-            R.run(["gen_data.py", "--games", str(min(2000, a.greedy_games)),
+        if not a.init_model and not os.path.exists(os.path.join(HERE, "data", a.prefix + "_stats_000.npz")):
+            R.run(["gen_data.py", "--games", str(min(2000, a.greedy_games)), "--players", str(PLAYERS),
                    "--name", a.prefix + "_stats", "--seed", "77000000",
                    "--batch", str(min(2000, a.greedy_games))])
-        prev = None
+        prev = a.init_model
         for si, st in enumerate(STAGES):
+            if a.stages and st not in a.stages.split(","):
+                continue
             done = R.results["stages"].get(st, {}).get("best")
             if done:
                 prev = done

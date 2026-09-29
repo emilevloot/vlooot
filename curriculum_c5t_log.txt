@@ -1,0 +1,101 @@
+02:47:25 === stage 1/5: resources ===
+02:48:20   data: 8000 greedy games in 56 s
+02:49:05   trained c5t_resources_a in 44 s
+02:49:12   c5t_resources_a        wins 100.0% ±0.0, margin   +7.9, score  16.4, longship penalty   0.0,   18 ms/turn (test error 1.75)
+02:51:42   round 1: 8000 self-play games in 56 s, trained c5t_resources_r1 in 95 s
+02:51:48   c5t_resources_r1       wins 100.0% ±0.0, margin   +8.0, score  16.5, longship penalty   0.0,   18 ms/turn (test error 1.55)
+02:55:03   round 2: 8000 self-play games in 54 s, trained c5t_resources_r2 in 140 s
+02:55:10   c5t_resources_r2       wins 100.0% ±0.0, margin   +7.6, score  16.3, longship penalty   0.0,   17 ms/turn (test error 1.44)
+02:55:10   (next round starts from c5t_resources_r1, the best so far)
+02:55:10   best of stage resources: c5t_resources_r1 (100.0% wins)
+02:55:10 === stage 2/5: buildings ===
+02:56:16   data: 8000 greedy games in 67 s
+02:57:02   trained c5t_buildings_a in 45 s
+02:57:13   c5t_buildings_a        wins  85.7% ±3.1, margin   +7.4, score  32.7, longship penalty   0.0,   19 ms/turn (test error 5.23)
+02:59:48   round 1: 8000 self-play games in 60 s, trained c5t_buildings_r1 in 95 s
+03:00:00   c5t_buildings_r1       wins  94.8% ±1.9, margin  +11.0, score  35.6, longship penalty   0.0,   19 ms/turn (test error 4.98)
+03:03:22   round 2: 8000 self-play games in 62 s, trained c5t_buildings_r2 in 141 s
+03:03:34   c5t_buildings_r2       wins  98.2% ±1.2, margin  +13.0, score  36.7, longship penalty   0.0,   19 ms/turn (test error 4.65)
+03:07:43   round 3: 8000 self-play games in 62 s, trained c5t_buildings_r3 in 187 s
+03:07:55   c5t_buildings_r3       wins  99.5% ±0.6, margin  +14.1, score  37.0, longship penalty   0.0,   19 ms/turn (test error 4.37)
+03:07:55   best of stage buildings: c5t_buildings_r3 (99.5% wins)
+03:07:55 === stage 3/5: sites ===
+03:09:04   data: 8000 greedy games in 69 s
+03:09:50   trained c5t_sites_a in 45 s
+03:10:03   c5t_sites_a            wins  93.5% ±2.2, margin  +17.5, score  54.9, longship penalty   0.0,   21 ms/turn (test error 8.12)
+03:12:41   round 1: 8000 self-play games in 63 s, trained c5t_sites_r1 in 95 s
+03:12:53   c5t_sites_r1           wins  98.1% ±1.2, margin  +22.2, score  55.9, longship penalty   0.0,   20 ms/turn (test error 7.68)
+03:16:17   round 2: 8000 self-play games in 62 s, trained c5t_sites_r2 in 141 s
+03:16:29   c5t_sites_r2           wins  98.7% ±1.0, margin  +22.0, score  55.7, longship penalty   0.0,   20 ms/turn (test error 7.14)
+03:20:39   round 3: 8000 self-play games in 63 s, trained c5t_sites_r3 in 187 s
+03:20:51   c5t_sites_r3           wins  99.6% ±0.6, margin  +23.0, score  55.9, longship penalty   0.0,   20 ms/turn (test error 6.75)
+03:20:51   best of stage sites: c5t_sites_r3 (99.6% wins)
+03:20:51 === stage 4/5: longships ===
+03:22:28   data: 8000 greedy games in 97 s
+03:23:14   trained c5t_longships_a in 46 s
+03:23:35   c5t_longships_a        wins  35.6% ±4.2, margin   -9.5, score  49.4, longship penalty -21.3,   36 ms/turn (test error 14.40)
+03:26:39   round 1: 8000 self-play games in 89 s, trained c5t_longships_r1 in 95 s
+03:27:00   c5t_longships_r1       wins  75.5% ±3.8, margin  +14.3, score  71.2, longship penalty  -7.5,   36 ms/turn (test error 15.39)
+03:30:51   round 2: 8000 self-play games in 90 s, trained c5t_longships_r2 in 141 s
+03:31:13   c5t_longships_r2       wins  82.9% ±3.3, margin  +19.5, score  76.1, longship penalty  -4.1,   37 ms/turn (test error 14.64)
+03:35:50   round 3: 8000 self-play games in 90 s, trained c5t_longships_r3 in 187 s
+03:36:12   c5t_longships_r3       wins  84.3% ±3.2, margin  +19.9, score  77.6, longship penalty  -2.9,   38 ms/turn (test error 13.87)
+03:40:50   round 4: 8000 self-play games in 90 s, trained c5t_longships_r4 in 187 s
+03:41:12   c5t_longships_r4       wins  84.0% ±3.2, margin  +20.3, score  77.9, longship penalty  -2.7,   38 ms/turn (test error 12.89)
+03:41:12   (next round starts from c5t_longships_r3, the best so far)
+03:45:50   round 5: 8000 self-play games in 90 s, trained c5t_longships_r5 in 187 s
+03:46:11   c5t_longships_r5       wins  86.0% ±3.0, margin  +22.1, score  79.0, longship penalty  -2.5,   37 ms/turn (test error 12.69)
+03:50:49   round 6: 8000 self-play games in 91 s, trained c5t_longships_r6 in 187 s
+03:51:10   c5t_longships_r6       wins  84.2% ±3.2, margin  +21.3, score  78.8, longship penalty  -3.1,   37 ms/turn (test error 12.65)
+03:51:10   (next round starts from c5t_longships_r5, the best so far)
+03:51:10   best of stage longships: c5t_longships_r5 (86.0% wins)
+03:51:10 === stage 5/5: full ===
+03:53:10   data: 8000 greedy games in 119 s
+03:53:52   trained c5t_full_a in 42 s
+03:54:20   c5t_full_a             wins  51.2% ±4.4, margin   -0.1, score  85.9, longship penalty  -3.0,   53 ms/turn (test error 13.08)
+03:57:41   round 1: 8000 self-play games in 112 s, trained c5t_full_r1 in 88 s
+03:58:13   c5t_full_r1            wins  66.0% ±4.2, margin   +7.9, score  91.8, longship penalty  -2.5,   63 ms/turn (test error 12.78)
+04:02:31   round 2: 8000 self-play games in 127 s, trained c5t_full_r2 in 131 s
+04:03:05   c5t_full_r2            wins  67.8% ±4.1, margin   +8.5, score  92.2, longship penalty  -3.2,   66 ms/turn (test error 12.84)
+04:08:11   round 3: 8000 self-play games in 132 s, trained c5t_full_r3 in 174 s
+04:08:46   c5t_full_r3            wins  69.2% ±4.0, margin  +10.3, score  94.2, longship penalty  -3.0,   69 ms/turn (test error 12.72)
+04:13:54   round 4: 8000 self-play games in 135 s, trained c5t_full_r4 in 174 s
+04:14:29   c5t_full_r4            wins  75.2% ±3.8, margin  +12.4, score  96.5, longship penalty  -2.8,   69 ms/turn (test error 12.70)
+04:19:40   round 5: 8000 self-play games in 136 s, trained c5t_full_r5 in 174 s
+04:20:18   c5t_full_r5            wins  79.2% ±3.6, margin  +14.0, score  98.0, longship penalty  -2.3,   77 ms/turn (test error 12.53)
+04:25:36   round 6: 8000 self-play games in 144 s, trained c5t_full_r6 in 174 s
+04:26:14   c5t_full_r6            wins  79.4% ±3.5, margin  +15.1, score  98.1, longship penalty  -2.8,   77 ms/turn (test error 12.20)
+04:31:34   round 7: 8000 self-play games in 146 s, trained c5t_full_r7 in 174 s
+04:32:14   c5t_full_r7            wins  80.4% ±3.5, margin  +15.9, score  99.7, longship penalty  -2.2,   79 ms/turn (test error 11.88)
+04:37:40   round 8: 8000 self-play games in 152 s, trained c5t_full_r8 in 174 s
+04:38:19   c5t_full_r8            wins  76.6% ±3.7, margin  +13.8, score  97.5, longship penalty  -2.9,   79 ms/turn (test error 12.29)
+04:38:19   (next round starts from c5t_full_r7, the best so far)
+04:43:44   round 9: 8000 self-play games in 151 s, trained c5t_full_r9 in 174 s
+04:44:24   c5t_full_r9            wins  78.8% ±3.6, margin  +15.8, score  99.1, longship penalty  -2.0,   81 ms/turn (test error 12.36)
+04:44:24   (next round starts from c5t_full_r7, the best so far)
+04:49:47   round 10: 8000 self-play games in 150 s, trained c5t_full_r10 in 174 s
+04:50:26   c5t_full_r10           wins  83.8% ±3.2, margin  +17.8, score 100.7, longship penalty  -1.9,   78 ms/turn (test error 12.24)
+04:55:50   round 11: 8000 self-play games in 150 s, trained c5t_full_r11 in 174 s
+04:56:29   c5t_full_r11           wins  75.6% ±3.8, margin  +14.3, score  98.8, longship penalty  -2.5,   81 ms/turn (test error 11.93)
+04:56:29   (next round starts from c5t_full_r10, the best so far)
+05:01:53   round 12: 8000 self-play games in 149 s, trained c5t_full_r12 in 174 s
+05:02:32   c5t_full_r12           wins  76.0% ±3.7, margin  +15.7, score 100.1, longship penalty  -2.1,   78 ms/turn (test error 11.79)
+05:02:32   (next round starts from c5t_full_r10, the best so far)
+05:07:54   round 13: 8000 self-play games in 148 s, trained c5t_full_r13 in 174 s
+05:08:31   c5t_full_r13           wins  76.2% ±3.7, margin  +15.6, score  98.7, longship penalty  -2.0,   73 ms/turn (test error 11.99)
+05:08:31   (next round starts from c5t_full_r10, the best so far)
+05:13:55   round 14: 8000 self-play games in 151 s, trained c5t_full_r14 in 174 s
+05:14:33   c5t_full_r14           wins  76.2% ±3.7, margin  +15.0, score  98.6, longship penalty  -2.4,   75 ms/turn (test error 12.02)
+05:14:33   (next round starts from c5t_full_r10, the best so far)
+05:19:56   round 15: 8000 self-play games in 149 s, trained c5t_full_r15 in 174 s
+05:20:34   c5t_full_r15           wins  81.8% ±3.4, margin  +18.3, score 101.8, longship penalty  -2.0,   76 ms/turn (test error 11.86)
+05:20:34   (next round starts from c5t_full_r10, the best so far)
+05:25:57   round 16: 8000 self-play games in 150 s, trained c5t_full_r16 in 174 s
+05:26:34   c5t_full_r16           wins  69.6% ±4.0, margin  +10.7, score  95.4, longship penalty  -2.5,   73 ms/turn (test error 11.81)
+05:26:34   (next round starts from c5t_full_r10, the best so far)
+09:30:16   (round 17's self-play hung; stopped by hand, the stage ends with 16 rounds)
+09:30:16   best of stage full: c5t_full_r10 (83.8% wins)
+09:32:44 FINAL c5t_full_r10 vs greedy: wins 80.8% ±3.5, margin +17.4, longship penalty -1.8, 80 ms/turn
+09:33:33 FINAL c5t_full_r10+2 (looks 2 turns ahead) vs greedy: wins 82.5% ±5.3, margin +17.6, longship penalty -1.8, 267 ms/turn
+09:34:14 FINAL c5t_full_r10 vs original greedy: wins 84.8% ±3.1, margin +21.2, longship penalty -1.7, 82 ms/turn
+09:34:14 Curriculum finished.

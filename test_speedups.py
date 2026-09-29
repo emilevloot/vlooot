@@ -6,7 +6,9 @@ Checks that every fast version gives exactly the results of the simple one.
   1. nn_encode.encode()  == nn_encode.encode_reference()   (every number;
                                                             encode() runs fastgame.py)
   2. nn_bot.FastNet      == nn_bot.NumpyNet                (to 1e-4 points)
-  3. the rules still pass the scenario tests (tower groups, stacks, ...)
+  3. the three-part and attention networks: nn_bot's numpy version ==
+     nn_model's PyTorch version == gpu_net.TorchNet
+  4. the rules still pass the scenario tests (tower groups, stacks, ...)
 """
 
 import os
@@ -70,12 +72,56 @@ def check_net(model=None):
         sum(len(b[0]) for b in batches), worst, os.path.basename(path)))
 
 
-def _loads(nn_bot, path):
+def _loads(nn_bot, path, arch="value"):
     try:
+        with np.load(path) as d:
+            kind = str(d["arch"]) if "arch" in d.files else "value"
         nn_bot.FastNet(path)
-        return True
+        return kind == arch
     except (ValueError, KeyError):
         return False
+
+
+def _positions(model, n=40):
+    """Batches of positions the network player really judges."""
+    import nn_bot
+    g = L.Game([("a", True), ("b", True)], 11, L.read_layout_file())
+    bot = nn_bot.NNBot(random.Random(1), model)
+    got = []
+    real = bot.net
+    bot.net = lambda l, f, gl: (got.append((l, f, gl)), real(l, f, gl))[1]
+    while not g.game_over and len(got) < n:
+        bot.play_turn(g)
+    return [np.concatenate(x) for x in zip(*got)]
+
+
+def check_arch_net(arch):
+    import glob
+    import torch
+    import gpu_net
+    import nn_bot
+    import nn_model
+    models = sorted(glob.glob(os.path.join(nn_bot.MODEL_DIR, "*.npz")), key=os.path.getmtime)
+    path = next((m for m in reversed(models) if _loads(nn_bot, m, arch)), None)
+    if path is None:
+        print("3. %s network: skipped (none trained yet)" % arch)
+        return
+    land, fj, gl = _positions(path)
+    fast = nn_bot.load_net(path)
+    tm = nn_model.load(path[:-4] + ".pt").eval()
+    with torch.no_grad():
+        m_t, w_t, told_t = tm.explain(*(torch.from_numpy(x) for x in (land, fj, gl)))
+    m_t, w_t = m_t.numpy() * 20, torch.sigmoid(w_t).numpy()
+    worst = 0.0
+    for net in (fast, gpu_net.TorchNet(path[:-4] + ".pt")):
+        m, w = net(land, fj, gl)
+        worst = max(worst, float(np.abs(m - m_t).max()), float(np.abs(w - w_t).max()))
+    _, _, told = fast.explain(land, fj, gl)
+    for k in told:
+        worst = max(worst, float(np.abs(told[k].astype(np.float32) - told_t[k].numpy()).max()))
+    assert worst < 1e-3, worst
+    print("3. %s network identical in numpy, PyTorch and on the GPU on %d positions "
+          "(largest difference %.1g) - %s" % (arch, len(land), worst, os.path.basename(path)))
 
 
 def check_rules():
@@ -94,10 +140,12 @@ def check_rules():
         for seed in range(4):
             gg = L.simulate(n, seed, verbose=False, layout=lay if seed % 2 else None)
             assert gg.game_over and all(v >= 0 for v in gg.stock.values())
-    print("3. rules scenarios and 24 full games ok")
+    print("4. rules scenarios and 24 full games ok")
 
 
 if __name__ == "__main__":
     check_rules()
     check_encoding()
     check_net()
+    check_arch_net("three")
+    check_arch_net("attn")

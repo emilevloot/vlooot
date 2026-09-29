@@ -1216,8 +1216,6 @@ class Api:
         self.game = Game(players, None if seed < 0 else seed, self.layout)
         for p, s in zip(self.game.players, seats):
             p.nn = bool(s.get("nn")) and p.ai     # played by the neural network
-            if p.nn and len(seats) != 2:
-                raise ValueError("The neural network only plays 2-player games.")
         self.game.say("A new game begins. %s goes first." %
                       self.game.player().name)
         return self._state()

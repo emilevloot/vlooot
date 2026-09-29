@@ -15,7 +15,14 @@ REPORT = os.path.join(HERE, "curriculum_report.html")
 STAGES = ["resources", "buildings", "sites", "longships", "full"]
 LABELS = {"cur": "Run 1: basic features, final results only",
           "c2": "Run 2: helper features + TD learning",
-          "c3": "Run 3: land encoding v3 (placement gains, shopping list), GPU self-play"}
+          "c3": "Run 3: land encoding v3 (placement gains, shopping list), GPU self-play",
+          "c4": "Run 4: turn clock, whole-board view (global pooling), best network moves on",
+          "c5v": "Run 5a: the run-4 network, 3 hours",
+          "c5t": "Run 5b: the three-part network (fjord, board, longships), 3 hours",
+          "c6": "Run 6: the three-part network, 6 hours",
+          "c7a": "Run 7a: the network with attention (transformer), 3 hours",
+          "s1": "Run 7b: c5t_full_r10 trained further against itself, with a champion",
+          "m4": "4 players: the best 2-player network, transferred and trained on 4-player games"}
 
 
 def _old_format(res):

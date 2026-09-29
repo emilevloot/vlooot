@@ -1,0 +1,99 @@
+{
+ "prefix": "c4",
+ "stages": {
+  "resources": {
+   "steps": [
+    {
+     "model": "c4_resources_a",
+     "kind": "greedy data",
+     "test_mae": 1.69,
+     "arena": {
+      "games": 300,
+      "win": 1.0,
+      "margin": 7.81,
+      "score": 16.463333333333335,
+      "win_ci": 0.0,
+      "penalty": 0.0,
+      "ms_per_turn": 16.21644492323424
+     }
+    },
+    {
+     "model": "c4_resources_r1",
+     "kind": "self-play round 1",
+     "test_mae": 1.78,
+     "arena": {
+      "games": 300,
+      "win": 1.0,
+      "margin": 8.443333333333333,
+      "score": 16.706666666666667,
+      "win_ci": 0.0,
+      "penalty": 0.0,
+      "ms_per_turn": 18.77280082044308
+     }
+    },
+    {
+     "model": "c4_resources_r2",
+     "kind": "self-play round 2",
+     "test_mae": 1.63,
+     "arena": {
+      "games": 300,
+      "win": 1.0,
+      "margin": 7.8,
+      "score": 16.423333333333332,
+      "win_ci": 0.0,
+      "penalty": 0.0,
+      "ms_per_turn": 16.755394282144827
+     }
+    }
+   ],
+   "best": "c4_resources_r1"
+  },
+  "buildings": {
+   "steps": [
+    {
+     "model": "c4_buildings_a",
+     "kind": "greedy data",
+     "test_mae": 5.24,
+     "arena": {
+      "games": 500,
+      "win": 0.865,
+      "margin": 6.954,
+      "score": 32.75,
+      "win_ci": 0.02995339179458647,
+      "penalty": 0.0,
+      "ms_per_turn": 17.6954560462663
+     }
+    },
+    {
+     "model": "c4_buildings_r1",
+     "kind": "self-play round 1",
+     "test_mae": 4.64,
+     "arena": {
+      "games": 500,
+      "win": 0.966,
+      "margin": 13.318,
+      "score": 36.562,
+      "win_ci": 0.015885434233913788,
+      "penalty": 0.0,
+      "ms_per_turn": 17.34025723073193
+     }
+    },
+    {
+     "model": "c4_buildings_r2",
+     "kind": "self-play round 2",
+     "test_mae": 4.35,
+     "arena": {
+      "games": 500,
+      "win": 0.993,
+      "margin": 13.054,
+      "score": 36.644,
+      "win_ci": 0.007307935631900437,
+      "penalty": 0.0,
+      "ms_per_turn": 18.080828507600998
+     }
+    }
+   ]
+  }
+ },
+ "final": {}
+}

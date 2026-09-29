@@ -32,7 +32,9 @@ import torch
 import torch.nn.functional as F
 
 import nn_encode as E
-from nn_model import MARGIN_SCALE, ValueNet, count_weights
+import mp_encode
+import nn_model
+from nn_model import MARGIN_SCALE, count_weights
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(HERE, "data")
@@ -50,6 +52,14 @@ def load(prefixes):
     out = {}
     for k in ("land", "fjord", "glob", "margin", "win", "game"):
         out[k] = np.concatenate([z[k] for z in zips])
+    # what the proposals learn (network self-play only; other files: nothing)
+    if any("pol_on" in z.files for z in zips):
+        ref = next(z for z in zips if "pol_on" in z.files)
+        for k in ("pol_place", "pol_tile", "pol_ship", "pol_on"):
+            out[k] = np.concatenate([z[k] if k in z.files else
+                                     np.zeros((len(z["margin"]),) + ref[k].shape[1:], ref[k].dtype)
+                                     for z in zips])
+        print("Proposal targets on %d positions." % int(out["pol_on"].sum()))
     print("Loaded %d positions from %d games (%d files)."
           % (len(out["margin"]), len(np.unique(out["game"])), len(files)))
     return out
@@ -72,6 +82,8 @@ def main():
                     help="positions per training step (big batches keep the GPU busy)")
     ap.add_argument("--lr", type=float, default=2e-3)
     ap.add_argument("--init", default=None, help="start from this model instead of random")
+    ap.add_argument("--arch", default="three", choices=sorted(nn_model.ARCHS),
+                    help="kind of network (ignored with --init: that network's kind)")
     ap.add_argument("--dropout", type=float, default=0.3,
                     help="share of neurons switched off while training")
     ap.add_argument("--wd", type=float, default=0.01,
@@ -81,6 +93,8 @@ def main():
                          "judgement N turns later (0 = only the final results)")
     ap.add_argument("--td-mix", type=float, default=0.5,
                     help="with --td: share of the final result in the target")
+    ap.add_argument("--policy-weight", type=float, default=1.0,
+                    help="weight of the proposals' loss (when the data has its targets)")
     ap.add_argument("--stats-from", default=None,
                     help="data prefix to take the input scaling from (e.g. the full "
                          "game's data when training on a simpler rule stage)")
@@ -97,10 +111,10 @@ def main():
 
     # --- 2. feature scaling from a sample of the training data ---
     sample = np.random.default_rng(0).choice(tr, size=min(200000, len(tr)), replace=False)
-    model = ValueNet(a.dropout)
     if a.init:
-        model.load_state_dict(torch.load(os.path.join(MODEL_DIR, a.init + ".pt"))["state"])
+        model = nn_model.load(os.path.join(MODEL_DIR, a.init + ".pt"), a.dropout)
     else:
+        model = nn_model.ARCHS[a.arch](a.dropout)
         S = {k: D[k][sample] for k in ("land", "fjord", "glob")}
         if a.stats_from:
             f = sorted(globmod.glob(os.path.join(DATA_DIR, a.stats_from + "_*.npz")))[0]
@@ -113,10 +127,73 @@ def main():
             getattr(model, name + "_mu").copy_(torch.from_numpy(mu))
             getattr(model, name + "_sd").copy_(torch.from_numpy(sd))
     model.to(dev)
-    print("Network has %d weights." % count_weights(model))
+    print("Network (%s) has %d weights." % (model.ARCH, count_weights(model)))
 
-    # all data on the GPU as small integers; converted per batch
-    T = {k: torch.from_numpy(D[k]).to(dev) for k in ("land", "fjord", "glob", "margin", "win")}
+    # The positions stay in the computer's memory (as small integers): with
+    # big windows of self-play data they don't fit on the GPU next to the
+    # network. Each batch goes to the GPU when it is needed. The answers
+    # (margin, win: one number per position) do live on the GPU.
+    X = {k: torch.from_numpy(D[k]) for k in ("land", "fjord", "glob")}
+    T = {k: torch.from_numpy(D[k]).to(dev) for k in ("margin", "win")}
+    # the proposals ("policy") are learned when the network has them and the
+    # data has their targets (network self-play)
+    policy = "pol_on" in D and hasattr(model, "pol_place")
+    if policy:
+        model.with_proposals = True            # also when measuring (eval mode)
+        for k in ("pol_place", "pol_tile", "pol_ship", "pol_on"):
+            X[k] = torch.from_numpy(D[k])
+        print("Learning the proposals too (weight %.1f)." % a.policy_weight)
+
+    def inputs(idx):
+        """The positions idx (CPU indices or a slice), on the GPU."""
+        return [X[k][idx].to(dev, non_blocking=True) for k in ("land", "fjord", "glob")]
+
+    def soft_ce(logits, target, mask):
+        """Cross-entropy of the proposal (softmax over the legal moves only)
+        against the search's weights. Rows without any weight don't count."""
+        logits = logits.masked_fill(~mask, -1e9)
+        # weight on moves that weren't possible at the start of the turn (a
+        # second Viking's space, only reachable after the first) is left out
+        target = target * mask
+        mass = target.sum(1)
+        loss = -(target * F.log_softmax(logits, 1)).sum(1) / mass.clamp(min=1e-6)
+        return loss, mass > 0
+
+    G_DBL, G_OCC = E.G["shield_me_double"], E.G["shield_me_occupy"]
+
+    def policy_loss(land, fjord, glob, told, idx):
+        """Loss and hit counts of the three proposals on the rows that have targets."""
+        on = X["pol_on"][idx].to(dev) > 0
+        place_t = X["pol_place"][idx].to(dev).float()          # [B, 55, 3]
+        tile_t = X["pol_tile"][idx].to(dev).float()            # [B, 37, 8]
+        ship_t = X["pol_ship"][idx].to(dev).float()            # [B, 6]
+        free = land[:, :, E.LF_FREE] > 0
+        stack = land[:, :, E.LF_STACK] > 0
+        dbl = (glob[:, G_DBL] > 0).unsqueeze(1)
+        occ = (glob[:, G_OCC] > 0).unsqueeze(1)
+        pmask = torch.stack([free, free & dbl, stack & occ], 2).flatten(1)
+        lp, okp = soft_ce(told["pol_place"].flatten(1), place_t.flatten(1), pmask)
+        empty = fjord[:, 0, :, E.FF_EMPTY] > 0                  # [B, 37]
+        lt = torch.zeros_like(lp)
+        nt = torch.zeros_like(lp)
+        for t in range(8):
+            l1, ok1 = soft_ce(told["pol_tile"][:, :, t], tile_t[:, :, t], empty)
+            lt = lt + torch.where(ok1, l1, torch.zeros_like(l1))
+            nt = nt + ok1.float()
+        lt = lt / nt.clamp(min=1)
+        present = glob[:, E.SHIP_NEED].sum(2) > 0
+        smask = torch.cat([present, torch.ones_like(present[:, :1])], 1)
+        ls, oks = soft_ce(told["pol_ship"], ship_t, smask)
+        rows = on & okp
+        loss = ((lp + lt) * rows.float()).sum() / rows.float().sum().clamp(min=1) + \
+               (ls * (on & oks).float()).sum() / (on & oks).float().sum().clamp(min=1)
+        # does the search's favourite Viking move lie in the proposal's top 1 / top 3?
+        logits = told["pol_place"].flatten(1).masked_fill(~pmask, -1e9)
+        fav = place_t.flatten(1).argmax(1)
+        top3 = logits.topk(3, 1).indices
+        hit1 = ((top3[:, 0] == fav) & rows).sum().item()
+        hit3 = ((top3 == fav.unsqueeze(1)).any(1) & rows).sum().item()
+        return loss, hit1, hit3, int(rows.sum().item())
 
     # --- TD learning: a less noisy answer key ---
     # The final result of a game contains all the luck of the turns still to
@@ -130,14 +207,23 @@ def main():
         model.eval()
         pm_all, pw_all = [], []
         with torch.no_grad():
-            for i in range(0, len(D["margin"]), 16384):
-                s = slice(i, i + 16384)
-                pm, pw = model(T["land"][s], T["fjord"][s], T["glob"][s])
+            for i in range(0, len(D["margin"]), a.batch):
+                s = slice(i, i + a.batch)
+                pm, pw = model(*inputs(s))
                 pm_all.append(pm * MARGIN_SCALE)
                 pw_all.append(torch.sigmoid(pw))
         model.train()
         pm_all, pw_all = torch.cat(pm_all), torch.cat(pw_all)
-        step = 2 * a.td
+        if dev == "cuda":
+            # give back the GPU memory of this step, or it stays reserved next
+            # to what training needs and the GPU runs out (and crawls)
+            torch.cuda.empty_cache()
+        # rows per turn: one per player (the multi-player encoding says how
+        # many play; the 2-player one always has 2)
+        per_turn = 2
+        if D["glob"].shape[1] == mp_encode.GLOB_F:
+            per_turn = 1 + int(D["glob"][0, mp_encode.PRESENT_COLS].sum())
+        step = per_turn * a.td
         n = len(D["margin"])
         later = torch.arange(n, device=dev) + step
         game = torch.from_numpy(D["game"]).to(dev)
@@ -154,8 +240,8 @@ def main():
         T["target_margin"], T["target_win"] = tm, tw
     else:
         T["target_margin"], T["target_win"] = T["margin"], T["win"]
-    tr_t = torch.from_numpy(tr).to(dev)
-    te_t = torch.from_numpy(te).to(dev)
+    tr_t = torch.from_numpy(tr)                       # (CPU: they pick rows of X)
+    te_t = torch.from_numpy(te)
 
     # --- baselines on the test games ---
     m_te = D["margin"][te]
@@ -170,20 +256,30 @@ def main():
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=a.lr, total_steps=steps,
                                                 pct_start=0.1)
 
-    def losses(idx):
+    def losses(idx, stats=None):
         # trained towards the targets (TD or final result); the test error
         # below is always measured against the real final results
-        pm, pw = model(T["land"][idx], T["fjord"][idx], T["glob"][idx])
-        lm = F.smooth_l1_loss(pm, T["target_margin"][idx] / MARGIN_SCALE)
-        lw = F.binary_cross_entropy_with_logits(pw, T["target_win"][idx])
+        land, fjord, glob = inputs(idx)
+        pm, pw, told = model.explain(land, fjord, glob)
+        gi = idx.to(dev)
+        lm = F.smooth_l1_loss(pm, T["target_margin"][gi] / MARGIN_SCALE)
+        lw = F.binary_cross_entropy_with_logits(pw, T["target_win"][gi])
+        if policy:
+            lp, h1, h3, nrow = policy_loss(land.float(), fjord.float(), glob.float(), told, idx)
+            lw = lw + a.policy_weight * lp
+            if stats is not None:
+                stats[0] += h1
+                stats[1] += h3
+                stats[2] += nrow
         return lm, lw, pm, pw
 
     @torch.no_grad()
     def evaluate():
         model.eval()
         preds, wins = [], []
-        for i in range(0, len(te_t), 8192):
-            _, _, pm, pw = losses(te_t[i:i + 8192])
+        stats = [0, 0, 0]
+        for i in range(0, len(te_t), a.batch):
+            _, _, pm, pw = losses(te_t[i:i + a.batch], stats)
             preds.append(pm * MARGIN_SCALE)
             wins.append(torch.sigmoid(pw))
         model.train()
@@ -193,6 +289,10 @@ def main():
         w_true = D["win"][te]
         decided = w_true != 0.5
         acc = float(((pw[decided] > 0.5) == (w_true[decided] > 0.5)).mean())
+        if stats[2]:
+            print("   proposal: the search's favourite Viking move is its top 1 in %.1f%%, "
+                  "in its top 3 in %.1f%% (%d test positions)"
+                  % (100 * stats[0] / stats[2], 100 * stats[1] / stats[2], stats[2]))
         return mae, acc, pm
 
     history = {"baseline_draw": base_draw, "baseline_score": base_score, "epochs": []}
@@ -200,7 +300,7 @@ def main():
     t0 = time.time()
     best = None
     for ep in range(1, a.epochs + 1):
-        perm = tr_t[torch.randperm(len(tr_t), device=dev)]
+        perm = tr_t[torch.randperm(len(tr_t))]
         tot_m = tot_w = 0.0
         n = 0
         for i in range(0, len(perm), a.batch):
@@ -227,7 +327,10 @@ def main():
               "winner right %.1f%% | %.0f s%s"
               % (ep, tot_m / n, tot_w / n, mae, 100 * acc, time.time() - t0, mark), flush=True)
 
-    model.load_state_dict(best[2])
+    # the judgement from its best epoch; the proposals (which don't change the
+    # judgement) keep learning until the last epoch
+    last = model.state_dict()
+    model.load_state_dict({k: (last[k] if k.startswith("pol_") else v) for k, v in best[2].items()})
     history["best_epoch"] = best[1]
     print("Keeping epoch %d (%.2f points off)." % (best[1], best[0]))
 
@@ -251,9 +354,11 @@ def main():
 
     # --- save ---
     model.cpu()
-    torch.save({"state": model.state_dict()}, os.path.join(MODEL_DIR, a.name + ".pt"))
+    torch.save({"state": model.state_dict(), "arch": model.ARCH},
+               os.path.join(MODEL_DIR, a.name + ".pt"))
+    extra = {} if model.ARCH == "value" else {"arch": np.array(model.ARCH)}
     np.savez(os.path.join(MODEL_DIR, a.name + ".npz"),
-             **{k: v.numpy() for k, v in model.state_dict().items()})
+             **{k: v.numpy() for k, v in model.state_dict().items()}, **extra)
     with open(os.path.join(MODEL_DIR, a.name + "_train.json"), "w") as f:
         json.dump(history, f, indent=1)
     print("\nSaved models/%s.pt and models/%s.npz" % (a.name, a.name))

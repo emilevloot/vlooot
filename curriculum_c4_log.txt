@@ -1,0 +1,18 @@
+22:50:52 === stage 1/5: resources ===
+22:51:50   data: 8000 greedy games in 58 s
+22:52:28   trained c4_resources_a in 38 s
+22:52:34   c4_resources_a         wins 100.0% ±0.0, margin   +7.8, score  16.5, longship penalty   0.0,   16 ms/turn (test error 1.69)
+22:54:36   round 1: 8000 self-play games in 49 s, trained c4_resources_r1 in 73 s
+22:54:44   c4_resources_r1        wins 100.0% ±0.0, margin   +8.4, score  16.7, longship penalty   0.0,   19 ms/turn (test error 1.78)
+22:57:23   round 2: 8000 self-play games in 51 s, trained c4_resources_r2 in 108 s
+22:57:29   c4_resources_r2        wins 100.0% ±0.0, margin   +7.8, score  16.4, longship penalty   0.0,   17 ms/turn (test error 1.63)
+22:57:29   (next round starts from c4_resources_r1, the best so far)
+22:57:29   best of stage resources: c4_resources_r1 (100.0% wins)
+22:57:29 === stage 2/5: buildings ===
+22:58:38   data: 8000 greedy games in 69 s
+22:59:13   trained c4_buildings_a in 35 s
+22:59:25   c4_buildings_a         wins  86.5% ±3.0, margin   +7.0, score  32.8, longship penalty   0.0,   18 ms/turn (test error 5.24)
+23:01:34   round 1: 8000 self-play games in 57 s, trained c4_buildings_r1 in 73 s
+23:01:45   c4_buildings_r1        wins  96.6% ±1.6, margin  +13.3, score  36.6, longship penalty   0.0,   17 ms/turn (test error 4.64)
+23:05:01   round 2: 8000 self-play games in 56 s, trained c4_buildings_r2 in 140 s
+23:05:13   c4_buildings_r2        wins  99.3% ±0.7, margin  +13.1, score  36.6, longship penalty   0.0,   18 ms/turn (test error 4.35)
