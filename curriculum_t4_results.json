@@ -158,7 +158,8 @@
      "accepted": false
     }
    ],
-   "champion": "t4_start"
+   "champion": "t4_start",
+   "best": "t4_start"
   }
  },
  "final": {},

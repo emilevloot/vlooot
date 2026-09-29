@@ -586,6 +586,8 @@
   const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
   const NN_IN_BROWSER = !LOCAL || new URLSearchParams(location.search).has('browsernn');
   const WEB_MODEL = 's2_r19';          // models/<WEB_MODEL>.npz: the network that plays
+  const WEB_MODEL_MP = 't4_start';     // ... with 3 or 4 players
+  const netFor = () => (S && S.players.length > 2) ? WEB_MODEL_MP : WEB_MODEL;
   let pyo = null, nnReady = null;
   const errText = e => (e && (e.message || (e.errno !== undefined && 'file error ' + e.errno))) ||
                        String(e);
@@ -609,10 +611,12 @@
       if (!pyo.loadedPackages.numpy) throw new Error('numpy could not be loaded');
       const home = '/home/pyodide/';                  // where Python looks for modules
       await put('nn_encode.py', home + 'nn_encode.py');
+      await put('mp_encode.py', home + 'mp_encode.py');
       await put('nn_bot.py', home + 'nn_bot.py');
       pyo.FS.mkdirTree(home + 'models');
-      await put('models/' + WEB_MODEL + '.npz', home + 'models/' + WEB_MODEL + '.npz', true);
-      pyo.runPython('import nn_bot; nn_bot.load_net("' + WEB_MODEL + '")');
+      for (const m of [WEB_MODEL, WEB_MODEL_MP])
+        await put('models/' + m + '.npz', home + 'models/' + m + '.npz', true);
+      pyo.runPython('import nn_bot');
     })();
     return nnReady;
   }
@@ -623,7 +627,7 @@
       try {
         await loadBrowserNN();
         lastError = '';
-        return api.nn_turn(WEB_MODEL);
+        return api.nn_turn(netFor());
       } catch (err) {
         const res = JSON.parse(api.ai_turn());
         res.error = 'The network could not play (' + errText(err) +
@@ -661,7 +665,7 @@
         await loadBrowserNN();
         await new Promise(ok => setTimeout(ok, 30));    // let the board draw first
         if (seq !== thinkSeq) return;
-        t = JSON.parse(api.nn_view(WEB_MODEL));
+        t = JSON.parse(api.nn_view(netFor()));
       } catch (err) {
         t = { error: errText(err) };
       }
