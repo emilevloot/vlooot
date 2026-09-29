@@ -63,6 +63,12 @@ def make_player(name, rng, explore):
     return nn_bot.player_from_name(name, rng, explore * 0.5)   # it tries more per turn
 
 
+def on_random_boards(seed, share):
+    """Is game `seed` played on newly made random boards (instead of the
+    boards of boards.json)? The same answer for the same seed every time."""
+    return random.Random(seed * 7919 + 17).random() < share
+
+
 def uses_fastgame(player):
     """Self-play of a plain network player ('nn:<model>') runs in fastgame.py,
     the Numba copy of the game (same rules and same player, much faster).
@@ -86,18 +92,25 @@ def gpu_available():
 def play_batch_on_gpu(args):
     """A group of self-play games in one process, played in step with the
     network on the GPU (fastgame.selfplay_batched). Returns their data."""
-    seeds, explore, layout, player, rules, parallel, players = args
+    seeds, explore, layout, player, rules, parallel, players, share = args
     import gpu_net
     name = player.split(":", 1)[1]
     if name not in _TORCH_NETS:
         _TORCH_NETS[name] = gpu_net.TorchNet(name)
     if players == 2:
-        import fastgame
-        return list(fastgame.selfplay_batched(seeds, layout, rules, _TORCH_NETS[name],
-                                              explore=explore * 0.5, parallel=parallel))
-    import mp_game
-    return list(mp_game.selfplay_batched(seeds, layout, rules, _TORCH_NETS[name],
-                                         explore=explore * 0.5, parallel=parallel, players=players))
+        import fastgame as engine
+        kw = {}
+    else:
+        import mp_game as engine
+        kw = {"players": players}
+    out = []
+    # the games on the real boards, then those on new random boards
+    for lay, part in ((layout, [s for s in seeds if not on_random_boards(s, share)]),
+                      (None, [s for s in seeds if on_random_boards(s, share)])):
+        if part:
+            out += list(engine.selfplay_batched(part, lay, rules, _TORCH_NETS[name],
+                                                explore=explore * 0.5, parallel=parallel, **kw))
+    return out
 
 
 def play_and_record(args):
@@ -149,7 +162,10 @@ def main():
     ap.add_argument("--name", default="greedy", help="file name prefix")
     ap.add_argument("--player", default="greedy",
                     help="who plays: greedy, or a network file for self-play")
-    ap.add_argument("--random-boards", action="store_true")
+    ap.add_argument("--random-boards", action="store_true", help="only random boards")
+    ap.add_argument("--random-share", type=float, default=0.5,
+                    help="share of the games on newly made random boards, so a network "
+                         "can't learn the boards by heart (the rest: boards.json)")
     ap.add_argument("--batch", type=int, default=1000, help="games per file")
     ap.add_argument("--rules", default=None,
                     choices=[s for s, _ in L.RULE_STAGES],
@@ -168,6 +184,7 @@ def main():
 
     os.makedirs(DATA_DIR, exist_ok=True)
     layout = None if a.random_boards else L.read_layout_file()
+    share = 1.0 if (a.random_boards or layout is None) else a.random_share
     t0 = time.time()
     on_gpu = uses_fastgame(a.player) and gpu_available() and not a.cpu
     if on_gpu:
@@ -177,13 +194,15 @@ def main():
         size = 128
         groups = [list(range(a.seed + i, a.seed + min(i + size, a.games)))
                   for i in range(0, a.games, size)]
-        jobs = [(g, a.explore, layout, a.player, a.rules, a.parallel, a.players) for g in groups]
+        jobs = [(g, a.explore, layout, a.player, a.rules, a.parallel, a.players, share)
+                for g in groups]
         func, chunks = play_batch_on_gpu, 1
         print("Self-play on the GPU: %d processes x %d games at once" % (workers, a.parallel),
               flush=True)
     else:
         workers = max(1, (os.cpu_count() or 2) - 1)
-        jobs = [(a.seed + i, a.explore, layout, a.player, a.rules, a.players) for i in range(a.games)]
+        jobs = [(a.seed + i, a.explore, None if on_random_boards(a.seed + i, share) else layout,
+                 a.player, a.rules, a.players) for i in range(a.games)]
         func, chunks = play_and_record, 4
     # The workers keep playing; each full batch of games is compressed and
     # written by a separate thread in the meantime.

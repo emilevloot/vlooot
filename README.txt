@@ -22,8 +22,10 @@ EDIT THE LANDSCAPE BOARDS
   Pick a space type (keys 1-7), click or drag over the boards, switch
   between side A and B per board, then "Save boards". Start a new game
   to play on them. Ctrl+Z undoes, Ctrl+S saves.
-  The game uses boards 1-2 for 2 players, 1-3 for 3 and all 4 for 4
-  players, each on a random side. Layouts are stored in boards.json;
+  Every game picks which of the 4 boards are used (2 for 2 players, 3 for
+  3, all 4 for 4), in random places, each on a random side. For training,
+  gen_data.py plays half of the games on newly made random boards
+  (--random-share), so a network can't learn the boards by heart. Layouts are stored in boards.json;
   delete that file to go back to random boards.
   Boards 1A, 2A and 3A are the three board sides printed in the
   rulebook. The rulebook doesn't show the other five sides, so they

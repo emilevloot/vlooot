@@ -284,11 +284,14 @@ def load_layout(text):
 
 
 def generate_land(n_players, rng, layout=None):
-    """Lay out the first n boards, each on a random side."""
+    """Lay out n of the 4 boards: which boards, in which places and on which
+    side is random. (Always the same boards would let a computer player learn
+    them by heart: with 2 players that gave only 4 landscapes, now 48.)"""
     if layout is None:
         layout = random_layout(rng)
     land = {}
-    for cells, sides in zip(board_cells(n_players), layout["boards"]):
+    boards = rng.sample(layout["boards"], n_players)
+    for cells, sides in zip(board_cells(n_players), boards):
         terr = sides[rng.choice(sorted(sides))]
         land.update(zip(cells, terr))
     return land
