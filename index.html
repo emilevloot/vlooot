@@ -585,7 +585,7 @@
   // browser way, to try it out locally.
   const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
   const NN_IN_BROWSER = !LOCAL || new URLSearchParams(location.search).has('browsernn');
-  const WEB_MODEL = 's1_r43';          // models/<WEB_MODEL>.npz: the network that plays
+  const WEB_MODEL = 's2_r19';          // models/<WEB_MODEL>.npz: the network that plays
   let pyo = null, nnReady = null;
   const errText = e => (e && (e.message || (e.errno !== undefined && 'file error ' + e.errno))) ||
                        String(e);
