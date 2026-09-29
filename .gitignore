@@ -11,3 +11,6 @@ __pycache__/
 *.pyc
 *.nbi
 *.nbc
+
+# The web site (its own git repository, see make_site.py)
+site/

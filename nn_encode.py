@@ -362,7 +362,10 @@ def encode(g, me):
     """Encode game g as seen by player index `me`: (land int8, fjord int8,
     glob int16). The compiled version in fastgame.py; exactly the numbers
     of encode_reference(), many times faster."""
-    import fastgame                            # (fastgame imports this file)
+    try:
+        import fastgame                        # (fastgame imports this file)
+    except ImportError:                        # no numba (e.g. in the browser):
+        return encode_reference(g, me)         # the plain version, same numbers
     s, gs = fastgame.from_game(g)
     return fastgame.encode_state(s, gs, me)
 

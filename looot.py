@@ -1254,6 +1254,26 @@ class Api:
         self.game = Game.load_state(json.loads(text))
         return self._state()
 
+    # The network player INSIDE the browser (no server): nn_bot.py and the
+    # network file must be next to this file (the web page puts them there).
+    def nn_turn(self, model):
+        """The network plays the current player's turn."""
+        import nn_bot
+        g = self.game
+        if not g.game_over and g.player().ai:
+            nn_bot.NNBot(random.Random(), model).play_turn(g)
+        return self._state()
+
+    def nn_view(self, model):
+        """What the network thinks, from its own seat (see nn_bot.thoughts)."""
+        import nn_bot
+        seat = next((p.idx for p in self.game.players if getattr(p, "nn", False)), None)
+        if seat is None:
+            return json.dumps({"error": "No network player in this game."})
+        out = nn_bot.thoughts(nn_bot.load_net(model), self.game, seat)
+        out["model"] = model
+        return json.dumps(out)
+
     def ai_turn(self):
         g = self.game
         if g.game_over or not g.player().ai:

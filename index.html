@@ -579,10 +579,59 @@
     }, 850);
   }
 
-  // The neural network runs in server.py (it needs numpy/numba): send it the
-  // whole game, get the game back after its turn. If that fails, the normal
-  // computer player takes this turn.
+  // The neural network runs either in server.py (on your own pc: fast, it
+  // has numba) or right here in the browser (a web site without a server:
+  // numpy in Pyodide, a bit slower). ?browsernn in the address forces the
+  // browser way, to try it out locally.
+  const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
+  const NN_IN_BROWSER = !LOCAL || new URLSearchParams(location.search).has('browsernn');
+  const WEB_MODEL = 's1_r43';          // models/<WEB_MODEL>.npz: the network that plays
+  let pyo = null, nnReady = null;
+  const errText = e => (e && (e.message || (e.errno !== undefined && 'file error ' + e.errno))) ||
+                       String(e);
+
+  // Load numpy, the network player and the network into this page's Python
+  // (once, the first time a Network player is needed).
+  function loadBrowserNN() {
+    if (!nnReady) nnReady = (async () => {
+      const put = async (url, path, binary) => {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) throw new Error('Could not load ' + url);
+        pyo.FS.writeFile(path, binary ? new Uint8Array(await r.arrayBuffer()) : await r.text());
+      };
+      // numpy: a copy next to the page (py/) if there is one, else from
+      // Pyodide's own site (the same file)
+      const lock = await (await fetch('py/pyodide-lock.json')).json();
+      const wheel = lock.packages.numpy.file_name;
+      const here = await fetch('py/' + wheel, { method: 'HEAD' }).catch(() => null);
+      await pyo.loadPackage(here && here.ok ? 'numpy'
+        : 'https://cdn.jsdelivr.net/pyodide/v' + lock.info.version + '/full/' + wheel);
+      if (!pyo.loadedPackages.numpy) throw new Error('numpy could not be loaded');
+      const home = '/home/pyodide/';                  // where Python looks for modules
+      await put('nn_encode.py', home + 'nn_encode.py');
+      await put('nn_bot.py', home + 'nn_bot.py');
+      pyo.FS.mkdirTree(home + 'models');
+      await put('models/' + WEB_MODEL + '.npz', home + 'models/' + WEB_MODEL + '.npz', true);
+      pyo.runPython('import nn_bot; nn_bot.load_net("' + WEB_MODEL + '")');
+    })();
+    return nnReady;
+  }
+
+  // One network turn. If it fails, the normal computer player takes the turn.
   async function nnTurn() {
+    if (NN_IN_BROWSER) {
+      try {
+        await loadBrowserNN();
+        lastError = '';
+        return api.nn_turn(WEB_MODEL);
+      } catch (err) {
+        const res = JSON.parse(api.ai_turn());
+        res.error = 'The network could not play (' + errText(err) +
+                    '); the normal computer player took this turn.';
+        lastError = res.error;
+        return JSON.stringify(res);
+      }
+    }
     try {
       const r = await fetch('ai-turn', {
         method: 'POST',
@@ -607,7 +656,16 @@
   async function refreshThoughts() {
     const seq = ++thinkSeq;
     let t = null;
-    if (S && S.players.some(p => p.nn)) {
+    if (S && S.players.some(p => p.nn) && NN_IN_BROWSER) {
+      try {
+        await loadBrowserNN();
+        await new Promise(ok => setTimeout(ok, 30));    // let the board draw first
+        if (seq !== thinkSeq) return;
+        t = JSON.parse(api.nn_view(WEB_MODEL));
+      } catch (err) {
+        t = { error: errText(err) };
+      }
+    } else if (S && S.players.some(p => p.nn)) {
       try {
         const r = await fetch('ai-view', {
           method: 'POST',
@@ -814,12 +872,14 @@
       const py = await loadPyodide({ indexURL: base, stdLibURL });
       window.fetch = realFetch;
       $('loadMsg').textContent = 'Loading the rules…';
-      // Local copy: looot.py next to this page. Published copy: looot.py.txt.
+      // looot.py next to this page (published copies may call it looot.py.txt),
+      // written into Python's own files so nn_bot.py can import it too
       let res = await fetch('looot.py', { cache: 'no-store' }).catch(() => null);
       if (!res || !res.ok) res = await fetch('looot.py.txt', { cache: 'no-store' });
-      const src = await res.text();
-      py.runPython(src);
+      py.FS.writeFile('looot.py', await res.text());
+      py.runPython('from looot import api');
       api = py.globals.get('api');
+      pyo = py;
       // Board layouts from the editor (boards.json); random boards if missing.
       const lay = await fetch('boards.json', { cache: 'no-store' }).catch(() => null);
       if (lay && lay.ok) {

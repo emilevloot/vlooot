@@ -244,6 +244,9 @@ def outcome(g, me):
 def encode(g, me):
     """The encoding the players use: mp_game.py's compiled version (exactly
     the numbers of encode_reference, checked by test_mp.py)."""
-    import mp_game                                   # (mp_game imports this file)
+    try:
+        import mp_game                               # (mp_game imports this file)
+    except ImportError:                              # no numba (e.g. in the browser)
+        return encode_reference(g, me)
     s, gs = mp_game.from_game(g)
     return mp_game.encode_state(s, gs, me)
