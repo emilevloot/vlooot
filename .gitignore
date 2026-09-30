@@ -18,3 +18,6 @@ __pycache__/
 
 # The web site (its own git repository, see make_site.py)
 site/
+
+# Raw games for the dashboard (make_dashboard.py puts the summary in dashboard.html)
+dashboard_data.json
