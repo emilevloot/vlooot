@@ -3,14 +3,21 @@ Turn a trained 2-player network into a 2-4-player network of the same kind
 that starts with everything it learned (nn_model.transfer_to_mp).
 
     python gen_data.py --players 4 --games 500 --name m4_stats
-    python transfer_mp.py --from c5t_full_r10 --data m4_stats --name m4_start
+    python tools/transfer_mp.py --from c5t_full_r10 --data m4_stats --name m4_start
 
 --data: multi-player games to measure the scale of the NEW features on.
 """
 
+import os
+import sys
+
+# This script lives in tools/; the modules and files it uses are in the
+# project folder above it.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
 import argparse
 import glob as globmod
-import os
 
 import numpy as np
 import torch
@@ -18,7 +25,7 @@ import torch
 import nn_model
 import train_nn
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = ROOT
 
 
 def main():

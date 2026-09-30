@@ -3,7 +3,7 @@ Let the network play against itself and record every game, for the
 dashboard (make_dashboard.py) and the replay in the game page
 (index.html?replay=...).
 
-    python selfplay_record.py --games 120 --model s2_r19
+    python tools/selfplay_record.py --games 120 --model s2_r19
 
 Per game:
   - the state after every turn (Game.save_state without the land and the
@@ -22,21 +22,28 @@ end is counted instead (endgame.py): the best final score the player could
 still reach before its move, against after it ("exact" mistakes). The
 player itself also counts its last 2 turns (--no-endgame: the network alone).
 
-Written: selfplay_data.json (summary for the dashboard) and
+Written: results/selfplay_data.json (summary for the dashboard) and
 replays/<seed>.json (one file per game, for the replay).
 """
+
+import os
+import sys
+
+# This script lives in tools/; the modules and files it uses are in the
+# project folder above it.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
 
 import argparse
 import copy
 import json
-import os
 import random
 import time
 from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = ROOT
 ITEMS = ["wood", "sheep", "gold", "axe", "house", "watchtower", "castle"]
 CATS = ["castle", "watchtower", "house", "gold", "sheep", "wood"]
 NL = {"wood": "hout", "sheep": "schaap", "gold": "goud", "axe": "bijl", "house": "huis",
@@ -236,7 +243,7 @@ def main():
         games = list(ex.map(play, jobs))
     out = {"model": a.model, "made": time.strftime("%Y-%m-%d %H:%M"), "games": games,
            "endgame": not a.no_endgame}
-    with open(os.path.join(HERE, "selfplay_data.json"), "w") as f:
+    with open(os.path.join(HERE, "results", "selfplay_data.json"), "w") as f:
         json.dump(out, f, separators=(",", ":"))
     n_m = sum(1 for gm in games for r in gm["turns"] if "mistake" in r)
     print("%d games in %.0f s; %d mistakes found (%.1f per game)"

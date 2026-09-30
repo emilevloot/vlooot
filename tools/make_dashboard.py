@@ -8,16 +8,23 @@ Build the dashboards:
   dashboard_greedy.html  the network against the greedy player
                          (dashboard_data.json, made by dashboard_data.py).
 
-    python selfplay_record.py --games 100
-    python dashboard_data.py --games 300
-    python make_dashboard.py
+    python tools/selfplay_record.py --games 100
+    python tools/dashboard_data.py --games 300
+    python tools/make_dashboard.py
 """
 
-import json
 import os
+import sys
+
+# This script lives in tools/; the modules and files it uses are in the
+# project folder above it.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+import json
 import statistics as st
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = ROOT
 ITEMS = ["wood", "sheep", "gold", "axe", "house", "watchtower", "castle"]
 CATS = ["castle", "watchtower", "house", "gold", "sheep", "wood"]
 
@@ -279,18 +286,18 @@ def aggregate_self(data):
 
 def main():
     made = []
-    sp = os.path.join(HERE, "selfplay_data.json")
+    sp = os.path.join(HERE, "results", "selfplay_data.json")
     if os.path.exists(sp):
         agg = aggregate_self(json.load(open(sp)))
-        page = open(os.path.join(HERE, "dashboard_template.html"), encoding="utf-8").read()
+        page = open(os.path.join(HERE, "templates", "dashboard_template.html"), encoding="utf-8").read()
         with open(os.path.join(HERE, "dashboard.html"), "w", encoding="utf-8") as f:
             f.write(page.replace("/*DATA*/null", json.dumps(agg, separators=(",", ":"))))
         made.append("dashboard.html: %d games of %s against itself, %.1f mistakes per game"
                     % (agg["n"], agg["model"], agg["tiles"]["mistakes"]))
-    gp = os.path.join(HERE, "dashboard_data.json")
+    gp = os.path.join(HERE, "results", "dashboard_data.json")
     if os.path.exists(gp):
         agg = aggregate(json.load(open(gp)))
-        page = open(os.path.join(HERE, "dashboard_greedy_template.html"), encoding="utf-8").read()
+        page = open(os.path.join(HERE, "templates", "dashboard_greedy_template.html"), encoding="utf-8").read()
         with open(os.path.join(HERE, "dashboard_greedy.html"), "w", encoding="utf-8") as f:
             f.write(page.replace("/*DATA*/null", json.dumps(agg)))
         made.append("dashboard_greedy.html: %d games of %s against greedy" % (agg["n"], agg["model"]))

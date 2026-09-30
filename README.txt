@@ -1,14 +1,46 @@
 LOOOT - how to play and edit
 ============================
 
+PROJECT MAP
+  index.html, editor.html      the game and the board editor (web pages)
+  dashboard.html               how the network plays against itself: every
+                               game clickable, mistakes, replays
+  dashboard_greedy.html        the network against the greedy player
+  boards.json                  the landscape boards (made with the editor)
+
+  The game, the coach and the AI (these import each other, so they stay
+  together in this folder; the web page loads some of them too):
+    looot.py        the rules, scoring and the greedy computer player
+    review.py       the coach: every move judged like a chess trainer
+    endgame.py      the last 2 turns of a player, counted exactly
+    server.py       the local web server (start\start_game.bat)
+    nn_bot.py       the network player
+    nn_encode.py, mp_encode.py     positions as numbers (2 / 2-4 players)
+    nn_model.py, gpu_net.py        the networks (PyTorch)
+    fastgame.py, mp_game.py        the fast (Numba) game for training
+  Training:
+    curriculum.py, curriculum_report.py, selfplay_train.py,
+    gen_data.py, train_nn.py, arena.py
+
+  start\      double-click these (start_game.bat plays; the rest train)
+  tools\      scripts run by hand: the 8-hour training, dashboards,
+              comparisons, tuning, 4-player start, code generators
+  tests\      checks that the fast engines play exactly like looot.py
+  templates\  the dashboards' page templates
+  results\    logs and results of every training run, comparisons,
+              tuning, and the reports (curriculum_report.html, ...)
+  models\     trained networks      data\     training data (big)
+  replays\    recorded games for the dashboard's replays
+  py\         Pyodide: the Python that runs in the browser. Don't edit.
+
 PLAY
-  Double-click start_game.bat. Your browser opens the game at
+  Double-click start\start_game.bat. Your browser opens the game at
   http://localhost:8000. Keep the black window open while you play;
   close it to stop.
   (It needs Python installed. If "python" isn't found, try replacing
-  "python" with "py" in start_game.bat.)
+  "python" with "py" in start\start_game.bat.)
   Computer players: "Computer" is the greedy player, "Network" the neural
-  network (2-player games only). The network's turns are played by
+  network (2-4 players). The network's turns are played by
   server.py (it needs numpy and numba), with the best full-game network of
   the newest training run. Without them, the greedy player takes its turns.
   With a Network player in the game, the panel "What the network thinks"
@@ -18,7 +50,7 @@ PLAY
 
 EDIT THE LANDSCAPE BOARDS
   Click "Board editor" in the game (or open
-  http://localhost:8000/editor.html while start_game.bat is running).
+  http://localhost:8000/editor.html while start\start_game.bat is running).
   Pick a space type (keys 1-7), click or drag over the boards, switch
   between side A and B per board, then "Save boards". Start a new game
   to play on them. Ctrl+Z undoes, Ctrl+S saves.
@@ -58,12 +90,12 @@ TEST ARENA (compare computer players)
   BOT_WEIGHTS) and original (greedy with the numbers from before tuning).
 
 TUNING THE COMPUTER PLAYER
-      python tune.py --minutes 60
+      python tools\tune.py --minutes 60
   Tries variations of BOT_WEIGHTS (in looot.py) against the current best
   in the arena and keeps a variation only when it clearly scores more.
   Stop any time with Ctrl+C; running it again continues. Progress is in
-  tune_log.txt, the best weights in tune_best.json.
-      python tune.py --apply
+  results\tune_log.txt, the best weights in results\tune_best.json.
+      python tools\tune.py --apply
   writes the best weights into looot.py, so the game uses them.
 
 NEURAL NETWORK PLAYER (2-player games, needs PyTorch + an NVIDIA GPU)
@@ -84,28 +116,28 @@ NEURAL NETWORK PLAYER (2-player games, needs PyTorch + an NVIDIA GPU)
   curriculum.py   the whole training: rules added step by step
                   (resources, buildings, sites, longships, full game),
                   with self-play rounds and TD learning in every step
-  curriculum_report.py / curriculum_report.html   graphs of the runs
+  curriculum_report.py / results\curriculum_report.html   graphs of the runs
   3-4 PLAYERS
   mp_encode.py    the encoding for 2-4 players: all 4 boards (spaces not
                   in the game are switched off), "the opponent" = the
                   strongest opponent / all opponents together
-  mp_game.py      fastgame.py for 2-4 players (test_mp.py checks it plays
-                  exactly like looot.py)
-  transfer_mp.py  turns a 2-player network into a 2-4-player one that
+  mp_game.py      fastgame.py for 2-4 players (made by tools\make_mp_game.py;
+                  tests\test_mp.py checks it plays exactly like looot.py)
+  tools\transfer_mp.py  turns a 2-player network into a 2-4-player one that
                   starts with everything it learned
-  run_4p.py       the 4-player training: the best 2-player network (from
-                  the compare_*.json matches), transferred, then trained
+  tools\run_4p.py  the 4-player training: the best 2-player network (from
+                  the results\compare_*.json matches), transferred, then trained
                   on 4-player games (prefix m4)
   gen_data.py / curriculum.py take --players 3 or 4.
   selfplay_train.py    training by playing only against itself: a new
                        network must beat the champion to replace it
-  start_experiments.bat  6 hours: the attention network (c7a) and
+  start\start_experiments.bat  6 hours: the attention network (c7a) and
                        c5t_full_r10 trained further against itself (s1),
                        then everything against each other
-  start_compare.bat    6 hours: the value network (c5v) and the three-part
+  start\start_compare.bat    6 hours: the value network (c5v) and the three-part
                        network (c5t) 3 hours each, then they play each
-                       other (compare_runs.py, result in compare_log.txt)
-  start_training.bat   the long run (prefix c6, the three-part network,
+                       other (tools\compare_runs.py, result in results\compare_log.txt)
+  start\start_training.bat   the long run (prefix c6, the three-part network,
                        about 6 hours; the last
                        stage keeps training until the time is used up)
   Try a trained network in the arena:
@@ -130,8 +162,9 @@ FAST TRAINING ENGINE (needs: pip install numba)
   on the CPU. Options: --cpu, --gpu-procs 6, --parallel 64.
   Set LOOOT_ENGINE=python to use the old (slow) way.
   Checks that the fast versions give exactly the same results:
-      python test_fastgame.py      rules, encoding and player vs looot.py
-      python test_speedups.py      fast encoder / network vs the simple ones
+      python tests\test_fastgame.py   rules, encoding and player vs looot.py
+      python tests\test_mp.py         the same for 2-4 players (mp_game.py)
+      python tests\test_speedups.py   fast encoder / network vs the simple ones
 
 GOOD PLACES TO START IN looot.py
   BASE_VALUE        starting points for castles, gold, sheep...
@@ -141,3 +174,16 @@ GOOD PLACES TO START IN looot.py
   LONGSHIPS         all 30 longships
   Game.captures()   the house / watchtower / castle capture rules
   Bot               the computer opponent
+
+THE COACH, THE DASHBOARDS AND THE 8-HOUR TRAINING
+  review.py       after every turn: how many points the move lost against
+                  the network's best move -> Brilliant ... Blunder, accuracy
+                  (the game page's "Coach", server.py /ai-review)
+  endgame.py      a player's last 2 turns counted exactly instead of guessed
+                  (the player uses it; the coach and the dashboard check with it)
+  tools\selfplay_record.py   the network against itself, every game recorded
+                  (replays\, results\selfplay_data.json)
+  tools\dashboard_data.py    the network against greedy (results\dashboard_data.json)
+  tools\make_dashboard.py    dashboard.html and dashboard_greedy.html from those
+  tools\train_8h.py          (start\start_8h.bat) 2 players 4.5 hours, then 3-4
+                  players, then new dashboard games; logs in results\

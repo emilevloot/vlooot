@@ -11,19 +11,26 @@ An 8-hour training session, one step after the other:
      3000 games in all to learn from, which was too little).
   3. The dashboard: new self-play games of the 2-player champion.
 
-    python train_8h.py            (or start_8h.bat)
+    python tools/train_8h.py      (or start/start_8h.bat)
 
-Progress: curriculum_s2_log.txt, curriculum_t4_log.txt and train_8h_log.txt.
+Progress: results/curriculum_s2_log.txt, results/curriculum_t4_log.txt and
+results/train_8h_log.txt.
 """
 
-import json
 import os
-import subprocess
 import sys
+
+# This script lives in tools/; the modules and files it uses are in the
+# project folder above it.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+import json
+import subprocess
 import time
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-LOG = os.path.join(HERE, "train_8h_log.txt")
+HERE = ROOT
+LOG = os.path.join(HERE, "results", "train_8h_log.txt")
 
 
 def log(msg):
@@ -43,7 +50,7 @@ def run(args):
 
 def champion(prefix, fallback):
     try:
-        res = json.load(open(os.path.join(HERE, "curriculum_%s_results.json" % prefix)))
+        res = json.load(open(os.path.join(HERE, "results", "curriculum_%s_results.json" % prefix)))
         return res["stages"]["full"].get("champion") or fallback
     except (OSError, KeyError, ValueError):
         return fallback
@@ -64,8 +71,8 @@ def main():
          "--surprise", "2", "--batch", "2048", "--match-games", "400",
          "--arena-games", "200", "--hours", "%.2f" % hours])
     log("3-4-player champion: %s" % champion("t4", "t4_start"))
-    run(["selfplay_record.py", "--games", "100", "--model", best2])
-    run(["make_dashboard.py"])
+    run(["tools/selfplay_record.py", "--games", "100", "--model", best2])
+    run(["tools/make_dashboard.py"])
     log("=== done in %.1f hours ===" % ((time.time() - t0) / 3600))
 
 

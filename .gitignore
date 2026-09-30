@@ -20,5 +20,5 @@ __pycache__/
 site/
 
 # Raw games for the dashboard (make_dashboard.py puts the summary in dashboard.html)
-dashboard_data.json
-selfplay_data.json
+results/dashboard_data.json
+results/selfplay_data.json

@@ -1,7 +1,7 @@
 """
 Checks that every fast version gives exactly the results of the simple one.
 
-    python test_speedups.py
+    python tests/test_speedups.py
 
   1. nn_encode.encode()  == nn_encode.encode_reference()   (every number;
                                                             encode() runs fastgame.py)
@@ -12,6 +12,13 @@ Checks that every fast version gives exactly the results of the simple one.
 """
 
 import os
+import sys
+
+# This script lives in tests/; the modules and files it uses are in the
+# project folder above it.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
 import random
 
 os.environ.setdefault("OMP_NUM_THREADS", "1")

@@ -1,7 +1,7 @@
 """
 The first 4-player training, starting from the best 2-player network.
 
-    python run_4p.py --hours 2
+    python tools/run_4p.py --hours 2
 
 1. The best 2-player network: of the networks in the head-to-head matches
    of compare_runs.py (compare_*.json), the one with the best results
@@ -14,21 +14,27 @@ The first 4-player training, starting from the best 2-player network.
    greedy players (a random player would win 25%).
 """
 
+import os
+import sys
+
+# This script lives in tools/; the modules and files it uses are in the
+# project folder above it.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
 import argparse
 import glob
 import json
-import os
 import subprocess
-import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = ROOT
 
 
 def best_from_matches():
     """The network that did best in the head-to-head matches: for every
     network the average of its win rates against the others."""
     scores = {}
-    for f in glob.glob(os.path.join(HERE, "compare_*.json")):
+    for f in glob.glob(os.path.join(HERE, "results", "compare_*.json")):
         m = json.load(open(f))
         for me, other in (("a", "b"), ("b", "a")):
             scores.setdefault(m[me], []).append(m[me + "_win"])
@@ -60,7 +66,7 @@ def main():
         if not glob.glob(os.path.join(HERE, "data", stats + "_*.npz")):
             run(["gen_data.py", "--players", str(a.players), "--games", "400", "--name", stats,
                  "--seed", "91000000", "--batch", "400"])
-        run(["transfer_mp.py", "--from", src, "--data", stats, "--name", start])
+        run(["tools/transfer_mp.py", "--from", src, "--data", stats, "--name", start])
     # 4-player games are about 4x the positions of 2-player games: fewer
     # games per round, so the training data still fits in memory
     run(["curriculum.py", "--prefix", a.prefix, "--players", str(a.players), "--stages", "full",

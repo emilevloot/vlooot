@@ -2,8 +2,8 @@
 Checks that fastgame.py (the Numba copy of the game) plays EXACTLY like
 looot.py, the real game.
 
-    python test_fastgame.py            # all checks
-    python test_fastgame.py quick      # fewer games
+    python tests/test_fastgame.py            # all checks
+    python tests/test_fastgame.py quick      # fewer games
 
   1. encoding   fastgame's encoding of a position == nn_encode.encode_reference
   2. rules      random turns (random placements, shields, tile spaces,
@@ -15,8 +15,14 @@ looot.py, the real game.
 """
 
 import os
-import random
 import sys
+
+# This script lives in tests/; the modules and files it uses are in the
+# project folder above it.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+import random
 import time
 
 os.environ.setdefault("OMP_NUM_THREADS", "1")

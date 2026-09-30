@@ -2,9 +2,9 @@
 Tune the computer player's numbers (BOT_WEIGHTS in looot.py) by playing
 lots of games in the arena.
 
-    python tune.py                      # tune for 30 minutes
-    python tune.py --minutes 120        # longer
-    python tune.py --apply              # write the best weights into looot.py
+    python tools/tune.py                      # tune for 30 minutes
+    python tools/tune.py --minutes 120        # longer
+    python tools/tune.py --apply              # write the best weights into looot.py
 
 How it works, every round ("generation"):
   1. Make a few variations of the current best weights (the champion),
@@ -21,10 +21,17 @@ in tune_history.json, and at the end tune_report.html is made with graphs
 of the scores and of every weight over the rounds.
 """
 
+import os
+import sys
+
+# This script lives in tools/; the modules and files it uses are in the
+# project folder above it.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
 import argparse
 import json
 import math
-import os
 import random
 import re
 import statistics
@@ -34,10 +41,10 @@ from concurrent.futures import ProcessPoolExecutor
 import arena
 import looot as L
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-BEST_FILE = os.path.join(HERE, "tune_best.json")
-LOG_FILE = os.path.join(HERE, "tune_log.txt")
-HISTORY_FILE = os.path.join(HERE, "tune_history.json")
+HERE = ROOT
+BEST_FILE = os.path.join(HERE, "results", "tune_best.json")
+LOG_FILE = os.path.join(HERE, "results", "tune_log.txt")
+HISTORY_FILE = os.path.join(HERE, "results", "tune_history.json")
 
 # name: (lowest, highest, whole numbers?)
 RANGES = {

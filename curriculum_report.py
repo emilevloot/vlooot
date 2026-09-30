@@ -1,5 +1,5 @@
 """
-Make curriculum_report.html: graphs of the curriculum training runs.
+Make results/curriculum_report.html: graphs of the curriculum training runs.
 
     python curriculum_report.py            # compares all runs it finds
 
@@ -11,7 +11,7 @@ import json
 import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPORT = os.path.join(HERE, "curriculum_report.html")
+REPORT = os.path.join(HERE, "results", "curriculum_report.html")
 STAGES = ["resources", "buildings", "sites", "longships", "full"]
 LABELS = {"cur": "Run 1: basic features, final results only",
           "c2": "Run 2: helper features + TD learning",
@@ -47,7 +47,7 @@ def _old_format(res):
 
 def load_runs():
     runs = []
-    for f in sorted(glob.glob(os.path.join(HERE, "curriculum_*_results.json"))):
+    for f in sorted(glob.glob(os.path.join(HERE, "results", "curriculum_*_results.json"))):
         prefix = os.path.basename(f)[len("curriculum_"):-len("_results.json")]
         res = json.load(open(f))
         if "steps" not in json.dumps(res):
