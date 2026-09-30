@@ -683,8 +683,8 @@
   // browser way, to try it out locally.
   const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
   const NN_IN_BROWSER = !LOCAL || new URLSearchParams(location.search).has('browsernn');
-  const WEB_MODEL = 's2_r19';          // models/<WEB_MODEL>.npz: the network that plays
-  const WEB_MODEL_MP = 't4_start';     // ... with 3 or 4 players
+  const WEB_MODEL = 's2_r32';          // models/<WEB_MODEL>.npz: the network that plays
+  const WEB_MODEL_MP = 't4_r8';        // ... with 3 or 4 players
   const netFor = () => (S && S.players.length > 2) ? WEB_MODEL_MP : WEB_MODEL;
   let pyo = null, nnReady = null;
   const errText = e => (e && (e.message || (e.errno !== undefined && 'file error ' + e.errno))) ||

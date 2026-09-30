@@ -9,6 +9,10 @@ models/*
 !models/s2_r19.npz
 !models/t4_start.pt
 !models/t4_start.npz
+!models/s2_r32.pt
+!models/s2_r32.npz
+!models/t4_r8.pt
+!models/t4_r8.npz
 
 # Python and Numba caches
 __pycache__/
