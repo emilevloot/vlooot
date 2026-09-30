@@ -214,6 +214,55 @@
     .rbar .ctl > div { flex-basis: 100% !important; }
     .rbar .note { font-size: 13px; gap: 4px 8px; }
   }
+
+  /* ---------- the coach (review.py): chess-trainer style labels ---------- */
+  .boardrow { display: flex; gap: 10px; align-items: stretch; }
+  .boardrow .boardwrap { flex: 1; min-width: 0; }
+  .evalbar { flex: 0 0 22px; display: flex; flex-direction: column-reverse; border-radius: 6px; overflow: hidden;
+             border: 1px solid var(--line); background: var(--slate-2); min-height: 260px; }
+  .evalbar i { display: block; position: relative; transition: flex-basis .7s ease; min-height: 0; }
+  .evalbar i span { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center;
+                    font: 800 10px/1 var(--body); color: #0d1115; }
+  .cls { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; flex: none;
+         color: #fff; font: 900 11px/1 var(--body); text-shadow: 0 1px 1px #0006; vertical-align: -4px; }
+  .cls.big { width: 34px; height: 34px; font-size: 16px; }
+  .cls.none { background: var(--slate-2); color: var(--mist); text-shadow: none; }
+  #coachBox { gap: 8px; }
+  .chead { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .accs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .acc { display: inline-flex; align-items: center; gap: 6px; background: var(--slate-2); border: 1px solid var(--line);
+         border-radius: 8px; padding: 2px 9px; font-size: 14px; color: var(--mist); }
+  .acc b { color: var(--snow); font-variant-numeric: tabular-nums; }
+  .acc i { width: 10px; height: 10px; border-radius: 50%; }
+  .bubble { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; background: #0f171e;
+            border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 15px; color: var(--mist); }
+  .bubble b { color: var(--snow); }
+  .bubble .ttl { font-weight: 800; font-size: 17px; color: var(--snow); }
+  .bubble .ttl .tn { font-weight: 500; font-size: 14px; color: var(--mist); }
+  .bubble .mvtext { color: var(--snow); }
+  .bubble .bestline { margin-top: 2px; }
+  .btn.sm { padding: 4px 10px; font-size: 14px; }
+  .btn.on { background: #8fd3ff33; border-color: #8fd3ff; }
+  .cwait { color: var(--mist); font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .spin.sm { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line);
+             border-top-color: var(--gold); animation: spin 1s linear infinite; vertical-align: -2px; }
+  .egraph svg { width: 100%; height: 70px; display: block; border-radius: 8px; background: var(--slate-2); }
+  .egraph.big svg { height: 120px; }
+  .egraph .gm { cursor: pointer; }
+  .moves { max-height: 168px; overflow-y: auto; display: grid; gap: 1px; font-size: 14px; }
+  .mv { display: grid; grid-template-columns: 22px 10px 20px 1fr; gap: 8px; align-items: center; padding: 3px 6px;
+        border-radius: 6px; cursor: pointer; color: var(--mist); }
+  .mv:hover { background: #ffffff0a; }
+  .mv.sel { background: #ffffff14; color: var(--snow); }
+  .mv .n { text-align: right; font-variant-numeric: tabular-nums; color: var(--mist); }
+  .mv > i { width: 10px; height: 10px; border-radius: 50%; }
+  .mv .x { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .scores.rv td, .scores.rv th { text-align: center; }
+  .scores.rv td:first-child { text-align: left; white-space: nowrap; }
+  .accbig { font-size: 26px; font-weight: 800; }
+  .cell .bestring { stroke: #81b64c; stroke-width: 3.5; stroke-dasharray: 7 4; fill: #81b64c2e; pointer-events: none; }
+  .cell .played-f { stroke: #fff; stroke-width: 3; fill: none; pointer-events: none; }
+  @media (max-width: 640px) { .evalbar { flex-basis: 16px; min-height: 200px; } .evalbar i span { font-size: 8px; } }
 </style>
 
 <div class="app">
@@ -223,6 +272,7 @@
     <div class="hdr-btns">
       <a class="btn" href="dashboard.html" style="text-decoration:none">AI dashboard</a>
       <a class="btn" href="editor.html" style="text-decoration:none">Board editor</a>
+      <button class="btn" id="btnCoach" aria-pressed="true" title="A chess-trainer style judgement of every move">Coach: on</button>
       <button class="btn" id="btnNew">New game</button>
     </div>
   </header>
@@ -230,7 +280,11 @@
   <div class="main">
     <section class="panel">
       <div class="status" id="status"></div>
-      <div class="boardwrap"><svg id="land" aria-label="Landscape board"></svg></div>
+      <div class="boardrow">
+        <div class="evalbar" id="evalbar" hidden aria-label="Chance to win of each player"></div>
+        <div class="boardwrap"><svg id="land" aria-label="Landscape board"></svg></div>
+      </div>
+      <div class="section" id="coachBox" hidden aria-live="polite"></div>
       <div class="section">
         <details class="rules">
           <summary>How to play</summary>
@@ -377,8 +431,8 @@
       });
       if (isLegal) out += `<polygon class="ring" points="${hexPts(x, y, s - 3)}"/>`;
       if (wants.has(k)) out += `<polygon class="want" points="${hexPts(x, y, s - 7)}"/>`;
-      if (R && R.played.has(k)) out += `<polygon class="played" points="${hexPts(x, y, s - 2)}"/>`;
-      if (R && R.better.has(k)) out += `<polygon class="want" points="${hexPts(x, y, s - 7)}"/>`;
+      if (marks && marks.played.has(k)) out += `<polygon class="played" points="${hexPts(x, y, s - 2)}"/>`;
+      if (marks && marks.better.has(k)) out += `<polygon class="bestring" points="${hexPts(x, y, s - 6)}"/>`;
       out += `</g>`;
     }
     // ocean with longships
@@ -463,6 +517,8 @@
         out += siteGlyph(it, x, y, s, c.have || []);
       }
       if (pick) out += `<polygon class="ring" points="${hexPts(x, y, s - 3)}" fill="none" stroke="transparent"/>`;
+      if (marks && marks.seat === view && marks.fPlayed.has(k)) out += `<polygon class="played-f" points="${hexPts(x, y, s - 2)}"/>`;
+      if (marks && marks.seat === view && marks.fBetter.has(k)) out += `<polygon class="bestring" points="${hexPts(x, y, s - 5)}"/>`;
       out += `</g>`;
     }
     const pad = s + 3;
@@ -585,9 +641,11 @@
 
   function render() {
     if (!S) return;
+    trackTurns();
     if (sel.tile >= S.pending.length) sel.tile = 0;
     if (S.phase !== 'place') { sel.occupy = false; sel.double = false; }
     renderPlayers(); renderStatus(); renderLand(); renderFjord(); renderActions();
+    renderEval(); renderCoach();
     if (S.game_over && !render.shownEnd) { render.shownEnd = true; showScores(); }
   }
 
@@ -652,6 +710,7 @@
       await put('nn_encode.py', home + 'nn_encode.py');
       await put('mp_encode.py', home + 'mp_encode.py');
       await put('nn_bot.py', home + 'nn_bot.py');
+      await put('review.py', home + 'review.py');
       pyo.FS.mkdirTree(home + 'models');
       for (const m of [WEB_MODEL, WEB_MODEL_MP])
         await put('models/' + m + '.npz', home + 'models/' + m + '.npz', true);
@@ -852,6 +911,7 @@
       ov.hidden = true;
       render.shownEnd = false;
       S = JSON.parse(api.new_game(JSON.stringify(ps), -1));
+      newHistory();
       view = S.players.findIndex(p => !p.ai); if (view < 0) view = 0;
       if (!S.players[S.current].ai) view = S.current;
       lastError = '';
@@ -884,70 +944,404 @@
       </table></div>
       <div class="row" style="justify-content:flex-end;margin-top:14px">
         <button class="btn" id="closeScores">Look at the board</button>
+        ${coachOn && hist && hist.turns.length ? '<button class="btn" id="toReview">Game review</button>' : ''}
         <button class="btn primary" id="again">New game</button>
       </div></div>`;
+    if ($('toReview')) $('toReview').onclick = showReview;
     $('closeScores').onclick = () => { ov.hidden = true; };
     $('again').onclick = showSetup;
   }
 
-  $('btnNew').onclick = () => { if (R) location.href = location.pathname; else if (api) showSetup(); };
+  $('btnNew').onclick = () => {
+    if (R && !R.G.live) { location.href = location.pathname; return; }
+    if (R) R.back.fn();
+    if (api) showSetup();
+  };
 
-  // ---------- replay: a recorded self-play game (selfplay_record.py) ----------
-  // replays/<seed>.json holds the state after every turn; the rules engine
-  // rebuilds each one (api.load_state) and the page draws it as usual.
-  // Frame 0 is the start, frame i the board after turn i.
+  // ---------- the coach: every finished turn judged like a chess trainer ----------
+  // After each turn the page sends the game before and after it to review.py
+  // (server.py /ai-review, or Python in this page on the web site). The
+  // network lists the moves it would consider, says how many points the
+  // played move lost against its best one, and that gives the label.
+  const CLS = {
+    brilliant: { sym: '!!', name: 'Brilliant', col: '#26c2a3' },
+    great: { sym: '!', name: 'Great', col: '#749bbf' },
+    best: { sym: '★', name: 'Best', col: '#81b64c' },
+    excellent: { sym: '✔', name: 'Excellent', col: '#96bc4b' },
+    good: { sym: '✓', name: 'Good', col: '#95af8a' },
+    inaccuracy: { sym: '?!', name: 'Inaccuracy', col: '#f7c045' },
+    mistake: { sym: '?', name: 'Mistake', col: '#ffa459' },
+    blunder: { sym: '??', name: 'Blunder', col: '#fa412d' },
+  };
+  const CLS_ORDER = Object.keys(CLS);
+  const BAD = ['inaccuracy', 'mistake', 'blunder'];
+  const MARKED = ['brilliant', 'great', ...BAD];            // shown on the graphs
+  const classOf = loss => loss <= 0.6 ? 'best' : loss <= 1.5 ? 'excellent' : loss <= 3 ? 'good'
+    : loss <= 5 ? 'inaccuracy' : loss <= 8 ? 'mistake' : 'blunder';   // as in review.py
+  const clsIcon = (c, big) => CLS[c]
+    ? `<span class="cls${big ? ' big' : ''}" style="background:${CLS[c].col}" title="${CLS[c].name}">${CLS[c].sym}</span>`
+    : `<span class="cls none${big ? ' big' : ''}" title="The network's own move">·</span>`;
+  const pct = x => Math.round(x * 100) + '%';
+
+  let coachOn = true;
+  try { coachOn = localStorage.getItem('looot.coach') !== 'off'; } catch (e) { }
+  let hist = null;          // the game being played: {key, state, who, turns: [{who, nn, before, after, rev}]}
+  let coachSel = null;      // the turn shown in the coach's bubble (null: the newest judged one)
+  let revBusy = false;
+  let marks = null;         // rings: {seat, played, better, fPlayed, fBetter} (Sets of "q,r")
+
+  function newHistory() {
+    hist = { key: String(S.turn_no), state: api.save_state(), who: S.current, turns: [] };
+    coachSel = null; marks = null;
+  }
+
+  // Called on every redraw: has a turn ended since the last one?
+  function trackTurns() {
+    if (R || !hist || !S || !api) return;
+    const key = S.turn_no + (S.game_over ? '/over' : '');
+    if (key === hist.key) return;
+    const now = api.save_state();
+    hist.turns.push({ who: hist.who, nn: !!S.players[hist.who].nn, before: hist.state, after: now, rev: null });
+    hist.key = key; hist.state = now; hist.who = S.current;
+    coachSel = null; marks = null;
+    setTimeout(pumpReviews, 0);
+  }
+
+  // Judge the turns not judged yet, one at a time.
+  async function pumpReviews() {
+    if (revBusy || !coachOn || !hist) return;
+    revBusy = true;
+    renderCoach();
+    try {
+      for (;;) {
+        const h = hist, t = h && h.turns.find(x => !x.rev);
+        if (!t) break;
+        let rev;
+        try { rev = await reviewTurn(t); } catch (err) { rev = { error: errText(err) }; }
+        t.rev = rev;
+        if (h === hist && !R) { renderCoach(); renderEval(); }
+        if (!coachOn) break;
+      }
+    } finally { revBusy = false; }
+    if (!R) { renderCoach(); renderEval(); }
+    if (!$('overlay').hidden && $('reviewCard')) showReview();
+  }
+
+  async function reviewTurn(t) {
+    const search = !t.nn;           // the network's own turns: only the win chances
+    if (NN_IN_BROWSER) {
+      await loadBrowserNN();
+      await new Promise(ok => setTimeout(ok, 30));       // let the page draw first
+      return JSON.parse(api.nn_review(netFor(), t.before, t.after, search));
+    }
+    const r = await fetch('ai-review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Looot': '1' },
+      body: `{"before":${t.before},"after":${t.after},"search":${search}}`,
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || ('error ' + r.status));
+    return d;
+  }
+
+  const judged = t => t.rev && !t.rev.error;
+  // Each player's chance to win at every point of the game (null: not known yet)
+  function histEvals(h) {
+    const t0 = h.turns[0];
+    return [t0 && judged(t0) ? t0.rev.shares_before : null,
+            ...h.turns.map(t => judged(t) ? t.rev.shares_after : null)];
+  }
+  function accuracyOf(h, seat) {
+    const js = h.turns.filter(t => t.who === seat && judged(t) && t.rev.cls);
+    return js.length ? js.reduce((a, t) => a + t.rev.acc, 0) / js.length : null;
+  }
+
+  // ---------- the evaluation bar next to the board ----------
+  function renderEval() {
+    const bar = $('evalbar');
+    let sh = null, on;
+    if (R) { on = !!R.G.evals; sh = on ? R.G.evals[R.i] : null; }
+    else {
+      on = coachOn && !!hist;
+      if (on) { const ev = histEvals(hist); for (let i = ev.length - 1; i >= 0 && !sh; i--) sh = ev[i]; }
+    }
+    bar.hidden = !on;
+    if (!on) return;
+    const n = S.players.length;
+    sh = sh || S.players.map(() => 1 / n);
+    if (bar.children.length !== n) bar.innerHTML = S.players.map(() => '<i><span></span></i>').join('');
+    [...bar.children].forEach((el, i) => {
+      el.style.flexBasis = (sh[i] * 100).toFixed(1) + '%';
+      el.style.background = PHEX[S.players[i].color];
+      el.title = `${S.players[i].name}: ${pct(sh[i])} chance to win`;
+      el.firstChild.textContent = sh[i] >= 0.1 ? Math.round(sh[i] * 100) : '';
+    });
+  }
+
+  // ---------- the win-chance graph (stacked: each player's chance) ----------
+  function evalGraph(ev, turns, players, w, h) {
+    const N = ev.length - 1;
+    if (N < 1 || !ev.some(e => e)) return '';
+    const X = i => (i / N * w).toFixed(1), Y = v => ((1 - v) * h).toFixed(1);
+    const pts = ev.map((e, i) => [e, i]).filter(([e]) => e);
+    let out = '';
+    players.forEach((p, s) => {
+      const lo = pts.map(([e, i]) => [i, e.slice(0, s).reduce((a, b) => a + b, 0)]);
+      const hi = pts.map(([e, i]) => [i, e.slice(0, s + 1).reduce((a, b) => a + b, 0)]);
+      out += `<polygon points="${hi.map(([i, v]) => X(i) + ',' + Y(v)).join(' ')} ${lo.reverse().map(([i, v]) => X(i) + ',' + Y(v)).join(' ')}" fill="${PHEX[p.color]}" opacity=".85"/>`;
+    });
+    if (players.length === 2) out += `<line x1="0" x2="${w}" y1="${Y(.5)}" y2="${Y(.5)}" stroke="#0d1115" stroke-opacity=".45" stroke-dasharray="3 4"/>`;
+    turns.forEach((t, k) => {
+      const c = t.rev && t.rev.cls;
+      const e = ev[k + 1];
+      if (!MARKED.includes(c) || !e) return;
+      const lo = e.slice(0, t.who).reduce((a, b) => a + b, 0), mid = lo + e[t.who] / 2;
+      out += `<g class="gm" data-turn="${k + 1}"><title>Turn ${k + 1}: ${CLS[c].name} by ${esc(players[t.who].name)}</title>` +
+        `<circle cx="${X(k + 1)}" cy="${Y(Math.min(.93, Math.max(.07, mid)))}" r="11" fill="transparent"/>` +
+        `<circle cx="${X(k + 1)}" cy="${Y(Math.min(.93, Math.max(.07, mid)))}" r="5.5" fill="${CLS[c].col}" stroke="#0d1115" stroke-width="1.5"/></g>`;
+    });
+    return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-label="Chance to win through the game">${out}</svg>`;
+  }
+
+  // ---------- the coach's panel under the board ----------
+  function coachText(t, players) {
+    const rv = t.rev, name = players[t.who].name;
+    const subj = name === 'You' ? 'You' : esc(name);
+    const lost = (rv.loss || 0).toFixed(1);
+    switch (rv.cls) {
+      case 'brilliant': return `Brilliant! ${subj} found a move better than anything the network considered (+${rv.gain.toFixed(1)} points).`;
+      case 'great': return `Great move: the only good one here. The next best space was ${rv.gap.toFixed(1)} points worse.`;
+      case 'best': return `Best move. That's what the network would play too.`;
+      case 'excellent': return `Excellent: only ${lost} points from the best move.`;
+      case 'good': return `Good, but ${lost} points short of the best move.`;
+    }
+    const win = rv.best ? ` (chance to win ${pct(rv.played.win)} instead of ${pct(rv.best.win)})` : '';
+    return `${subj} lost about <b>${lost} points</b>${win}.`;
+  }
+
+  function renderCoach() {
+    const box = $('coachBox');
+    box.hidden = !coachOn || !hist || !!R;
+    $('btnCoach').textContent = 'Coach: ' + (coachOn ? 'on' : 'off');
+    $('btnCoach').setAttribute('aria-pressed', coachOn);
+    if (box.hidden) return;
+    const h = hist, players = S.players;
+    const acc = players.map((p, i) => [p, accuracyOf(h, i)]).filter(([, a]) => a !== null);
+    let out = `<div class="chead"><div class="label">Coach</div><div class="accs">${acc.map(([p, a]) =>
+      `<span class="acc" title="Accuracy: 100 is always the network's best move"><i style="background:${PHEX[p.color]}"></i>${esc(p.name)} <b>${a.toFixed(1)}</b></span>`).join('')}</div></div>`;
+    // the bubble: the chosen turn, else the newest judged turn of a player the coach judges
+    const cand = h.turns.map((t, k) => [t, k]).filter(([t]) => judged(t) && t.rev.cls);
+    const k = coachSel !== null ? coachSel : (cand.length ? cand[cand.length - 1][1] : null);
+    const waiting = h.turns.filter(t => !t.rev).length;
+    if (k !== null && h.turns[k]) {
+      const t = h.turns[k], rv = t.rev;
+      if (rv && rv.error) {
+        out += `<div class="bubble"><span class="cls none big">!</span><div>The coach can't judge turn ${k + 1}: <span class="err">${esc(rv.error)}</span></div></div>`;
+      } else if (rv && rv.cls) {
+        const c = CLS[rv.cls];
+        const showing = marks && marks.turn === k;
+        out += `<div class="bubble">${clsIcon(rv.cls, true)}<div>
+          <div class="ttl"><span style="color:${c.col}">${c.name}</span> <span class="tn">· turn ${k + 1} · ${esc(players[t.who].name)}</span></div>
+          <div class="mvtext">${esc(rv.played.text)}</div>
+          <div>${coachText(t, players)}</div>
+          ${rv.best && rv.loss > 0.6 ? `<div class="bestline">Best was: <b>${esc(rv.best.text)}</b></div>` : ''}
+          <div class="row" style="margin-top:6px">
+            ${rv.best && rv.loss > 0.6 ? `<button class="btn sm${showing ? ' on' : ''}" data-coach="show" data-k="${k}">${showing ? 'Hide' : 'Show'} the best move</button>` : ''}
+            ${S.game_over ? `<button class="btn sm" data-coach="replay" data-k="${k}">Review this turn</button>` : ''}
+          </div></div></div>`;
+      } else if (rv) {
+        out += `<div class="bubble">${clsIcon(null, true)}<div>Turn ${k + 1}: the network's own move.</div></div>`;
+      }
+    } else if (!waiting) {
+      out += `<div class="bubble"><span class="cls none big">?</span><div>After every turn the coach tells how good the move was, like a chess trainer: from <b>Best</b> to <b>Blunder</b>, judged by the network.</div></div>`;
+    }
+    if (waiting && coachOn) out += `<div class="cwait"><span class="spin sm"></span>The coach is looking at turn ${h.turns.length - waiting + 1}…</div>`;
+    out += `<div class="egraph">${evalGraph(histEvals(h), h.turns, players, 600, 70)}</div>`;
+    if (h.turns.length) {
+      out += `<div class="moves" id="coachMoves">${h.turns.map((t, i) => {
+        const c = judged(t) ? t.rev.cls : null;
+        const txt = judged(t) ? t.rev.played.text : (t.rev ? 'not judged' : '…');
+        return `<div class="mv${i === k ? ' sel' : ''}" data-k="${i}"><span class="n">${i + 1}</span><i style="background:${PHEX[players[t.who].color]}"></i>${t.rev && !t.rev.error ? clsIcon(c) : '<span class="cls none">·</span>'}<span class="x">${esc(txt)}</span></div>`;
+      }).join('')}</div>`;
+    }
+    if (S.game_over && h.turns.length) out += `<div class="row"><button class="btn primary sm" data-coach="review">Game review</button></div>`;
+    box.innerHTML = out;
+    const mv = $('coachMoves');
+    if (mv && coachSel === null) mv.scrollTop = mv.scrollHeight;
+  }
+
+  $('coachBox').addEventListener('click', e => {
+    const b = e.target.closest('[data-coach]');
+    if (b) {
+      const k = +b.dataset.k, t = hist.turns[k];
+      if (b.dataset.coach === 'show') {
+        if (marks && marks.turn === k) marks = null;
+        else {
+          marks = { turn: k, seat: t.who, played: new Set(t.rev.played.cells), better: new Set(t.rev.best.cells),
+                    fPlayed: new Set(), fBetter: new Set(t.rev.best.fjord) };
+          view = t.who;
+        }
+        render();
+      }
+      if (b.dataset.coach === 'replay') openLiveReview(k + 1);
+      if (b.dataset.coach === 'review') showReview();
+      return;
+    }
+    const g = e.target.closest('.gm');
+    if (g && S.game_over) { openLiveReview(+g.dataset.turn); return; }
+    const row = e.target.closest('.mv');
+    if (row) { coachSel = +row.dataset.k; if (marks && marks.turn !== coachSel) marks = null; renderCoach(); renderLand(); renderFjord(); }
+  });
+
+  $('btnCoach').onclick = () => {
+    coachOn = !coachOn;
+    try { localStorage.setItem('looot.coach', coachOn ? 'on' : 'off'); } catch (e) { }
+    if (!coachOn) marks = null;
+    render();
+    if (coachOn) pumpReviews();
+  };
+
+  // ---------- game review: the summary after the game ----------
+  function showReview() {
+    const ov = $('overlay'), h = hist;
+    ov.hidden = false;
+    const players = S.players;
+    const pending = h.turns.filter(t => !t.rev).length;
+    const cnt = (i, c) => h.turns.filter(t => t.who === i && judged(t) && t.rev.cls === c).length;
+    const firstBad = h.turns.findIndex(t => judged(t) && BAD.includes(t.rev.cls) && !t.nn);
+    ov.innerHTML = `<div class="card" id="reviewCard" role="dialog" aria-label="Game review" style="width:min(760px,100%)">
+      <h2>Game review</h2>
+      <p>How good every move was, judged by the network (one turn deep). Accuracy 100 means every move was the network's own best move.</p>
+      <div class="egraph big">${evalGraph(histEvals(h), h.turns, players, 700, 120)}</div>
+      <div style="overflow-x:auto"><table class="scores rv">
+        <tr><th></th>${players.map(p => `<th style="color:${PCOL[p.color]}">${esc(p.name)}</th>`).join('')}</tr>
+        <tr class="total"><td>Accuracy</td>${players.map((p, i) => {
+          const a = accuracyOf(h, i);
+          return `<td>${a !== null ? `<span class="accbig">${a.toFixed(1)}</span>` : p.nn ? '<small style="color:var(--mist)">network</small>' : '–'}</td>`;
+        }).join('')}</tr>
+        ${CLS_ORDER.map(c => `<tr><td>${clsIcon(c)} ${CLS[c].name}</td>${players.map((p, i) =>
+          `<td>${p.nn ? '' : `<span style="color:${cnt(i, c) ? CLS[c].col : 'var(--mist)'};font-weight:800">${cnt(i, c)}</span>`}</td>`).join('')}</tr>`).join('')}
+      </table></div>
+      ${pending ? `<p style="color:var(--mist)"><span class="spin sm"></span> The coach is still judging ${pending} turn${pending > 1 ? 's' : ''}…</p>` : ''}
+      <div class="row" style="justify-content:flex-end;margin-top:14px">
+        <button class="btn" id="rvScores">Scores</button>
+        <button class="btn" id="rvClose">Look at the board</button>
+        <button class="btn primary" id="rvStart">${firstBad >= 0 ? 'Review the first mistake' : 'Step through the game'}</button>
+      </div></div>`;
+    $('rvScores').onclick = showScores;
+    $('rvClose').onclick = () => { ov.hidden = true; };
+    $('rvStart').onclick = () => openLiveReview(firstBad >= 0 ? firstBad + 1 : 1);
+    ov.querySelectorAll('.gm').forEach(g => g.addEventListener('click', () => openLiveReview(+g.dataset.turn)));
+  }
+
+  // Step through the game just played, with the coach's judgement of every turn.
+  function openLiveReview(turn) {
+    const h = hist;
+    if (!h || !h.turns.length) return;
+    const final = api.save_state();
+    const states = [JSON.parse(h.turns[0].before), ...h.turns.map(t => JSON.parse(t.after))];
+    const G = {
+      seed: S.seed, land: states[0].land, log: states[states.length - 1].log,
+      states: states.map(s => ({ ...s, log_n: s.log.length })),
+      turns: h.turns.map(t => ({ who: t.who, rev: judged(t) ? t.rev : null,
+        text_en: judged(t) ? t.rev.played.text : 'not judged yet', cells: judged(t) ? t.rev.played.cells : [] })),
+      alts: {}, evals: histEvals(h), winners: S.winners, live: true,
+    };
+    h.turns.forEach((t, k) => { if (judged(t) && t.rev.best && t.rev.best.state) G.alts[String(k)] = t.rev.best.state; });
+    $('overlay').hidden = true;
+    openReplay(G, turn, { label: 'Back to the game', fn: () => closeReplay(final) });
+  }
+
+  // ---------- replay: step through a game ----------
+  // A recorded self-play game (replays/<seed>.json, from selfplay_record.py,
+  // opened from the dashboard) or the game just played. The rules engine
+  // rebuilds each saved state (api.load_state) and the page draws it as
+  // usual. Frame 0 is the start, frame i the board after turn i.
   async function startReplay(seed, turn) {
     $('loadMsg').textContent = 'Loading the game…';
     const res = await fetch(`replays/${encodeURIComponent(seed)}.json`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`No recorded game ${seed}`);
     const G = await res.json();
+    // win chances: player 1's before every turn (win0), and the result
+    const end = G.winners.includes(0) ? 1 / G.winners.length : 0;
+    G.evals = [...G.turns.map(t => [t.win0, 1 - t.win0]), [end, 1 - end]];
+    openReplay(G, turn, { label: 'Dashboard', href: `dashboard.html#game=${G.seed}` });
+  }
+
+  const turnCls = t => t.rev ? t.rev.cls : t.mistake ? classOf(t.mistake.loss) : null;
+  function badInfo(t) {
+    if (t.rev && t.rev.best && t.rev.loss > 0.6)
+      return { cls: t.rev.cls, loss: t.rev.loss, better: t.rev.best.text, cells: t.rev.best.cells };
+    if (t.mistake)
+      return { cls: classOf(t.mistake.loss), loss: t.mistake.loss, better: t.mistake.better_en || t.mistake.better, cells: t.mistake.better_cells };
+    return null;
+  }
+
+  function openReplay(G, turn, back) {
     const n = G.states.length - 1;
-    R = { G, i: Math.max(0, Math.min(turn, n)), alt: false, played: new Set(), better: new Set() };
+    R = { G, i: Math.max(0, Math.min(turn, n)), alt: false, back };
     render.shownEnd = true;                 // no score pop-up at the end
     document.body.classList.add('replaying');
     $('btnNew').textContent = 'Play a game';
     $('overlay').hidden = true;
     const bar = document.createElement('div');
     bar.className = 'rbar';
+    bar.id = 'rbar';
     document.body.appendChild(bar);
-    const ticks = G.turns.map((t, k) => t.mistake
-      ? `<span class="tick${t.mistake.level > 1 ? ' big' : ''}" style="left:${(k + 1) / n * 100}%" title="Beurt ${k + 1}: fout"></span>` : '').join('');
+    const ticks = G.turns.map((t, k) => {
+      const c = turnCls(t);
+      return MARKED.includes(c) ? `<span class="tick" style="left:${(k + 1) / n * 100}%;background:${CLS[c].col}" title="Turn ${k + 1}: ${CLS[c].name}"></span>` : '';
+    }).join('');
     bar.innerHTML = `<div class="in">
       <div class="ctl">
-        <a class="btn" href="dashboard.html#game=${G.seed}">←<span class="lbl-long"> Dashboard</span></a>
+        ${back.href ? `<a class="btn" href="${back.href}">←<span class="lbl-long"> ${back.label}</span></a>`
+                    : `<button class="btn" data-go="back">←<span class="lbl-long"> ${back.label}</span></button>`}
         <button class="btn far" data-go="first" aria-label="Start">⏮</button>
-        <button class="btn" data-go="prev" aria-label="Vorige beurt">◀</button>
+        <button class="btn" data-go="prev" aria-label="Previous turn">◀</button>
         <span class="pos" id="rpPos"></span>
-        <button class="btn" data-go="next" aria-label="Volgende beurt">▶</button>
-        <button class="btn far" data-go="last" aria-label="Einde">⏭</button>
-        <button class="btn" data-go="mistake" aria-label="Volgende fout"><span class="lbl-long">Volgende fout </span>⚑</button>
-        <div style="flex:1;min-width:160px"><input type="range" id="rpSlider" min="0" max="${n}" value="${R.i}" aria-label="Beurt"><div class="ticks">${ticks}</div></div>
+        <button class="btn" data-go="next" aria-label="Next turn">▶</button>
+        <button class="btn far" data-go="last" aria-label="End">⏭</button>
+        <button class="btn" data-go="mistake" aria-label="Next mistake"><span class="lbl-long">Next mistake </span>⚑</button>
+        <div style="flex:1;min-width:160px"><input type="range" id="rpSlider" min="0" max="${n}" value="${R.i}" aria-label="Turn"><div class="ticks">${ticks}</div></div>
       </div>
       <div class="note" id="rpNote"></div></div>`;
-    const go = i => { R.alt = false; R.i = Math.max(0, Math.min(n, i)); showFrame(); };
     bar.addEventListener('click', e => {
       const b = e.target.closest('[data-go]');
       if (!b) return;
       const what = b.dataset.go;
+      if (what === 'back') { R.back.fn(); return; }
       if (what === 'alt') { R.alt = !R.alt; showFrame(); return; }
-      if (what === 'first') go(0);
-      if (what === 'prev') go(R.i - 1);
-      if (what === 'next') go(R.i + 1);
-      if (what === 'last') go(n);
+      if (what === 'first') replayGo(0);
+      if (what === 'prev') replayGo(R.i - 1);
+      if (what === 'next') replayGo(R.i + 1);
+      if (what === 'last') replayGo(n);
       if (what === 'mistake') {
-        const later = G.turns.findIndex((t, k) => k + 1 > R.i && t.mistake);
-        const first = G.turns.findIndex(t => t.mistake);
+        const bad = k => BAD.includes(turnCls(G.turns[k]));
+        const later = G.turns.findIndex((t, k) => k + 1 > R.i && bad(k));
+        const first = G.turns.findIndex((t, k) => bad(k));
         const k = later >= 0 ? later : first;
-        if (k >= 0) go(k + 1);
+        if (k >= 0) replayGo(k + 1);
       }
     });
-    $('rpSlider').oninput = e => go(+e.target.value);
-    document.addEventListener('keydown', e => {
-      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-      e.preventDefault();
-      go(R.i + (e.key === 'ArrowRight' ? 1 : -1));
-    });
+    $('rpSlider').oninput = e => replayGo(+e.target.value);
     showFrame();
+  }
+  function replayGo(i) {
+    R.alt = false; R.i = Math.max(0, Math.min(R.G.states.length - 1, i)); showFrame();
+  }
+  document.addEventListener('keydown', e => {
+    if (!R || (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft')) return;
+    e.preventDefault();
+    replayGo(R.i + (e.key === 'ArrowRight' ? 1 : -1));
+  });
+
+  function closeReplay(final) {
+    const bar = $('rbar'); if (bar) bar.remove();
+    R = null; marks = null;
+    document.body.classList.remove('replaying');
+    $('btnNew').textContent = 'New game';
+    S = JSON.parse(api.load_state(final));
+    render();
   }
 
   function showFrame() {
@@ -957,37 +1351,43 @@
                    : { ...G.states[i], land: G.land, log: G.log.slice(0, G.states[i].log_n) };
     S = JSON.parse(api.load_state(JSON.stringify(st)));
     view = t ? t.who : S.current;
-    R.played = new Set(t && !alt ? t.cells : []);
-    R.better = new Set(t && t.mistake ? t.mistake.better_cells : []);
+    const b = t && badInfo(t);
+    marks = { seat: view,
+      played: new Set(t && !alt ? t.cells || [] : []),
+      better: new Set(b ? b.cells : []),
+      fPlayed: new Set(t && !alt && t.rev ? t.rev.played.fjord : []),
+      fBetter: new Set(alt && t.rev && t.rev.best ? t.rev.best.fjord : []) };
     $('rpSlider').value = i;
-    $('rpPos').textContent = i === 0 ? `Start · ${nTurns(G)} beurten` : `Beurt ${i}/${nTurns(G)} · ${S.players[t.who].name}`;
-    const pct = x => Math.round(x * 100) + '%';
-    const winAfter = i < G.turns.length ? G.turns[i].win0 : (G.winners.includes(0) ? 1 / G.winners.length : 0);
+    const nT = G.states.length - 1;
+    $('rpPos').textContent = i === 0 ? `Start · ${nT} turns` : `Turn ${i}/${nT} · ${S.players[t.who].name}`;
+    const ev = G.evals;
     let h = '';
     if (t) {
-      h += `<span class="move"><b>${esc(S.players[t.who].name)}:</b> ${esc(t.text)}</span>`;
-      h += `<span class="win">winkans ${esc(S.players[0].name)}: ${pct(t.win0)} → ${pct(winAfter)}</span>`;
-      if (t.mistake) {
-        const m = t.mistake;
-        h += `<span class="bad${m.level > 1 ? '' : ' l1'}">${m.level > 1 ? 'Grote fout' : 'Fout'}: kost ~${m.loss.toFixed(1)} punten. Beter: ${esc(m.better)}</span>`;
+      const mover = S.players[t.who], c = turnCls(t);
+      h += `<span class="move">${c ? clsIcon(c) + ' ' : ''}<b>${esc(mover.name)}:</b> ${esc(t.text_en || t.text)}</span>`;
+      if (ev && ev[i - 1] && ev[i]) h += `<span class="win">chance to win: ${pct(ev[i - 1][t.who])} → ${pct(ev[i][t.who])}</span>`;
+      if (b) {
+        h += `<span class="bad" style="border-color:${CLS[b.cls].col};background:${CLS[b.cls].col}22"><b style="color:${CLS[b.cls].col}">${CLS[b.cls].name}</b>: about ${b.loss.toFixed(1)} points lost. Best: ${esc(b.better)}</span>`;
         if (G.alts && G.alts[String(i - 1)])
-          h += `<button class="btn${alt ? ' on' : ''}" data-go="alt">${alt ? 'Toon gespeelde zet' : 'Toon betere zet'}</button>`;
+          h += `<button class="btn${alt ? ' on' : ''}" data-go="alt">${alt ? 'Show the move played' : 'Show the best move'}</button>`;
+      } else if (c) {
+        h += `<span class="win" style="color:${CLS[c].col};font-weight:700">${CLS[c].name}</span>`;
       }
     } else {
-      h += `<span class="move">De beginstand. Loop door de partij met ◀ ▶ of de pijltjestoetsen.</span>`;
+      h += `<span class="move">The start of the game. Step through it with ◀ ▶ or the arrow keys.</span>`;
     }
     $('rpNote').innerHTML = h;
     render();
   }
-  const nTurns = G => G.states.length - 1;
 
   function replayStatus() {
     const G = R.G, t = G.turns[R.i - 1];
-    if (!t) return `<span class="what"><b>Replay</b> van partij ${G.seed}: ${esc(G.model)} tegen zichzelf.</span>`;
+    if (!t) return `<span class="what"><b>Replay</b> of ${G.live ? 'the game you just played' : `game ${G.seed}: ${esc(G.model)} against itself`}.</span>`;
     const who = S.players[t.who];
-    const alt = R.alt ? ' <b>(de betere zet, niet gespeeld)</b>' : '';
+    const b = badInfo(t);
+    const alt = R.alt ? ' <b>(the best move, not played)</b>' : '';
     return `<span class="who" style="color:${PCOL[who.color]}">${esc(who.name)}</span>
-      <span class="what">${esc(t.text)}${alt}<br><span style="color:var(--mist);font-size:14px">${R.alt ? '' : 'Wit omlijnd: waar de Viking van deze beurt staat. '}${t.mistake ? 'Blauw gestreept: de betere plek. ' : ''}Je ziet de fjord van ${esc(who.name)}.</span></span>`;
+      <span class="what">${R.alt && b ? esc(b.better) : esc(t.text_en || t.text)}${alt}<br><span style="color:var(--mist);font-size:14px">${R.alt ? '' : 'White ring: where the Viking of this turn went. '}${b ? 'Green dashes: the best move. ' : ''}The fjord shown is ${esc(who.name)}'s.</span></span>`;
   }
 
   // ---------- boot Python ----------

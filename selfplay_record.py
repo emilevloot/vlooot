@@ -118,6 +118,7 @@ def play(args):
     seed, model = args
     import looot as L
     import nn_bot
+    import review
     g = L.Game([("Netwerk 1", True), ("Netwerk 2", True)], seed, L.read_layout_file())
     for p in g.players:
         p.nn = True
@@ -140,6 +141,7 @@ def play(args):
         k = int(np.argmax(vals))
         d = describe(L, g, cands[k], me)
         row.update(d)
+        row["text_en"] = review.describe(g, cands[k][5], me, "en")["text"]   # for the game page
         row["value"] = round(float(vals[k]), 2)
         v2 = deep_check(bot, cands, vals, me)
         best = max(v2, key=v2.get)
@@ -148,12 +150,17 @@ def play(args):
             row["deep"] = round(v2[k], 2)
             if best != k and loss >= MISTAKE:
                 alt = describe(L, g, cands[best], me)
+                alt_en = review.describe(g, cands[best][5], me, "en")["text"]
+                if alt_en == row["text_en"]:
+                    alt_en += (" (another space)" if alt["cells"] != d["cells"]
+                               else " (other spaces on the fjord)")
                 if alt["text"] == d["text"]:
                     alt["text"] += (" (op een ander veld)" if alt["cells"] != d["cells"]
                                     else " (tegels/schip op andere plekken in de fjord)")
                 alts[str(t)] = snapshot(cands[best][5])
                 row["mistake"] = {"loss": round(loss, 2), "level": 2 if loss >= BIG else 1,
-                                  "better": alt["text"], "better_cells": alt["cells"],
+                                  "better": alt["text"], "better_en": alt_en,
+                                  "better_cells": alt["cells"],
                                   "better_now": round(float(vals[best]), 2),
                                   "better_deep": round(v2[best], 2)}
         bot._apply(g, cands[k])

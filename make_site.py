@@ -17,7 +17,7 @@ import shutil
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SITE = os.path.join(HERE, "site")
-FILES = ["index.html", "editor.html", "looot.py", "nn_encode.py", "nn_bot.py", "boards.json"]
+FILES = ["index.html", "editor.html", "looot.py", "nn_encode.py", "nn_bot.py", "review.py", "boards.json"]
 
 
 def web_model():

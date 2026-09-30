@@ -455,6 +455,7 @@ class Game:
     # turn bookkeeping
     # ------------------------------------------------------------------
     def new_turn(self):
+        self.turn_no = getattr(self, "turn_no", 0) + 1   # 1 = the first turn of the game
         self.phase = "place"       # place -> tiles -> actions -> (ship)
         self.pending = []          # tiles waiting to go on the fjord
         self.placed_this_turn = 0
@@ -810,7 +811,7 @@ class Game:
             "bag": self.bag, "ocean_ships": self.ocean_ships,
             "stock": {key(c): n for c, n in self.stock.items()},
             "trophy_owner": self.trophy_owner, "current": self.current,
-            "log": self.log, "game_over": self.game_over, "phase": self.phase,
+            "turn_no": self.turn_no, "log": self.log, "game_over": self.game_over, "phase": self.phase,
             "pending": self.pending, "placed_this_turn": self.placed_this_turn,
             "took_ship": self.took_ship, "held_ship": self.held_ship,
             "extra_active": self.extra_active,
@@ -836,6 +837,7 @@ class Game:
         g.ocean_ships = list(d["ocean_ships"])
         g.stock = {unkey(k): n for k, n in d["stock"].items()}
         g.trophy_owner = list(d["trophy_owner"])
+        g.turn_no = d.get("turn_no", 0)
         for name in ("current", "game_over", "phase", "placed_this_turn",
                      "took_ship", "held_ship", "extra_active"):
             setattr(g, name, d[name])
@@ -863,6 +865,7 @@ class Game:
         state = {
             "seed": self.seed,
             "current": self.current,
+            "turn_no": self.turn_no,
             "phase": self.phase,
             "game_over": self.game_over,
             "winners": self.winners() if self.game_over else [],
@@ -1276,6 +1279,13 @@ class Api:
         out = nn_bot.thoughts(nn_bot.load_net(model), self.game, seat)
         out["model"] = model
         return json.dumps(out)
+
+    def nn_review(self, model, before, after, search=True):
+        """The coach's judgement of one finished turn (review.py): `before`
+        and `after` are the game (save_state JSON) at its start and end."""
+        import review
+        return json.dumps(review.review_turn(model, json.loads(before), json.loads(after),
+                                             search=bool(search)))
 
     def ai_turn(self):
         g = self.game

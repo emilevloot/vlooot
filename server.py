@@ -11,6 +11,8 @@ nn_bot.py, needs numpy and numba) plays the turn here and the new game goes
 back to the page. /ai-view answers what the network thinks of a game (win
 chance, and for the three-part network the value it gives every item and
 how well each longship fits) - the page shows that next to the board.
+/ai-review judges a finished turn like a chess trainer (review.py): the
+points lost against the network's best move, a label and the best move.
 """
 
 import glob
@@ -75,6 +77,15 @@ def nn_turn(state):
     return g.save_state()
 
 
+def nn_review(req):
+    """The coach's judgement of one finished turn (see review.py)."""
+    import review
+    n = len(req["before"]["players"])
+    with _nn_lock:
+        return review.review_turn(model(n), req["before"], req["after"],
+                                  search=bool(req.get("search", True)))
+
+
 def nn_view(state):
     """What the network thinks of a saved game, seen from its own seat."""
     import nn_bot
@@ -115,8 +126,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/save-boards":
             self.save_boards()
-        elif self.path in ("/ai-turn", "/ai-view"):
-            self.ai_turn(view=self.path == "/ai-view")
+        elif self.path in ("/ai-turn", "/ai-view", "/ai-review"):
+            self.ai_turn(view=self.path[4:])
         else:
             self.reply(404, {"error": "Unknown address."})
 
@@ -134,7 +145,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             f.write(looot.dump_layout(layout))
         self.reply(200, {"ok": True})
 
-    def ai_turn(self, view=False):
+    def ai_turn(self, view="turn"):
+        # view: "turn" (the network plays), "view" (what it thinks) or
+        # "review" (the coach judges a finished turn)
         # Only our own page sends this header. A request with a custom header
         # from another web site would first need a permission check
         # ("preflight") that this server never gives, so other sites can't
@@ -147,8 +160,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.reply(400, {"error": "No game sent."})
             return
         try:
-            if view:
+            if view == "view":
                 self.reply(200, nn_view(json.loads(text)))
+                return
+            if view == "review":
+                self.reply(200, nn_review(json.loads(text)))
                 return
             state = nn_turn(json.loads(text))
         except (ValueError, KeyError, TypeError) as e:
