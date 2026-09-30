@@ -17,6 +17,10 @@ the 3 best moves and let the opponent answer each with ITS best move; the
 network judges where each line ends. When another move ends clearly better
 than the one played, the turn is marked as a mistake:
     loss >= 3 points: mistake, >= 6 points: big mistake.
+In a player's last 2 turns the network's judgement is rough, so there the
+end is counted instead (endgame.py): the best final score the player could
+still reach before its move, against after it ("exact" mistakes). The
+player itself also counts its last 2 turns (--no-endgame: the network alone).
 
 Written: selfplay_data.json (summary for the dashboard) and
 replays/<seed>.json (one file per game, for the replay).
@@ -115,10 +119,11 @@ def deep_check(bot, cands, vals, me):
 
 
 def play(args):
-    seed, model = args
+    seed, model, use_endgame = args
     import looot as L
     import nn_bot
     import review
+    import endgame
     g = L.Game([("Netwerk 1", True), ("Netwerk 2", True)], seed, L.read_layout_file())
     for p in g.players:
         p.nn = True
@@ -134,36 +139,55 @@ def play(args):
         margin, win = net(land[None], fjord[None], glob[None])
         row = {"t": t, "who": me, "win0": round(float(win[0]), 4), "margin0": round(float(margin[0]), 2),
                "vikings_left": g.players[me].vikings_left}
-        cands, vals = bot._candidates(g)
-        if not cands:
-            g.end_turn()
-            continue
-        k = int(np.argmax(vals))
-        d = describe(L, g, cands[k], me)
+        eg = 1 <= g.players[me].vikings_left <= 2          # its last 2 turns
+        r = endgame.reach(g, model, endgame.WIDE, tie_break=True) if eg and use_endgame else None
+        if r is not None:
+            chosen = r[1]                     # the move to the best final score it can reach
+            row["value"] = round(r[0], 2)
+        else:
+            cands, vals = bot._candidates(g)
+            if not cands:
+                g.end_turn()
+                continue
+            k = int(np.argmax(vals))
+            chosen = cands[k]
+            row["value"] = round(float(vals[k]), 2)
+        d = describe(L, g, chosen, me)
         row.update(d)
-        row["text_en"] = review.describe(g, cands[k][5], me, "en")["text"]   # for the game page
-        row["value"] = round(float(vals[k]), 2)
-        v2 = deep_check(bot, cands, vals, me)
-        best = max(v2, key=v2.get)
-        if k in v2:
-            loss = v2[best] - v2[k]
-            row["deep"] = round(v2[k], 2)
-            if best != k and loss >= MISTAKE:
-                alt = describe(L, g, cands[best], me)
-                alt_en = review.describe(g, cands[best][5], me, "en")["text"]
-                if alt_en == row["text_en"]:
-                    alt_en += (" (another space)" if alt["cells"] != d["cells"]
-                               else " (other spaces on the fjord)")
-                if alt["text"] == d["text"]:
-                    alt["text"] += (" (op een ander veld)" if alt["cells"] != d["cells"]
-                                    else " (tegels/schip op andere plekken in de fjord)")
-                alts[str(t)] = snapshot(cands[best][5])
-                row["mistake"] = {"loss": round(loss, 2), "level": 2 if loss >= BIG else 1,
-                                  "better": alt["text"], "better_en": alt_en,
-                                  "better_cells": alt["cells"],
-                                  "better_now": round(float(vals[best]), 2),
-                                  "better_deep": round(v2[best], 2)}
-        bot._apply(g, cands[k])
+        row["text_en"] = review.describe(g, chosen[5], me, "en")["text"]   # for the game page
+
+        def mistake(better, loss, **extra):
+            alt = describe(L, g, better, me)
+            alt_en = review.describe(g, better[5], me, "en")["text"]
+            if alt_en == row["text_en"]:
+                alt_en += (" (another space)" if alt["cells"] != d["cells"]
+                           else " (other spaces on the fjord)")
+            if alt["text"] == d["text"]:
+                alt["text"] += (" (op een ander veld)" if alt["cells"] != d["cells"]
+                                else " (tegels/schip op andere plekken in de fjord)")
+            alts[str(t)] = snapshot(better[5])
+            row["mistake"] = {"loss": round(loss, 2), "level": 2 if loss >= BIG else 1,
+                              "better": alt["text"], "better_en": alt_en,
+                              "better_cells": alt["cells"], **extra}
+
+        if eg:
+            # the end of the game is counted (endgame.py): the best final score
+            # it could still reach before the move, against after it
+            c = endgame.check(g, chosen[5], me, model)
+            if c is not None:
+                row["reach"] = {"best": c["best"], "played": c["played"]}
+                if c["loss"] >= MISTAKE:
+                    mistake(c["best_move"], c["loss"], exact=True)
+        else:
+            v2 = deep_check(bot, cands, vals, me)
+            best = max(v2, key=v2.get)
+            if k in v2:
+                loss = v2[best] - v2[k]
+                row["deep"] = round(v2[k], 2)
+                if best != k and loss >= MISTAKE:
+                    mistake(cands[best], loss, better_now=round(float(vals[best]), 2),
+                            better_deep=round(v2[best], 2))
+        bot._apply(g, chosen)
         states.append(snapshot(g))
         turns.append(row)
         t += 1
@@ -198,17 +222,20 @@ def main():
     ap.add_argument("--games", type=int, default=120)
     ap.add_argument("--model", default="s2_r19")
     ap.add_argument("--first-seed", type=int, default=41_000_000)
+    ap.add_argument("--no-endgame", action="store_true",
+                    help="the network alone, also in its last 2 turns (endgame.py only checks)")
     a = ap.parse_args()
     os.makedirs(os.path.join(HERE, "replays"), exist_ok=True)
     for f in os.listdir(os.path.join(HERE, "replays")):
         if f.endswith(".json"):
             os.remove(os.path.join(HERE, "replays", f))
     t0 = time.time()
-    jobs = [(a.first_seed + i, a.model) for i in range(a.games)]
+    jobs = [(a.first_seed + i, a.model, not a.no_endgame) for i in range(a.games)]
     workers = max(1, min(a.games, (os.cpu_count() or 2) - 1))
     with ProcessPoolExecutor(workers) as ex:
         games = list(ex.map(play, jobs))
-    out = {"model": a.model, "made": time.strftime("%Y-%m-%d %H:%M"), "games": games}
+    out = {"model": a.model, "made": time.strftime("%Y-%m-%d %H:%M"), "games": games,
+           "endgame": not a.no_endgame}
     with open(os.path.join(HERE, "selfplay_data.json"), "w") as f:
         json.dump(out, f, separators=(",", ":"))
     n_m = sum(1 for gm in games for r in gm["turns"] if "mistake" in r)

@@ -16,7 +16,10 @@ best move is the points lost, and that gives the label:
 
 Accuracy per move falls off with the points lost; a player's accuracy is
 the average over their moves. It is one turn deep: the network's own
-judgement, not the truth.
+judgement, not the truth - except in a player's last 2 turns: there the
+network's judgement is rough, so the coach counts instead (endgame.py): the
+best final score the player could still reach before the move, against the
+best it can still reach after it ("exact").
 
 Used by server.py (/ai-review) and, on the web site, by the page itself
 (Api.nn_review in looot.py).
@@ -145,10 +148,11 @@ def accuracy(loss):
     return round(100.0 * math.exp(-max(0.0, loss) / ACC_SCALE), 1)
 
 
-def review_turn(net_name, before, after, search=True, lang="en"):
+def review_turn(net_name, before, after, search=True, lang="en", endgame_width="wide"):
     """Judge the turn from `before` (the game at the start of the turn) to
     `after` (the game once the turn ended). search=False: only the win
-    chances (for a turn of the network itself)."""
+    chances (for a turn of the network itself). endgame_width: how widely
+    the last 2 turns are searched ("wide", "narrow"; None: not counted)."""
     net = nn_bot.load_net(net_name)
     g0 = L.Game.load_state(before)
     g1 = L.Game.load_state(after)
@@ -159,6 +163,27 @@ def review_turn(net_name, before, after, search=True, lang="en"):
     out["played"].update(margin=round(float(pm[0]), 2), win=round(float(pw[0]), 4))
     if not search or g0.game_over:
         return out
+    if endgame_width and 1 <= g0.players[me].vikings_left <= 2:
+        import endgame
+        c = endgame.check(g0, g1, me, net_name,
+                          endgame.WIDE if endgame_width == "wide" else endgame.NARROW)
+        if c is not None:
+            loss = c["loss"]
+            out.update(loss=round(loss, 2), gain=0.0, gap=0.0, cls=classify(loss, 0.0, 0.0),
+                       acc=accuracy(loss), exact=True,
+                       reach={"best": c["best"], "played": c["played"],
+                              "turns_left": g0.players[me].vikings_left})
+            best = describe(g0, c["best_move"][5], me, lang)
+            if best["text"] == out["played"]["text"] and loss > CLASSES[0][1]:
+                best["text"] += (" (other spaces on the fjord)" if lang == "en"
+                                 else " (andere plekken in de fjord)")
+            if loss > CLASSES[0][1]:
+                s = snapshot(c["best_move"][5])
+                s.pop("land")
+                s["log"] = s["log"][-14:]
+                best["state"] = s
+            out["best"] = best
+            return out
     bot = nn_bot.NNBot(random.Random(0), net_name)
     cands, _ = bot._candidates(copy.deepcopy(g0))
     if not cands:

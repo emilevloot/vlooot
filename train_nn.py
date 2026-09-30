@@ -93,6 +93,11 @@ def main():
                          "judgement N turns later (0 = only the final results)")
     ap.add_argument("--td-mix", type=float, default=0.5,
                     help="with --td: share of the final result in the target")
+    ap.add_argument("--surprise", type=float, default=0.0,
+                    help="with --td: extra weight on positions the --init network judged "
+                         "far off (its judgement --td turns later and the final result "
+                         "say otherwise): weight 1 + SURPRISE x (points off / 10), at "
+                         "most 1 + 3 x SURPRISE")
     ap.add_argument("--policy-weight", type=float, default=1.0,
                     help="weight of the proposals' loss (when the data has its targets)")
     ap.add_argument("--stats-from", default=None,
@@ -242,6 +247,30 @@ def main():
         T["target_margin"], T["target_win"] = tm, tw
     else:
         T["target_margin"], T["target_win"] = T["margin"], T["win"]
+
+    # --- learning most where the network was most wrong ---
+    # Where the previous network's judgement of a position is far from the
+    # answer key (its own judgement --td turns later mixed with the final
+    # result), something happened that it didn't see coming: those positions
+    # count more. (Weighting by how fast the chance to win changes instead
+    # was tried too: no better, as much of that change is luck.)
+    W = None
+    if a.surprise:
+        if not a.td:
+            raise SystemExit("--surprise needs --td (it uses the --init network's judgement)")
+        off = (T["target_margin"] - pm_all).abs()
+        W = 1 + a.surprise * (off / 10).clamp(max=3)
+        W = W / W[torch.from_numpy(tr).to(dev)].mean()      # the average weight stays 1
+        left_all = torch.from_numpy((D["glob"][:, E.G["vik_me"]] + D["glob"][:, E.G["vik_opp"]])
+                                    .astype(np.float32)).to(dev)
+        parts = []
+        for lo, hi in ((21, 26), (16, 20), (11, 15), (6, 10), (1, 5)):
+            sel = (left_all >= lo) & (left_all <= hi)
+            if sel.any():
+                parts.append("%d-%d: %.2f" % (lo, hi, float(W[sel].mean())))
+        print("Surprise weights (x%.1f): average weight by Vikings left %s; %.1f%% of the "
+              "positions count double or more" % (a.surprise, ", ".join(parts),
+                                                  100 * float((W >= 2).float().mean())))
     tr_t = torch.from_numpy(tr)                       # (CPU: they pick rows of X)
     te_t = torch.from_numpy(te)
 
@@ -264,8 +293,15 @@ def main():
         land, fjord, glob = inputs(idx)
         pm, pw, told = model.explain(land, fjord, glob)
         gi = idx.to(dev)
-        lm = F.smooth_l1_loss(pm, T["target_margin"][gi] / MARGIN_SCALE)
-        lw = F.binary_cross_entropy_with_logits(pw, T["target_win"][gi])
+        if W is None:
+            lm = F.smooth_l1_loss(pm, T["target_margin"][gi] / MARGIN_SCALE)
+            lw = F.binary_cross_entropy_with_logits(pw, T["target_win"][gi])
+        else:
+            w = W[gi]
+            lm = (w * F.smooth_l1_loss(pm, T["target_margin"][gi] / MARGIN_SCALE,
+                                       reduction="none")).mean()
+            lw = (w * F.binary_cross_entropy_with_logits(pw, T["target_win"][gi],
+                                                         reduction="none")).mean()
         if policy:
             lp, h1, h3, nrow = policy_loss(land.float(), fjord.float(), glob.float(), told, idx)
             lw = lw + a.policy_weight * lp

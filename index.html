@@ -242,6 +242,7 @@
   .bubble .mvtext { color: var(--snow); }
   .bubble .bestline { margin-top: 2px; }
   .btn.sm { padding: 4px 10px; font-size: 14px; }
+  .exact { color: #8fd3ff; font-weight: 700; }
   .btn.on { background: #8fd3ff33; border-color: #8fd3ff; }
   .cwait { color: var(--mist); font-size: 14px; display: flex; align-items: center; gap: 8px; }
   .spin.sm { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line);
@@ -711,6 +712,7 @@
       await put('mp_encode.py', home + 'mp_encode.py');
       await put('nn_bot.py', home + 'nn_bot.py');
       await put('review.py', home + 'review.py');
+      await put('endgame.py', home + 'endgame.py');
       pyo.FS.mkdirTree(home + 'models');
       for (const m of [WEB_MODEL, WEB_MODEL_MP])
         await put('models/' + m + '.npz', home + 'models/' + m + '.npz', true);
@@ -1108,6 +1110,16 @@
     const rv = t.rev, name = players[t.who].name;
     const subj = name === 'You' ? 'You' : esc(name);
     const lost = (rv.loss || 0).toFixed(1);
+    if (rv.exact) {
+      // the last 2 turns: counted, not guessed (endgame.py)
+      const r = rv.reach, last = r.turns_left === 1;
+      const pts = x => Math.round(x) + ' points';
+      if (rv.loss <= 0.6)
+        return last ? `Best possible last turn: ${pts(r.played)} at the end, the most ${subj === 'You' ? 'you' : 'it'} could get.`
+                    : `Best move: the highest final score is still within reach (${pts(r.best)}).`;
+      return last ? `${subj} ended on <b>${pts(r.played)}</b>; <b>${pts(r.best)}</b> were possible in this last turn.`
+                  : `After this move ${subj === 'You' ? 'you' : esc(name)} can reach at most <b>${pts(r.played)}</b> at the end; the best move kept <b>${pts(r.best)}</b> within reach.`;
+    }
     switch (rv.cls) {
       case 'brilliant': return `Brilliant! ${subj} found a move better than anything the network considered (+${rv.gain.toFixed(1)} points).`;
       case 'great': return `Great move: the only good one here. The next best space was ${rv.gap.toFixed(1)} points worse.`;
@@ -1141,7 +1153,7 @@
         const c = CLS[rv.cls];
         const showing = marks && marks.turn === k;
         out += `<div class="bubble">${clsIcon(rv.cls, true)}<div>
-          <div class="ttl"><span style="color:${c.col}">${c.name}</span> <span class="tn">· turn ${k + 1} · ${esc(players[t.who].name)}</span></div>
+          <div class="ttl"><span style="color:${c.col}">${c.name}</span> <span class="tn">· turn ${k + 1} · ${esc(players[t.who].name)}${rv.exact ? ' · <span class="exact" title="The end of the game is counted exactly, not judged by the network">counted exactly</span>' : ''}</span></div>
           <div class="mvtext">${esc(rv.played.text)}</div>
           <div>${coachText(t, players)}</div>
           ${rv.best && rv.loss > 0.6 ? `<div class="bestline">Best was: <b>${esc(rv.best.text)}</b></div>` : ''}
@@ -1271,9 +1283,10 @@
   const turnCls = t => t.rev ? t.rev.cls : t.mistake ? classOf(t.mistake.loss) : null;
   function badInfo(t) {
     if (t.rev && t.rev.best && t.rev.loss > 0.6)
-      return { cls: t.rev.cls, loss: t.rev.loss, better: t.rev.best.text, cells: t.rev.best.cells };
+      return { cls: t.rev.cls, loss: t.rev.loss, better: t.rev.best.text, cells: t.rev.best.cells, exact: !!t.rev.exact };
     if (t.mistake)
-      return { cls: classOf(t.mistake.loss), loss: t.mistake.loss, better: t.mistake.better_en || t.mistake.better, cells: t.mistake.better_cells };
+      return { cls: classOf(t.mistake.loss), loss: t.mistake.loss, better: t.mistake.better_en || t.mistake.better,
+               cells: t.mistake.better_cells, exact: !!t.mistake.exact };
     return null;
   }
 
@@ -1367,7 +1380,7 @@
       h += `<span class="move">${c ? clsIcon(c) + ' ' : ''}<b>${esc(mover.name)}:</b> ${esc(t.text_en || t.text)}</span>`;
       if (ev && ev[i - 1] && ev[i]) h += `<span class="win">chance to win: ${pct(ev[i - 1][t.who])} → ${pct(ev[i][t.who])}</span>`;
       if (b) {
-        h += `<span class="bad" style="border-color:${CLS[b.cls].col};background:${CLS[b.cls].col}22"><b style="color:${CLS[b.cls].col}">${CLS[b.cls].name}</b>: about ${b.loss.toFixed(1)} points lost. Best: ${esc(b.better)}</span>`;
+        h += `<span class="bad" style="border-color:${CLS[b.cls].col};background:${CLS[b.cls].col}22"><b style="color:${CLS[b.cls].col}">${CLS[b.cls].name}</b>: ${b.exact ? 'exactly' : 'about'} ${b.exact ? Math.round(b.loss) : b.loss.toFixed(1)} points lost${b.exact ? ' (counted)' : ''}. Best: ${esc(b.better)}</span>`;
         if (G.alts && G.alts[String(i - 1)])
           h += `<button class="btn${alt ? ' on' : ''}" data-go="alt">${alt ? 'Show the move played' : 'Show the best move'}</button>`;
       } else if (c) {

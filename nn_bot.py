@@ -464,9 +464,13 @@ def thoughts(net, g, me):
 class NNBot(L.Bot):
     TOP_FOR_EXTRA = 3       # try the 2nd-Viking shield after the best few placements
 
-    def __init__(self, rng, net_name, explore=0.0, ship_cost=0.0, depth=1):
+    def __init__(self, rng, net_name, explore=0.0, ship_cost=0.0, depth=1, endgame=None):
         super().__init__(rng)
+        self.net_name = net_name
         self.net = load_net(net_name)
+        # "wide" or "narrow": the last 2 turns worked out exactly (endgame.py)
+        # instead of judged by the network; None: the network all game
+        self.endgame = endgame
         self.enc = self.net.E          # its encoding (nn_encode, or mp_encode for 2-4 players)
         self.explore = explore
         self.depth = depth
@@ -660,6 +664,15 @@ class NNBot(L.Bot):
 
     def play_turn(self, g):
         me = g.current
+        if (self.endgame and not self.explore and g.phase == "place"
+                and 1 <= g.players[me].vikings_left <= 2):
+            import endgame
+            r = endgame.reach(g, self.net_name,
+                              endgame.WIDE if self.endgame == "wide" else endgame.NARROW,
+                              tie_break=True)
+            if r is not None:
+                self._apply(g, r[1])
+                return
         cands, vals = self._candidates(g)
         if not cands:
             if g.phase == "actions":
@@ -770,8 +783,12 @@ def player_from_name(name, rng, explore=0.0):
     'nn:v1+2'  -> looks 2 turns deep (its move and the opponent's answer).
     'nn:v1=g'  -> the fjord laid out by the greedy rule (as before the
                   network chose the layout itself).
-    Can be combined: 'nn:v1@2+2', 'nn:v1+2=g'."""
+    'nn:v1!e'  -> its last 2 turns worked out exactly (endgame.py).
+    Can be combined: 'nn:v1@2+2', 'nn:v1+2=g', 'nn:v1!e'."""
     model = name.split(":", 1)[-1]
+    endgame = None
+    if model.endswith("!e"):
+        model, endgame = model[:-2], "wide"
     greedy_fjord = model.endswith("=g")
     if greedy_fjord:
         model = model[:-2]
@@ -783,7 +800,7 @@ def player_from_name(name, rng, explore=0.0):
     if "@" in model:
         model, cost = model.split("@")
         ship_cost = float(cost)
-    bot = NNBot(rng, model, explore, ship_cost, depth)
+    bot = NNBot(rng, model, explore, ship_cost, depth, endgame)
     if greedy_fjord:                   # the old way: tiles and longships where greedy puts them
         bot.TILE_K = bot.MAX_LAYOUTS = bot.SHIP_K = 1
         bot.use_policy = False

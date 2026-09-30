@@ -145,9 +145,11 @@ def aggregate(data):
     return out
 
 
-def mistake_kind(played, better):
+def mistake_kind(played, better, exact=False):
     """What differs between the played move and the better one (from the
     texts written by selfplay_record.describe)."""
+    if exact:
+        return "eindspel"
     if better.endswith("(tegels/schip op andere plekken in de fjord)"):
         return "fjord"
     if better.endswith("(op een ander veld)"):
@@ -169,7 +171,8 @@ def mistake_kind(played, better):
     return "veld"
 
 
-KINDS = [("veld", "Verkeerd veld op het bord"), ("schip", "Verkeerd (of geen) langschip"),
+KINDS = [("eindspel", "Eindspel: punten laten liggen (exact geteld)"),
+         ("veld", "Verkeerd veld op het bord"), ("schip", "Verkeerd (of geen) langschip"),
          ("schild", "Schild wel of niet gebruiken"), ("trofee", "Trofee"),
          ("fjord", "Tegels/schip op verkeerde plek in de fjord")]
 
@@ -196,9 +199,10 @@ def aggregate_self(data):
             row = {"w": r["who"], "x": r["text"], "p": r["win0"], "g": r["margin0"], "o": own}
             m = r.get("mistake")
             if m:
-                kind = mistake_kind(r["text"], m["better"])
+                kind = mistake_kind(r["text"], m["better"], m.get("exact", False))
                 kinds[kind] += 1
-                row["m"] = {"l": m["loss"], "v": m["level"], "b": m["better"], "k": kind}
+                row["m"] = {"l": m["loss"], "v": m["level"], "b": m["better"], "k": kind,
+                            "e": bool(m.get("exact"))}
                 ms.append(m["loss"])
                 by_turn.setdefault(own, [0, 0])[m["level"] - 1] += 1
             turns.append(row)
@@ -217,6 +221,23 @@ def aggregate_self(data):
             "ml": round(max(ms), 2) if ms else 0, "cb": low is not None and low <= 0.25,
             "low": round(low, 3) if low is not None else None,
             "sw": [big + 1, round(series[big + 1] - series[big], 3)], "T": turns})
+    # where the chance to win falls fast: per turn, how often the mover's
+    # chance drops 15%+ over its move and the answer to it
+    drops = {}
+    for g in games:
+        T = g["turns"]
+        w = g["winners"]
+        s = [t["win0"] for t in T] + [(1.0 / len(w)) if 0 in w else 0.0]
+        for k, t in enumerate(T[:-1]):
+            own = lambda x: x if t["who"] == 0 else 1 - x
+            drops.setdefault(k + 1, []).append(own(s[k + 2]) - own(s[k]))
+    out["drops"] = [[k, round(sum(1 for x in v if x <= -0.15) / len(v), 3),
+                     round(sum(1 for x in v if x <= -0.3) / len(v), 3), len(v)]
+                    for k, v in sorted(drops.items()) if len(v) >= 10]
+    # the end of the game, counted: points of final score left on the table
+    eg = [t["reach"]["best"] - t["reach"]["played"] for g in games for t in g["turns"] if "reach" in t]
+    out["endgame"] = {"turns": len(eg), "loss": round(st.mean(eg), 2) if eg else None,
+                      "big": sum(1 for x in eg if x >= 3), "played_by": data.get("endgame")}
     swings.sort(reverse=True)
     out["swings"] = [{"s": s, "t": k + 1, "d": d, "w": who,
                       "x": next(r for r in rows if r["s"] == s)["T"][k]["x"]}

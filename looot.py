@@ -1267,7 +1267,9 @@ class Api:
         import nn_bot
         g = self.game
         if not g.game_over and g.player().ai:
-            nn_bot.NNBot(random.Random(), model).play_turn(g)
+            # the last 2 turns worked out exactly (a narrower search: Python
+            # in a browser is slower)
+            nn_bot.NNBot(random.Random(), model, endgame="narrow").play_turn(g)
         return self._state()
 
     def nn_view(self, model):
@@ -1285,7 +1287,7 @@ class Api:
         and `after` are the game (save_state JSON) at its start and end."""
         import review
         return json.dumps(review.review_turn(model, json.loads(before), json.loads(after),
-                                             search=bool(search)))
+                                             search=bool(search), endgame_width="narrow"))
 
     def ai_turn(self):
         g = self.game

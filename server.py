@@ -73,7 +73,8 @@ def nn_turn(state):
     g = looot.Game.load_state(state)
     if not g.game_over and g.player().ai:
         with _nn_lock:
-            nn_bot.NNBot(random.Random(), model(len(g.players))).play_turn(g)
+            # its last 2 turns worked out exactly (endgame.py)
+            nn_bot.NNBot(random.Random(), model(len(g.players)), endgame="wide").play_turn(g)
     return g.save_state()
 
 

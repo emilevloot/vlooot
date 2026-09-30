@@ -165,10 +165,18 @@
     <div id="band"></div>
   </div>
 
+  <div class="card">
+    <h2>Waar daalt de winkans snel?</h2>
+    <p class="what">Hoe vaak de winkans van de speler aan zet in één ronde (zijn zet plus het antwoord) met 15% of meer daalt, per beurt. Dat zijn de momenten waarop het netwerk iets niet zag aankomen: aan het eind veel vaker dan aan het begin. Het zijn ook de plekken waar het meest te leren valt: bij het trainen tellen posities waar het netwerk ver ernaast zat zwaarder mee, en de laatste 2 beurten worden niet meer geschat maar exact uitgerekend.</p>
+    <div class="legend" id="lg-drops"></div>
+    <div id="drops"></div>
+    <p class="what" id="eg-note" style="margin-top:8px"></p>
+  </div>
+
   <div class="grid2">
     <div class="card">
       <h2>Wanneer gaat het mis?</h2>
-      <p class="what">Fouten per eigen beurt (1 = de eerste beurt van een speler). Een fout: een zet die bij twee zetten vooruit denken minstens 3 punten slechter uitpakt dan de beste; een grote fout minstens 6.</p>
+      <p class="what">Fouten per eigen beurt (1 = de eerste beurt van een speler). Een fout: een zet die bij twee zetten vooruit denken minstens 3 punten slechter uitpakt dan de beste; een grote fout minstens 6. In de laatste 2 beurten wordt niet geschat maar exact geteld.</p>
       <div class="legend" id="lg-when"></div>
       <div id="when"></div>
     </div>
@@ -249,6 +257,8 @@ $('tiles').innerHTML = [
   [T.mistakes.toFixed(2), 'fouten per partij', `waarvan ${T.big} groot in totaal`],
   [pct(T.clean), 'foutloze partijen', `gem. fout kost ${T.loss.toFixed(1)} punten`],
   [T.comebacks, 'comebacks', 'winnaar stond op ≤ 25%'],
+  ...(D.endgame && D.endgame.loss !== null ? [[D.endgame.loss.toFixed(2), 'punten eindspelverlies',
+      `per beurt in de laatste 2, exact geteld (${D.endgame.big}× ≥ 3)`]] : []),
 ].map(([v, k, d]) => `<div class="tile"><div class="v">${v}</div><div class="k">${k}</div><div class="d">${d}</div></div>`).join('');
 
 // ---------- win chance band ----------
@@ -272,6 +282,32 @@ function drawBand() {
   $('band').innerHTML = `<svg viewBox="0 0 ${w} ${h}" aria-label="Winkans van de beginspeler per beurt">${s}</svg>`;
   $('lg-band').innerHTML = `<span><i class="ln" style="background:${PHEX.red}"></i>winkans beginspeler (midden)</span><span><i style="background:${PHEX.red};opacity:.35"></i>middelste helft</span><span><i class="ln" style="background:var(--gold)"></i>hoe vaak de beginspeler echt wint</span>`;
   bindTips($('band'));
+}
+
+// ---------- where the chance to win falls fast ----------
+function drawDrops() {
+  const w = W('drops'), h = 200, m = { l: 40, r: 8, t: 14, b: 30 };
+  const R = D.drops || [];
+  if (!R.length) { $('drops').innerHTML = ''; return; }
+  const mx = Math.max(0.05, ...R.map(r => r[1]));
+  const bw = (w - m.l - m.r) / R.length;
+  const Y = v => m.t + (1 - v / mx) * (h - m.t - m.b);
+  let s = '';
+  for (const v of [0, mx / 2, mx]) s += `<line class="gridl" x1="${m.l}" x2="${w - m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${m.l - 6}" y="${Y(v) + 4}" text-anchor="end">${Math.round(v * 100)}%</text>`;
+  R.forEach(([k, a, b, n], i) => {
+    const x = m.l + i * bw + bw * .18, ww = bw * .64;
+    s += `<rect x="${x}" y="${Y(a)}" width="${ww}" height="${Math.max(0, Y(0) - Y(a))}" fill="#8fd3ff" rx="3"/>`;
+    if (b) s += `<rect x="${x}" y="${Y(b)}" width="${ww}" height="${Math.max(0, Y(0) - Y(b))}" fill="var(--crit)" rx="3"/>`;
+    if (k % 2 === 1 || R.length < 14) s += `<text x="${x + ww / 2}" y="${h - 10}" text-anchor="middle">${k}</text>`;
+    s += `<rect class="hit" x="${m.l + i * bw}" y="${m.t}" width="${bw}" height="${h - m.t - m.b}" data-tip="<b>Beurt ${k}</b><br>daling ≥ 15%: ${Math.round(a * 100)}% van de partijen<br>daling ≥ 30%: ${Math.round(b * 100)}%<br><span class='m'>${n} partijen</span>"/>`;
+  });
+  $('drops').innerHTML = `<svg viewBox="0 0 ${w} ${h}" aria-label="Hoe vaak de winkans snel daalt, per beurt">${s}</svg>`;
+  $('lg-drops').innerHTML = `<span><i style="background:#8fd3ff"></i>daling ≥ 15% in één ronde</span><span><i style="background:var(--crit)"></i>daling ≥ 30%</span>`;
+  const E = D.endgame;
+  $('eg-note').innerHTML = E && E.loss !== null
+    ? `Eindspel, exact geteld: in de laatste 2 beurten liet ${E.played_by ? 'de speler (die zijn laatste 2 beurten zelf uitrekent)' : 'het netwerk'} gemiddeld <b>${E.loss.toFixed(2)} punten</b> eindscore liggen per beurt; ${E.big} keer 3 punten of meer (van ${E.turns} beurten).`
+    : '';
+  bindTips($('drops'));
 }
 
 // ---------- mistakes per own turn (stacked) ----------
@@ -501,7 +537,7 @@ function openGame(seed, hlTurn) {
       const d = (g.series[k + 1] - g.series[k]) * (t.w === 0 ? 1 : -1);
       return `<div class="turn${t.m ? ' l' + t.m.v : ''}${hlTurn === k + 1 ? ' hl' : ''}" data-turn="${k + 1}" title="Bekijk op het bord">
         <span class="n">${k + 1}</span><span class="pdot" style="background:${PHEX[COL[t.w]]}"></span>
-        <span class="x">${esc(t.x)}${t.m ? `<div class="bt"><span class="badge l${t.m.v}">${t.m.v > 1 ? '⚠ grote fout' : '▲ fout'} −${t.m.l.toFixed(1)}</span> beter: ${esc(t.m.b)}</div>` : ''}</span>
+        <span class="x">${esc(t.x)}${t.m ? `<div class="bt"><span class="badge l${t.m.v}">${t.m.v > 1 ? '⚠ grote fout' : '▲ fout'} −${t.m.l.toFixed(1)}${t.m.e ? ' · exact' : ''}</span> beter: ${esc(t.m.b)}</div>` : ''}</span>
         <span class="dw ${Math.round(d * 100) === 0 ? '' : d > 0 ? 'up' : 'down'}" title="verandering in de eigen winkans">${sgn(Math.round(d * 100))}%</span>
         <a class="play" href="${replayUrl(g.s, k + 1)}">▶</a></div>`;
     }).join('')}</div>
@@ -531,7 +567,7 @@ $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) closeGa
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && openSeed !== null) closeGame(); });
 
 function drawAll() {
-  drawBand(); drawWhen(); drawKinds(); drawSwings(); drawCats(); drawTable();
+  drawBand(); drawDrops(); drawWhen(); drawKinds(); drawSwings(); drawCats(); drawTable();
   if (openSeed !== null) { gameChart(GAMES.get(openSeed), $('gWin'), 'win'); gameChart(GAMES.get(openSeed), $('gMargin'), 'margin'); }
 }
 drawAll();

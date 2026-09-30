@@ -58,6 +58,9 @@ def main():
                          "at a table of 4 (challenger, champion, challenger, champion) and the "
                          "test is against 3 greedy players")
     ap.add_argument("--batch", default="4096", help="positions per training step")
+    ap.add_argument("--surprise", default="0",
+                    help="extra weight on positions the champion judged far off "
+                         "(train_nn.py --surprise)")
     a = ap.parse_args()
     counts = [int(x) for x in a.players.split(",")]
     table = 4 if max(counts) > 2 else 2
@@ -93,7 +96,8 @@ def main():
         new = "%s_r%d" % (a.prefix, k)
         out, t2 = R.run(["train_nn.py", "--data"] + sp[-a.window:] +
                         ["--name", new, "--epochs", str(a.epochs), "--init", champion,
-                         "--lr", a.lr, "--td", str(a.td), "--td-mix", "0.5", "--batch", a.batch])
+                         "--lr", a.lr, "--td", str(a.td), "--td-mix", "0.5", "--batch", a.batch] +
+                        (["--surprise", a.surprise] if float(a.surprise) else []))
         m = match(new, champion, a.match_games, 80_000_000 + 1000 * k, table)
         g = C.arena_vs_greedy(new, None, a.arena_games, 81_000_000 + 1000 * k)
         won = m["win"] > a.accept
