@@ -21,3 +21,4 @@ site/
 
 # Raw games for the dashboard (make_dashboard.py puts the summary in dashboard.html)
 dashboard_data.json
+selfplay_data.json

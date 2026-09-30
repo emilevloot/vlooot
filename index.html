@@ -180,6 +180,40 @@
   .loading { display: grid; place-items: center; gap: 10px; text-align: center; }
   .loading .spin { width: 42px; height: 42px; border-radius: 50%; border: 4px solid var(--line); border-top-color: var(--rune); animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- replay (index.html?replay=<seed>&turn=<n>, from the dashboard) ---------- */
+  body.replaying { padding-bottom: 150px; }
+  .cell .played { stroke: #fff; stroke-width: 3.5; fill: #ffffff1f; pointer-events: none; }
+  .rbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    background: #0f171eee; border-top: 1px solid var(--line); backdrop-filter: blur(6px);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  }
+  .rbar .in { max-width: 1360px; margin: 0 auto; display: grid; gap: 8px; }
+  .rbar .ctl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .rbar .ctl a { text-decoration: none; }
+  .rbar .pos { font-weight: 700; min-width: 190px; font-variant-numeric: tabular-nums; }
+  .rbar input[type=range] { width: 100%; accent-color: var(--gold); }
+  .rbar .ticks { position: relative; height: 8px; margin: -4px 8px 0; }
+  .rbar .tick { position: absolute; top: 0; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: var(--gold); }
+  .rbar .tick.big { background: var(--rune); }
+  .rbar .note { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 15px; }
+  .rbar .move b { color: var(--snow); }
+  .rbar .win { color: var(--mist); font-variant-numeric: tabular-nums; }
+  .rbar .bad { background: #d0603f2e; border: 1px solid var(--rune); border-radius: 8px; padding: 3px 10px; }
+  .rbar .bad.l1 { background: #e6ad2e22; border-color: var(--gold); }
+  .rbar .btn.on { background: #8fd3ff33; border-color: #8fd3ff; }
+  @media (max-width: 640px) {
+    body.replaying { padding-bottom: 230px; }
+    .rbar { padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
+    .rbar .in { gap: 5px; }
+    .rbar .ctl { gap: 5px; }
+    .rbar .btn { padding: 5px 10px; }
+    .rbar .ctl .far, .rbar .ctl .lbl-long { display: none; }
+    .rbar .pos { min-width: 0; flex: 1; font-size: 14px; }
+    .rbar .ctl > div { flex-basis: 100% !important; }
+    .rbar .note { font-size: 13px; gap: 4px 8px; }
+  }
 </style>
 
 <div class="app">
@@ -265,6 +299,7 @@
   const SQ3 = Math.sqrt(3);
 
   let api = null, S = null, view = 0, busy = false;
+  let R = null;                            // the game being replayed (see startReplay)
   let sel = { occupy: false, double: false, tile: 0 };
   let lastError = '';
   let thoughts = null, thinkSeq = 0;       // the network's view (server.py /ai-view)
@@ -342,6 +377,8 @@
       });
       if (isLegal) out += `<polygon class="ring" points="${hexPts(x, y, s - 3)}"/>`;
       if (wants.has(k)) out += `<polygon class="want" points="${hexPts(x, y, s - 7)}"/>`;
+      if (R && R.played.has(k)) out += `<polygon class="played" points="${hexPts(x, y, s - 2)}"/>`;
+      if (R && R.better.has(k)) out += `<polygon class="want" points="${hexPts(x, y, s - 7)}"/>`;
       out += `</g>`;
     }
     // ocean with longships
@@ -466,6 +503,7 @@
   }
 
   function renderStatus() {
+    if (R) { $('status').innerHTML = replayStatus(); return; }
     const p = S.players[S.current];
     let what = '';
     if (S.game_over) {
@@ -852,7 +890,105 @@
     $('again').onclick = showSetup;
   }
 
-  $('btnNew').onclick = () => { if (api) showSetup(); };
+  $('btnNew').onclick = () => { if (R) location.href = location.pathname; else if (api) showSetup(); };
+
+  // ---------- replay: a recorded self-play game (selfplay_record.py) ----------
+  // replays/<seed>.json holds the state after every turn; the rules engine
+  // rebuilds each one (api.load_state) and the page draws it as usual.
+  // Frame 0 is the start, frame i the board after turn i.
+  async function startReplay(seed, turn) {
+    $('loadMsg').textContent = 'Loading the game…';
+    const res = await fetch(`replays/${encodeURIComponent(seed)}.json`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`No recorded game ${seed}`);
+    const G = await res.json();
+    const n = G.states.length - 1;
+    R = { G, i: Math.max(0, Math.min(turn, n)), alt: false, played: new Set(), better: new Set() };
+    render.shownEnd = true;                 // no score pop-up at the end
+    document.body.classList.add('replaying');
+    $('btnNew').textContent = 'Play a game';
+    $('overlay').hidden = true;
+    const bar = document.createElement('div');
+    bar.className = 'rbar';
+    document.body.appendChild(bar);
+    const ticks = G.turns.map((t, k) => t.mistake
+      ? `<span class="tick${t.mistake.level > 1 ? ' big' : ''}" style="left:${(k + 1) / n * 100}%" title="Beurt ${k + 1}: fout"></span>` : '').join('');
+    bar.innerHTML = `<div class="in">
+      <div class="ctl">
+        <a class="btn" href="dashboard.html#game=${G.seed}">←<span class="lbl-long"> Dashboard</span></a>
+        <button class="btn far" data-go="first" aria-label="Start">⏮</button>
+        <button class="btn" data-go="prev" aria-label="Vorige beurt">◀</button>
+        <span class="pos" id="rpPos"></span>
+        <button class="btn" data-go="next" aria-label="Volgende beurt">▶</button>
+        <button class="btn far" data-go="last" aria-label="Einde">⏭</button>
+        <button class="btn" data-go="mistake" aria-label="Volgende fout"><span class="lbl-long">Volgende fout </span>⚑</button>
+        <div style="flex:1;min-width:160px"><input type="range" id="rpSlider" min="0" max="${n}" value="${R.i}" aria-label="Beurt"><div class="ticks">${ticks}</div></div>
+      </div>
+      <div class="note" id="rpNote"></div></div>`;
+    const go = i => { R.alt = false; R.i = Math.max(0, Math.min(n, i)); showFrame(); };
+    bar.addEventListener('click', e => {
+      const b = e.target.closest('[data-go]');
+      if (!b) return;
+      const what = b.dataset.go;
+      if (what === 'alt') { R.alt = !R.alt; showFrame(); return; }
+      if (what === 'first') go(0);
+      if (what === 'prev') go(R.i - 1);
+      if (what === 'next') go(R.i + 1);
+      if (what === 'last') go(n);
+      if (what === 'mistake') {
+        const later = G.turns.findIndex((t, k) => k + 1 > R.i && t.mistake);
+        const first = G.turns.findIndex(t => t.mistake);
+        const k = later >= 0 ? later : first;
+        if (k >= 0) go(k + 1);
+      }
+    });
+    $('rpSlider').oninput = e => go(+e.target.value);
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      go(R.i + (e.key === 'ArrowRight' ? 1 : -1));
+    });
+    showFrame();
+  }
+
+  function showFrame() {
+    const G = R.G, i = R.i, t = G.turns[i - 1];
+    const alt = R.alt && t && G.alts && G.alts[String(i - 1)];
+    const st = alt ? { ...alt, land: G.land }
+                   : { ...G.states[i], land: G.land, log: G.log.slice(0, G.states[i].log_n) };
+    S = JSON.parse(api.load_state(JSON.stringify(st)));
+    view = t ? t.who : S.current;
+    R.played = new Set(t && !alt ? t.cells : []);
+    R.better = new Set(t && t.mistake ? t.mistake.better_cells : []);
+    $('rpSlider').value = i;
+    $('rpPos').textContent = i === 0 ? `Start · ${nTurns(G)} beurten` : `Beurt ${i}/${nTurns(G)} · ${S.players[t.who].name}`;
+    const pct = x => Math.round(x * 100) + '%';
+    const winAfter = i < G.turns.length ? G.turns[i].win0 : (G.winners.includes(0) ? 1 / G.winners.length : 0);
+    let h = '';
+    if (t) {
+      h += `<span class="move"><b>${esc(S.players[t.who].name)}:</b> ${esc(t.text)}</span>`;
+      h += `<span class="win">winkans ${esc(S.players[0].name)}: ${pct(t.win0)} → ${pct(winAfter)}</span>`;
+      if (t.mistake) {
+        const m = t.mistake;
+        h += `<span class="bad${m.level > 1 ? '' : ' l1'}">${m.level > 1 ? 'Grote fout' : 'Fout'}: kost ~${m.loss.toFixed(1)} punten. Beter: ${esc(m.better)}</span>`;
+        if (G.alts && G.alts[String(i - 1)])
+          h += `<button class="btn${alt ? ' on' : ''}" data-go="alt">${alt ? 'Toon gespeelde zet' : 'Toon betere zet'}</button>`;
+      }
+    } else {
+      h += `<span class="move">De beginstand. Loop door de partij met ◀ ▶ of de pijltjestoetsen.</span>`;
+    }
+    $('rpNote').innerHTML = h;
+    render();
+  }
+  const nTurns = G => G.states.length - 1;
+
+  function replayStatus() {
+    const G = R.G, t = G.turns[R.i - 1];
+    if (!t) return `<span class="what"><b>Replay</b> van partij ${G.seed}: ${esc(G.model)} tegen zichzelf.</span>`;
+    const who = S.players[t.who];
+    const alt = R.alt ? ' <b>(de betere zet, niet gespeeld)</b>' : '';
+    return `<span class="who" style="color:${PCOL[who.color]}">${esc(who.name)}</span>
+      <span class="what">${esc(t.text)}${alt}<br><span style="color:var(--mist);font-size:14px">${R.alt ? '' : 'Wit omlijnd: waar de Viking van deze beurt staat. '}${t.mistake ? 'Blauw gestreept: de betere plek. ' : ''}Je ziet de fjord van ${esc(who.name)}.</span></span>`;
+  }
 
   // ---------- boot Python ----------
   async function boot() {
@@ -891,7 +1027,9 @@
         const err = api.set_layout(await lay.text());
         if (err) console.warn('boards.json ignored:', err);
       }
-      showSetup();
+      const rp = new URLSearchParams(location.search);
+      if (rp.has('replay')) await startReplay(rp.get('replay'), +(rp.get('turn') || 0));
+      else showSetup();
     } catch (err) {
       $('loadingCard').innerHTML = `<h2 style="font:32px var(--display);margin:0">The ships could not sail</h2><p style="color:var(--mist)">Python didn't start in this browser: ${esc(err && err.message || err)}</p>`;
     }

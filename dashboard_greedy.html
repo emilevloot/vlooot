@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Looot tegen greedy</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface-1: #fcfcfb; --border: rgba(11,11,11,0.10);
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+    --s5: #e87ba4; --s6: #008300; --s7: #4a3aa7;
+    --div-neg: #e34948; --div-mid: #f0efec; --div-pos: #2a78d6;
+    --good: #006300;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface-1: #1a1a19; --border: rgba(255,255,255,0.10);
+      --text-primary: #ffffff; --text-secondary: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+      --s5: #d55181; --s6: #008300; --s7: #9085e9;
+      --div-neg: #e66767; --div-mid: #383835; --div-pos: #3987e5;
+      --good: #0ca30c;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface-1: #1a1a19; --border: rgba(255,255,255,0.10);
+    --text-primary: #ffffff; --text-secondary: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --s5: #d55181; --s6: #008300; --s7: #9085e9;
+    --div-neg: #e66767; --div-mid: #383835; --div-pos: #3987e5;
+    --good: #0ca30c;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text-primary);
+         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; padding: 0 16px; }
+  main { max-width: 1180px; margin: 0 auto; padding: 24px 0 48px; }
+  header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 26px; margin: 0; }
+  .sub { color: var(--text-secondary); margin: 4px 0 18px; }
+  .toggle { background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
+            border-radius: 8px; padding: 6px 12px; cursor: pointer; font: inherit; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .tile, .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; }
+  .tile { padding: 14px 16px; }
+  .tile .k { color: var(--text-secondary); font-size: 13px; }
+  .tile .v { font-size: 30px; font-weight: 650; margin-top: 2px; }
+  .tile .d { color: var(--muted); font-size: 13px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 16px; }
+  .card { padding: 16px; margin-bottom: 16px; min-width: 0; }
+  .card h2 { font-size: 17px; margin: 0 0 2px; }
+  .card p.what { color: var(--text-secondary); margin: 0 0 10px; font-size: 14px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin: 2px 0 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  svg text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  svg .lbl { fill: var(--text-secondary); font-size: 12px; }
+  .gridl { stroke: var(--grid); stroke-width: 1; }
+  .axisl { stroke: var(--axis); stroke-width: 1; }
+  .hit { fill: transparent; }
+  #tip { position: fixed; pointer-events: none; background: var(--surface-1); color: var(--text-primary);
+         border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 13px;
+         box-shadow: 0 6px 20px rgba(0,0,0,.15); display: none; z-index: 5; max-width: 260px; }
+  #tip b { font-weight: 650; }
+  #tip .row { display: flex; align-items: center; gap: 6px; }
+  #tip i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  details { margin-top: 8px; font-size: 13px; color: var(--text-secondary); }
+  table { border-collapse: collapse; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 3px 8px; text-align: right; border-bottom: 1px solid var(--grid); }
+  th:first-child, td:first-child { text-align: left; }
+  .small3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .small3 h3 { font-size: 14px; margin: 0; color: var(--text-secondary); font-weight: 600; }
+  .note { color: var(--muted); font-size: 13px; margin-top: 18px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Het netwerk tegen greedy</h1>
+    <a class="toggle" href="dashboard.html" style="text-decoration:none">← Partijen tegen zichzelf</a>
+    <button class="toggle" id="theme">Licht / donker</button>
+  </header>
+  <p class="sub" id="sub"></p>
+  <div class="tiles" id="tiles"></div>
+
+  <div class="card">
+    <h2>Winkans door de partij heen</h2>
+    <p class="what">Wat het netwerk zelf denkt dat zijn kans op winst is, aan het begin van elke beurt (van beide spelers). De lijn is de middelste partij, de band de middelste helft van de partijen.</p>
+    <div class="legend" id="lg-track"></div>
+    <div id="track"></div>
+  </div>
+
+  <div class="card">
+    <h2>Drie partijen van dichtbij</h2>
+    <p class="what">De winkans beurt voor beurt in drie partijen: een duidelijke winst, de grootste comeback en een verlies.</p>
+    <div class="small3" id="examples"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Klopt de voorspelling?</h2>
+      <p class="what">Alle voorspellingen gegroepeerd: als het netwerk X% zegt, hoe vaak wint het dan echt? Op de stippellijn zou een perfecte voorspelling liggen.</p>
+      <div id="calib"></div>
+    </div>
+    <div class="card">
+      <h2>Waar komen de punten vandaan?</h2>
+      <p class="what">Gemiddelde eindscore per categorie, netwerk tegen greedy.</p>
+      <div class="legend" id="lg-final"></div>
+      <div id="final"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Wat pakt hij per beurt?</h2>
+    <p class="what">Gemiddeld aantal tegels dat in de fjord belandt per eigen beurt (grondstoffen en gebouwtegels), het netwerk naast greedy.</p>
+    <div class="legend" id="lg-takes"></div>
+    <div class="grid2" style="gap:12px">
+      <div><h3 class="lbl" style="margin:0;font-size:14px;color:var(--text-secondary)">Netwerk</h3><div id="takes-nn"></div></div>
+      <div><h3 class="lbl" style="margin:0;font-size:14px;color:var(--text-secondary)">Greedy</h3><div id="takes-greedy"></div></div>
+    </div>
+    <details><summary>Tabel</summary><div id="takes-table"></div></details>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Wat wil hij hebben?</h2>
+      <p class="what">Hoeveel punten één extra item in zijn fjord het netwerk waard vindt, per eigen beurt (gevraagd aan het netwerk zelf). Blauw: wil hij graag; rood: liever niet.</p>
+      <div id="values"></div>
+    </div>
+    <div class="card">
+      <h2>Totaal per partij</h2>
+      <p class="what">Gemiddeld aantal tegels per soort aan het eind van een partij.</p>
+      <div class="legend" id="lg-totals"></div>
+      <div id="totals"></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Wanneer neemt hij een langschip?</h2>
+      <p class="what">Deel van de beurten waarin een schip wordt genomen, per eigen beurt.</p>
+      <div class="legend" id="lg-shiprate"></div>
+      <div id="shiprate"></div>
+      <p class="what" id="filled" style="margin-top:8px"></p>
+    </div>
+    <div class="card">
+      <h2>Welke schepen?</h2>
+      <p class="what">Gemiddeld aantal genomen schepen per partij, naar de categorie van hun bonus.</p>
+      <div class="legend" id="lg-shipcats"></div>
+      <div id="shipcats"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Schilden</h2>
+    <p class="what">In welke eigen beurt elk schild gemiddeld gebruikt wordt, en in hoeveel van de partijen.</p>
+    <div id="shields"></div>
+  </div>
+  <p class="note">Gemaakt met dashboard_data.py en make_dashboard.py.</p>
+</main>
+<div id="tip"></div>
+<script>
+const D = {"model": "s2_r19", "made": "2026-09-30 10:24", "n": 300, "tiles": {"win": 0.95, "score_nn": 110.85666666666667, "score_greedy": 80.70333333333333, "margin": 30.153333333333332}, "final": {"cats": ["castle", "watchtower", "house", "gold", "sheep", "wood", "sites", "trophy", "penalty"], "nn": [32.3, 15.2, 6.7, 15.4, 10.6, 8.9, 15.6, 7.5, -1.5], "greedy": [9.0, 8.0, 8.9, 12.9, 8.8, 8.5, 14.6, 11.9, -1.8]}, "ships_filled": {"nn": [6.45, 0.3], "greedy": [4.37, 0.36]}, "track": {"won": [[1, 0.511, 0.479, 0.543, 285], [2, 0.557, 0.534, 0.585, 285], [3, 0.602, 0.566, 0.628, 285], [4, 0.635, 0.601, 0.673, 285], [5, 0.674, 0.627, 0.717, 285], [6, 0.7, 0.659, 0.755, 285], [7, 0.73, 0.684, 0.773, 285], [8, 0.76, 0.705, 0.805, 285], [9, 0.788, 0.731, 0.827, 285], [10, 0.809, 0.748, 0.857, 285], [11, 0.821, 0.764, 0.87, 285], [12, 0.852, 0.792, 0.903, 285], [13, 0.875, 0.803, 0.916, 285], [14, 0.904, 0.838, 0.948, 285], [15, 0.923, 0.859, 0.966, 285], [16, 0.947, 0.882, 0.979, 285], [17, 0.966, 0.913, 0.986, 285], [18, 0.974, 0.933, 0.994, 285], [19, 0.985, 0.957, 0.996, 285], [20, 0.992, 0.973, 0.999, 285], [21, 0.997, 0.989, 1.0, 285], [22, 0.999, 0.995, 1.0, 285], [23, 1.0, 0.998, 1.0, 285], [24, 1.0, 1.0, 1.0, 285]], "lost": [[1, 0.48, 0.471, 0.523, 15], [2, 0.524, 0.5, 0.566, 15], [3, 0.59, 0.522, 0.617, 15], [4, 0.642, 0.526, 0.655, 15], [5, 0.628, 0.579, 0.69, 15], [6, 0.627, 0.604, 0.667, 15], [7, 0.641, 0.599, 0.712, 15], [8, 0.636, 0.617, 0.73, 15], [9, 0.672, 0.642, 0.72, 15], [10, 0.649, 0.612, 0.736, 15], [11, 0.659, 0.636, 0.707, 15], [12, 0.722, 0.659, 0.774, 15], [13, 0.73, 0.653, 0.773, 15], [14, 0.718, 0.577, 0.773, 15], [15, 0.74, 0.558, 0.776, 15], [16, 0.78, 0.669, 0.824, 15], [17, 0.779, 0.548, 0.815, 15], [18, 0.76, 0.56, 0.776, 15], [19, 0.695, 0.648, 0.754, 15], [20, 0.678, 0.491, 0.75, 15], [21, 0.58, 0.245, 0.702, 15], [22, 0.579, 0.303, 0.72, 15], [23, 0.397, 0.295, 0.697, 15], [24, 0.123, 0.032, 0.305, 15]]}, "n_won": 285, "n_lost": 15, "examples": [{"label": "Duidelijke winst", "seed": 31000260, "points": [[1, 0.5951, "nn"], [2, 0.6568, "greedy"], [3, 0.7191, "nn"], [4, 0.751, "greedy"], [5, 0.8473, "nn"], [6, 0.8566, "greedy"], [7, 0.8656, "nn"], [8, 0.9239, "greedy"], [9, 0.9091, "nn"], [10, 0.9329, "greedy"], [11, 0.9333, "nn"], [12, 0.9477, "greedy"], [13, 0.9666, "nn"], [14, 0.9912, "greedy"], [15, 0.9909, "nn"], [16, 0.9965, "greedy"], [17, 0.998, "nn"], [18, 0.9994, "greedy"], [19, 0.9996, "nn"], [20, 0.9999, "greedy"], [21, 0.9999, "nn"], [22, 1.0, "greedy"], [23, 1.0, "nn"], [24, 1.0, "greedy"]], "final": [120, 74]}, {"label": "Comeback", "seed": 31000249, "points": [[1, 0.4568, "greedy"], [2, 0.4596, "nn"], [3, 0.5308, "greedy"], [4, 0.4775, "nn"], [5, 0.4707, "greedy"], [6, 0.4862, "nn"], [7, 0.5476, "greedy"], [8, 0.6111, "nn"], [9, 0.7035, "greedy"], [10, 0.7107, "nn"], [11, 0.7859, "greedy"], [12, 0.7994, "nn"], [13, 0.7477, "greedy"], [14, 0.6178, "nn"], [15, 0.6626, "greedy"], [16, 0.7392, "nn"], [17, 0.6706, "greedy"], [18, 0.6647, "nn"], [19, 0.6676, "greedy"], [20, 0.7492, "nn"], [21, 0.6635, "greedy"], [22, 0.2591, "nn"], [23, 0.59, "greedy"], [24, 0.5584, "nn"]], "final": [113, 110]}, {"label": "Verlies", "seed": 31000251, "points": [[1, 0.5077, "greedy"], [2, 0.4983, "nn"], [3, 0.5091, "greedy"], [4, 0.489, "nn"], [5, 0.5616, "greedy"], [6, 0.6328, "nn"], [7, 0.6805, "greedy"], [8, 0.7095, "nn"], [9, 0.7204, "greedy"], [10, 0.7372, "nn"], [11, 0.7516, "greedy"], [12, 0.8245, "nn"], [13, 0.8935, "greedy"], [14, 0.8925, "nn"], [15, 0.8264, "greedy"], [16, 0.8539, "nn"], [17, 0.8169, "greedy"], [18, 0.821, "nn"], [19, 0.7767, "greedy"], [20, 0.8898, "nn"], [21, 0.8913, "greedy"], [22, 0.9201, "nn"], [23, 0.9343, "greedy"], [24, 0.5116, "nn"]], "final": [96, 97]}], "calib": [[0.471, 0.856, 208], [0.555, 0.912, 792], [0.651, 0.902, 991], [0.751, 0.929, 1172], [0.849, 0.97, 1122], [0.975, 0.999, 2866]], "takes": {"nn": {"turns": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], "items": {"wood": [0.2, 0.38, 0.267, 0.227, 0.29, 0.263, 0.3, 0.307, 0.303, 0.293, 0.357, 0.377], "sheep": [0.46, 0.253, 0.433, 0.277, 0.28, 0.267, 0.257, 0.237, 0.243, 0.277, 0.31, 0.303], "gold": [0.39, 0.66, 0.227, 0.313, 0.23, 0.223, 0.25, 0.25, 0.17, 0.223, 0.2, 0.16], "axe": [0.257, 0.377, 0.383, 0.367, 0.287, 0.307, 0.263, 0.263, 0.333, 0.297, 0.21, 0.13], "house": [0.797, 0.53, 0.333, 0.21, 0.173, 0.25, 0.24, 0.25, 0.25, 0.177, 0.123, 0.08], "watchtower": [0.167, 0.53, 0.337, 0.45, 0.463, 0.337, 0.363, 0.337, 0.353, 0.303, 0.267, 0.163], "castle": [0.0, 0.0, 0.37, 0.333, 0.29, 0.247, 0.62, 0.613, 0.367, 0.373, 0.36, 0.36]}}, "greedy": {"turns": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], "items": {"wood": [0.227, 0.48, 0.31, 0.26, 0.297, 0.277, 0.283, 0.26, 0.267, 0.267, 0.277, 0.293], "sheep": [0.207, 0.373, 0.327, 0.243, 0.267, 0.263, 0.23, 0.27, 0.31, 0.303, 0.297, 0.29], "gold": [0.383, 0.427, 0.363, 0.277, 0.183, 0.207, 0.21, 0.193, 0.223, 0.177, 0.18, 0.143], "axe": [0.87, 0.393, 0.307, 0.4, 0.36, 0.29, 0.277, 0.287, 0.2, 0.253, 0.247, 0.273], "house": [1.027, 0.53, 0.35, 0.357, 0.38, 0.413, 0.377, 0.313, 0.24, 0.18, 0.157, 0.1], "watchtower": [0.2, 0.7, 0.267, 0.227, 0.37, 0.243, 0.233, 0.173, 0.133, 0.13, 0.073, 0.043], "castle": [0.0, 0.0, 0.28, 0.247, 0.27, 0.137, 0.21, 0.187, 0.113, 0.077, 0.067, 0.043]}}}, "totals": {"nn": [3.56, 3.6, 3.3, 3.47, 3.41, 4.07, 3.93], "greedy": [3.5, 3.38, 2.97, 4.16, 4.42, 2.79, 1.63]}, "shiprate": {"nn": [[1, 0.987], [2, 0.913], [3, 0.78], [4, 0.737], [5, 0.727], [6, 0.723], [7, 0.653], [8, 0.54], [9, 0.373], [10, 0.183], [11, 0.09], [12, 0.04]], "greedy": [[1, 0.247], [2, 0.58], [3, 0.523], [4, 0.563], [5, 0.7], [6, 0.613], [7, 0.46], [8, 0.47], [9, 0.32], [10, 0.153], [11, 0.063], [12, 0.043]]}, "shipcats": {"cats": ["castle", "watchtower", "house", "gold", "sheep", "wood"], "nn": [1.333, 1.11, 0.777, 1.087, 1.277, 1.163], "greedy": [0.467, 0.533, 0.82, 0.88, 0.947, 1.09]}, "shields": {"nn": {"extra": [2.4, 1.0], "occupy": [8.5, 0.79], "double": [5.3, 0.99]}, "greedy": {"extra": [2.5, 1.0], "occupy": [5.9, 0.99], "double": [2.0, 1.0]}}, "values": {"turns": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], "items": ["wood", "sheep", "gold", "axe", "house", "watchtower", "castle"], "grid": [[-0.56, -0.3, -0.21, -0.17, -0.05, -0.02, 0.01, 0.2, 0.37, 0.68, 0.9, 1.13], [-0.42, -0.14, 0.14, 0.05, 0.04, 0.2, 0.23, 0.37, 0.46, 0.85, 1.17, 1.2], [0.64, 0.51, 0.73, 0.79, 0.62, 0.68, 0.78, 0.86, 1.04, 1.39, 1.44, 1.75], [0.11, -0.07, 0.08, -0.05, 0.09, 0.23, 0.27, 0.24, 0.41, 0.39, 0.17, 0.12], [0.84, 0.68, 1.08, 1.01, 0.98, 1.04, 1.04, 1.01, 1.08, 1.16, 1.31, 1.47], [0.73, 0.93, 1.02, 1.06, 1.05, 1.1, 1.06, 1.15, 1.29, 1.45, 1.71, 1.88], [1.74, 1.71, 2.01, 1.71, 1.63, 1.79, 1.96, 2.25, 2.64, 3.08, 3.63, 4.11]]}};
+const NL = { wood: 'Hout', sheep: 'Schapen', gold: 'Goud', axe: 'Bijl', house: 'Huis', watchtower: 'Toren',
+             castle: 'Kasteel', sites: 'Bouwplaatsen', trophy: 'Trofee', penalty: 'Onvolle schepen' };
+const ITEM_COL = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7'];   // fixed order, never cycled
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const $ = id => document.getElementById(id);
+const pct = v => Math.round(v * 100) + '%';
+const f1 = v => (Math.round(v * 10) / 10).toLocaleString('nl-NL', { minimumFractionDigits: 1 });
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+
+// --- tooltip ---
+const tip = $('tip');
+function showTip(ev, html) { tip.innerHTML = html; tip.style.display = 'block';
+  const x = Math.min(ev.clientX + 14, innerWidth - tip.offsetWidth - 8);
+  const y = Math.min(ev.clientY + 14, innerHeight - tip.offsetHeight - 8);
+  tip.style.left = x + 'px'; tip.style.top = y + 'px'; }
+function hideTip() { tip.style.display = 'none'; }
+const sw = c => `<i style="background:var(${c})"></i>`;
+
+function legend(id, entries) {
+  $(id).innerHTML = entries.map(([name, c]) => `<span><i style="background:var(${c})"></i>${name}</span>`).join('');
+}
+
+// --- a frame: scales, gridlines, axes ---
+function frame(host, { w = 560, h = 240, x0, x1, y0, y1, xticks, yticks, yfmt = v => v, xfmt = v => v, left = 42 }) {
+  host.innerHTML = '';
+  const m = { l: left, r: 12, t: 10, b: 26 };
+  const svg = el('svg', { viewBox: `0 0 ${w} ${h}`, role: 'img' }, host);
+  const X = v => m.l + (v - x0) / (x1 - x0) * (w - m.l - m.r);
+  const Y = v => h - m.b - (v - y0) / (y1 - y0) * (h - m.t - m.b);
+  for (const t of yticks) {
+    el('line', { x1: m.l, x2: w - m.r, y1: Y(t), y2: Y(t), class: 'gridl' }, svg);
+    el('text', { x: m.l - 6, y: Y(t) + 4, 'text-anchor': 'end' }, svg).textContent = yfmt(t);
+  }
+  for (const t of xticks) el('text', { x: X(t), y: h - 8, 'text-anchor': 'middle' }, svg).textContent = xfmt(t);
+  el('line', { x1: m.l, x2: w - m.r, y1: Y(Math.max(y0, 0)), y2: Y(Math.max(y0, 0)), class: 'axisl' }, svg);
+  return { svg, X, Y, m, w, h };
+}
+const range = (a, b, s = 1) => { const r = []; for (let v = a; v <= b; v += s) r.push(v); return r; };
+const pathOf = pts => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join('');
+
+// --- tiles ---
+function tiles() {
+  const t = D.tiles;
+  $('sub').textContent = `Netwerk ${D.model} tegen de greedy computerspeler · ${D.n} partijen op de echte borden · gemaakt ${D.made}`;
+  const list = [
+    ['Wint van greedy', pct(t.win), `${D.n_won} van de ${D.n} partijen`],
+    ['Gemiddelde score', f1(t.score_nn), `greedy: ${f1(t.score_greedy)}`],
+    ['Gemiddelde voorsprong', '+' + f1(t.margin), 'punten per partij'],
+    ['Punten uit kastelen', f1(D.final.nn[0]), `greedy: ${f1(D.final.greedy[0])}`],
+  ];
+  $('tiles').innerHTML = list.map(([k, v, d]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
+}
+
+// --- win chance band chart ---
+function track() {
+  const series = [['Gewonnen partijen', '--s1', D.track.won, D.n_won], ['Verloren partijen', '--s2', D.track.lost, D.n_lost]];
+  legend('lg-track', series.map(s => [`${s[0]} (${s[3]})`, s[1]]));
+  const T = Math.max(...series.map(s => s[2].length ? s[2][s[2].length - 1][0] : 0));
+  const f = frame($('track'), { w: 1100, h: 280, x0: 1, x1: T, y0: 0, y1: 1, xticks: range(1, T, 2),
+    yticks: [0, .25, .5, .75, 1], yfmt: pct, xfmt: v => 'beurt ' + v });
+  for (const [name, c, rows] of series) {
+    if (!rows.length) continue;
+    const band = rows.map(r => [f.X(r[0]), f.Y(r[3])]).concat(rows.slice().reverse().map(r => [f.X(r[0]), f.Y(r[2])]));
+    el('path', { d: pathOf(band) + 'Z', fill: `var(${c})`, opacity: .16 }, f.svg);
+    el('path', { d: pathOf(rows.map(r => [f.X(r[0]), f.Y(r[1])])), fill: 'none', stroke: `var(${c})`, 'stroke-width': 2 }, f.svg);
+    const last = rows[rows.length - 1];
+    el('text', { x: f.X(last[0]) - 4, y: f.Y(last[1]) + (c === '--s1' ? -8 : 14), 'text-anchor': 'end', class: 'lbl' }, f.svg).textContent = name;
+  }
+  // crosshair + tooltip
+  const cross = el('line', { y1: f.m.t, y2: f.h - f.m.b, class: 'axisl', visibility: 'hidden' }, f.svg);
+  const hit = el('rect', { x: f.m.l, y: f.m.t, width: f.w - f.m.l - f.m.r, height: f.h - f.m.t - f.m.b, class: 'hit' }, f.svg);
+  hit.addEventListener('mousemove', ev => {
+    const r = f.svg.getBoundingClientRect(); const vx = (ev.clientX - r.left) / r.width * f.w;
+    const t = Math.max(1, Math.min(T, Math.round(1 + (vx - f.m.l) / (f.w - f.m.l - f.m.r) * (T - 1))));
+    cross.setAttribute('x1', f.X(t)); cross.setAttribute('x2', f.X(t)); cross.setAttribute('visibility', 'visible');
+    const lines = series.map(([name, c, rows]) => { const row = rows.find(x => x[0] === t);
+      return row ? `<div class="row">${sw(c)}${name}: <b>${pct(row[1])}</b> <span style="color:var(--muted)">(${pct(row[2])}–${pct(row[3])})</span></div>` : ''; }).join('');
+    showTip(ev, `<b>Beurt ${t}</b>${lines}`);
+  });
+  hit.addEventListener('mouseleave', () => { hideTip(); cross.setAttribute('visibility', 'hidden'); });
+}
+
+// --- three example games ---
+function examples() {
+  $('examples').innerHTML = '';
+  D.examples.forEach((e, i) => {
+    const box = document.createElement('div');
+    box.innerHTML = `<h3>${e.label} · eindstand ${e.final[0]} – ${e.final[1]}</h3>`;
+    const host = document.createElement('div'); box.appendChild(host); $('examples').appendChild(box);
+    const T = e.points.length;
+    const f = frame(host, { w: 360, h: 190, x0: 1, x1: T, y0: 0, y1: 1, xticks: range(1, T, 6), yticks: [0, .5, 1], yfmt: pct, left: 36 });
+    el('path', { d: pathOf(e.points.map(p => [f.X(p[0]), f.Y(p[1])])), fill: 'none', stroke: 'var(--s1)', 'stroke-width': 2 }, f.svg);
+    for (const p of e.points) {
+      const c = el('circle', { cx: f.X(p[0]), cy: f.Y(p[1]), r: 3.2, fill: p[2] === 'nn' ? 'var(--s1)' : 'var(--surface-1)',
+        stroke: 'var(--s1)', 'stroke-width': 1.5 }, f.svg);
+      const h = el('circle', { cx: f.X(p[0]), cy: f.Y(p[1]), r: 9, class: 'hit' }, f.svg);
+      h.addEventListener('mousemove', ev => showTip(ev, `<b>Beurt ${p[0]}</b> (${p[2] === 'nn' ? 'netwerk' : 'greedy'} aan zet)<br>winkans ${pct(p[1])}`));
+      h.addEventListener('mouseleave', hideTip);
+    }
+  });
+}
+
+// --- calibration ---
+function calib() {
+  const f = frame($('calib'), { w: 520, h: 260, x0: 0.4, x1: 1, y0: 0.4, y1: 1, xticks: [.4, .5, .6, .7, .8, .9, 1],
+    yticks: [.4, .6, .8, 1], yfmt: pct, xfmt: pct });
+  el('line', { x1: f.X(.4), y1: f.Y(.4), x2: f.X(1), y2: f.Y(1), stroke: 'var(--axis)', 'stroke-dasharray': '4 4' }, f.svg);
+  el('path', { d: pathOf(D.calib.map(c => [f.X(c[0]), f.Y(c[1])])), fill: 'none', stroke: 'var(--s1)', 'stroke-width': 2 }, f.svg);
+  for (const c of D.calib) {
+    el('circle', { cx: f.X(c[0]), cy: f.Y(c[1]), r: 5, fill: 'var(--s1)', stroke: 'var(--surface-1)', 'stroke-width': 2 }, f.svg);
+    const h = el('circle', { cx: f.X(c[0]), cy: f.Y(c[1]), r: 12, class: 'hit' }, f.svg);
+    h.addEventListener('mousemove', ev => showTip(ev, `Voorspeld gemiddeld <b>${pct(c[0])}</b><br>echt gewonnen <b>${pct(c[1])}</b><br><span style="color:var(--muted)">${c[2]} voorspellingen</span>`));
+    h.addEventListener('mouseleave', hideTip);
+  }
+  el('text', { x: f.X(.42), y: f.Y(.97), class: 'lbl' }, f.svg).textContent = 'echt gewonnen';
+  el('text', { x: f.X(.99), y: f.Y(.43), 'text-anchor': 'end', class: 'lbl' }, f.svg).textContent = 'voorspelde winkans';
+}
+
+// --- grouped bars (2 series) ---
+function grouped(host, cats, series, { h = 250, yfmt = f1 } = {}) {
+  const vals = series.flatMap(s => s[2]);
+  const top = Math.ceil(Math.max(...vals, 0) / 5) * 5 || 1, bot = Math.min(0, Math.floor(Math.min(...vals) / 5) * 5);
+  const step = top - bot > 20 ? 10 : 5;
+  const f = frame(host, { w: 560, h, x0: 0, x1: cats.length, y0: bot, y1: top, xticks: [], yticks: range(bot, top, step), yfmt });
+  const bw = (f.X(1) - f.X(0)) * 0.34;
+  cats.forEach((c, i) => {
+    el('text', { x: f.X(i + .5), y: f.h - 8, 'text-anchor': 'middle' }, f.svg).textContent = NL[c] || c;
+    series.forEach(([name, col, v], j) => {
+      const x = f.X(i + .5) - bw - 1 + j * (bw + 2);
+      const y1 = f.Y(Math.max(v[i], 0)), y2 = f.Y(Math.min(v[i], 0));
+      el('rect', { x, y: y1, width: bw, height: Math.max(1, y2 - y1), rx: 3, fill: `var(${col})` }, f.svg);
+    });
+    const hit = el('rect', { x: f.X(i), y: f.m.t, width: f.X(1) - f.X(0), height: f.h - f.m.t - f.m.b, class: 'hit' }, f.svg);
+    hit.addEventListener('mousemove', ev => showTip(ev, `<b>${NL[c] || c}</b>` + series.map(([n, col, v]) => `<div class="row">${sw(col)}${n}: <b>${yfmt(v[i])}</b></div>`).join('')));
+    hit.addEventListener('mouseleave', hideTip);
+  });
+}
+
+// --- stacked bars per turn ---
+function stacked(host, turns, items, data, top) {
+  const f = frame(host, { w: 540, h: 230, x0: .5, x1: turns.length + .5, y0: 0, y1: top, xticks: turns.filter(t => t % 2 === 1),
+    yticks: range(0, top, .5), yfmt: v => v.toLocaleString('nl-NL'), xfmt: v => v });
+  const bw = (f.X(1) - f.X(0)) * .62;
+  turns.forEach((t, i) => {
+    let acc = 0;
+    items.forEach((it, j) => {
+      const v = data[it][i]; if (v <= 0) return;
+      const y1 = f.Y(acc + v), y2 = f.Y(acc);
+      el('rect', { x: f.X(i + 1) - bw / 2, y: y1, width: bw, height: Math.max(0, y2 - y1 - 2), rx: 2, fill: `var(${ITEM_COL[j]})` }, f.svg);
+      acc += v;
+    });
+    const hit = el('rect', { x: f.X(i + .5), y: f.m.t, width: f.X(1) - f.X(0), height: f.h - f.m.t - f.m.b, class: 'hit' }, f.svg);
+    hit.addEventListener('mousemove', ev => showTip(ev, `<b>Eigen beurt ${t}</b>` +
+      items.map((it, j) => `<div class="row">${sw(ITEM_COL[j])}${NL[it]}: <b>${data[it][i].toLocaleString('nl-NL', { maximumFractionDigits: 2 })}</b></div>`).join('')));
+    hit.addEventListener('mouseleave', hideTip);
+  });
+  el('text', { x: f.X(turns.length / 2 + .5), y: f.h + 6, 'text-anchor': 'middle' }, f.svg).textContent = '';
+}
+function takes() {
+  const items = ['wood', 'sheep', 'gold', 'axe', 'house', 'watchtower', 'castle'];
+  legend('lg-takes', items.map((it, j) => [NL[it], ITEM_COL[j]]));
+  const tot = w => D.takes[w].turns.map((_, i) => items.reduce((s, it) => s + D.takes[w].items[it][i], 0));
+  const top = Math.ceil(Math.max(...tot('nn'), ...tot('greedy')) * 2) / 2;
+  stacked($('takes-nn'), D.takes.nn.turns, items, D.takes.nn.items, top);
+  stacked($('takes-greedy'), D.takes.greedy.turns, items, D.takes.greedy.items, top);
+  const head = '<tr><th>Beurt</th>' + D.takes.nn.turns.map(t => `<th>${t}</th>`).join('') + '</tr>';
+  const rows = w => items.map(it => `<tr><td>${w === 'nn' ? 'Netwerk' : 'Greedy'} · ${NL[it]}</td>` +
+    D.takes[w].items[it].map(v => `<td>${v.toFixed(2)}</td>`).join('') + '</tr>').join('');
+  $('takes-table').innerHTML = `<div style="overflow-x:auto"><table>${head}${rows('nn')}${rows('greedy')}</table></div>`;
+}
+
+// --- values heatmap (diverging) ---
+function values() {
+  const V = D.values, host = $('values'); host.innerHTML = '';
+  const w = 540, cw = (w - 90) / V.turns.length, ch = 26, h = V.items.length * ch + 30;
+  const svg = el('svg', { viewBox: `0 0 ${w} ${h}` }, host);
+  const lim = Math.max(...V.grid.flat().map(Math.abs));
+  const mix = (a, b, t) => { const p = x => [1, 3, 5].map(i => parseInt(x.slice(i, i + 2), 16));
+    const A = p(a), B = p(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`; };
+  const color = v => v >= 0 ? mix(css('--div-mid'), css('--div-pos'), Math.min(1, v / lim)) : mix(css('--div-mid'), css('--div-neg'), Math.min(1, -v / lim));
+  V.items.forEach((it, r) => {
+    el('text', { x: 82, y: r * ch + ch / 2 + 4, 'text-anchor': 'end', class: 'lbl' }, svg).textContent = NL[it];
+    V.turns.forEach((t, c) => {
+      const v = V.grid[r][c];
+      const cell = el('rect', { x: 90 + c * cw + 1, y: r * ch + 1, width: cw - 2, height: ch - 2, rx: 3, fill: color(v) }, svg);
+      cell.addEventListener('mousemove', ev => showTip(ev, `<b>${NL[it]}</b>, eigen beurt ${t}<br>één extra is <b>${v > 0 ? '+' : ''}${v.toLocaleString('nl-NL')}</b> punten waard`));
+      cell.addEventListener('mouseleave', hideTip);
+    });
+  });
+  V.turns.forEach((t, c) => { if (c % 2 === 0) el('text', { x: 90 + c * cw + cw / 2, y: h - 8, 'text-anchor': 'middle' }, svg).textContent = t; });
+  el('text', { x: 90, y: h + 8, class: 'lbl' }, svg).textContent = 'eigen beurt →';
+}
+
+// --- line chart (2 series) ---
+function lines2(host, series, yfmt) {
+  const T = Math.max(...series.flatMap(s => s[2].map(p => p[0])));
+  const f = frame(host, { w: 540, h: 220, x0: 1, x1: T, y0: 0, y1: 1, xticks: range(1, T, 1), yticks: [0, .25, .5, .75, 1], yfmt });
+  for (const [name, c, pts] of series) {
+    el('path', { d: pathOf(pts.map(p => [f.X(p[0]), f.Y(p[1])])), fill: 'none', stroke: `var(${c})`, 'stroke-width': 2 }, f.svg);
+    for (const p of pts) el('circle', { cx: f.X(p[0]), cy: f.Y(p[1]), r: 3, fill: `var(${c})` }, f.svg);
+  }
+  const hit = el('rect', { x: f.m.l, y: f.m.t, width: f.w - f.m.l - f.m.r, height: f.h - f.m.t - f.m.b, class: 'hit' }, f.svg);
+  hit.addEventListener('mousemove', ev => {
+    const r = f.svg.getBoundingClientRect(); const vx = (ev.clientX - r.left) / r.width * f.w;
+    const t = Math.max(1, Math.min(T, Math.round(1 + (vx - f.m.l) / (f.w - f.m.l - f.m.r) * (T - 1))));
+    showTip(ev, `<b>Eigen beurt ${t}</b>` + series.map(([n, c, pts]) => { const p = pts.find(q => q[0] === t);
+      return p ? `<div class="row">${sw(c)}${n}: <b>${yfmt(p[1])}</b></div>` : ''; }).join(''));
+  });
+  hit.addEventListener('mouseleave', hideTip);
+}
+
+function shieldsTable() {
+  const S = D.shields, name = { extra: '+1 Viking', occupy: 'Stapelen', double: '2× grondstof' };
+  const row = s => `<tr><td>${name[s]}</td>` + ['nn', 'greedy'].map(w =>
+    `<td>${S[w][s][0] ?? '–'}</td><td>${pct(S[w][s][1])}</td>`).join('') + '</tr>';
+  $('shields').innerHTML = `<table><tr><th>Schild</th><th>Netwerk: beurt</th><th>gebruikt</th><th>Greedy: beurt</th><th>gebruikt</th></tr>${['extra', 'double', 'occupy'].map(row).join('')}</table>`;
+}
+
+function render() {
+  tiles(); track(); examples(); calib();
+  legend('lg-final', [['Netwerk', '--s1'], ['Greedy', '--s2']]);
+  grouped($('final'), D.final.cats, [['Netwerk', '--s1', D.final.nn], ['Greedy', '--s2', D.final.greedy]]);
+  takes(); values();
+  legend('lg-totals', [['Netwerk', '--s1'], ['Greedy', '--s2']]);
+  grouped($('totals'), ['wood', 'sheep', 'gold', 'axe', 'house', 'watchtower', 'castle'],
+          [['Netwerk', '--s1', D.totals.nn], ['Greedy', '--s2', D.totals.greedy]]);
+  legend('lg-shiprate', [['Netwerk', '--s1'], ['Greedy', '--s2']]);
+  lines2($('shiprate'), [['Netwerk', '--s1', D.shiprate.nn], ['Greedy', '--s2', D.shiprate.greedy]], pct);
+  const F = D.ships_filled;
+  $('filled').textContent = `Per partij vol gekregen / onvol gebleven: netwerk ${f1(F.nn[0])} / ${f1(F.nn[1])}, greedy ${f1(F.greedy[0])} / ${f1(F.greedy[1])}.`;
+  legend('lg-shipcats', [['Netwerk', '--s1'], ['Greedy', '--s2']]);
+  grouped($('shipcats'), D.shipcats.cats, [['Netwerk', '--s1', D.shipcats.nn], ['Greedy', '--s2', D.shipcats.greedy]],
+          { yfmt: v => v.toLocaleString('nl-NL', { maximumFractionDigits: 2 }) });
+  shieldsTable();
+}
+render();
+
+// theme toggle (remembered in this browser)
+const root = document.documentElement;
+try { const t = localStorage.getItem('looot-dash-theme'); if (t) root.dataset.theme = t; } catch (e) {}
+$('theme').onclick = () => {
+  const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  root.dataset.theme = dark ? 'light' : 'dark';
+  try { localStorage.setItem('looot-dash-theme', root.dataset.theme); } catch (e) {}
+  render();
+};
+</script>
+</body>
+</html>
