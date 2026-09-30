@@ -411,7 +411,7 @@
       loadedFrom = 'Saved to boards.json · start a new game to use it';
       renderTop();
     } catch (err) {
-      alert('Could not save directly (' + err.message + ').\n\nStart the game with start_game.bat so the editor can save, or use Download and put boards.json in the Looot folder.');
+      alert('Could not save directly (' + err.message + ').\n\nStart the game with start/start_game.bat so the editor can save, or use Download and put boards.json in the Looot folder.');
     }
   }
   $('btnSave').onclick = save;

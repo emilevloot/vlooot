@@ -2,8 +2,8 @@
 Checks that mp_game.py (the Numba copy of the game for 2-4 players) plays
 EXACTLY like looot.py, and encodes exactly like mp_encode.encode_reference.
 
-    python test_mp.py            # all checks
-    python test_mp.py quick      # fewer games
+    python tests/test_mp.py            # all checks
+    python tests/test_mp.py quick      # fewer games
 
   1. encoding   mp_game's encoding == mp_encode.encode_reference, and for
                 2 players the same numbers as the 2-player encoding
@@ -14,8 +14,14 @@ EXACTLY like looot.py, and encodes exactly like mp_encode.encode_reference.
 """
 
 import os
-import random
 import sys
+
+# This script lives in tests/; the modules and files it uses are in the
+# project folder above it.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+import random
 import time
 
 os.environ.setdefault("OMP_NUM_THREADS", "1")

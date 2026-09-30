@@ -1,7 +1,14 @@
-"""Build mp_game.py (up to 4 players) from fastgame.py (2 players)."""
+"""Build mp_game.py (up to 4 players) from fastgame.py (2 players).
+
+    python tools/make_mp_game.py
+"""
+import os
 import re
 
-s = open("fastgame.py", encoding="utf-8").read()
+TOOLS = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(TOOLS)       # fastgame.py and mp_game.py are there
+
+s = open(os.path.join(ROOT, "fastgame.py"), encoding="utf-8").read()
 
 
 def sub(a, b, n=1):
@@ -142,7 +149,7 @@ def outcome(s, gs, me):
 # the encoding
 a = s.index("# Encoding: exactly the numbers of nn_encode.encode_reference")
 b = s.index("@njit(cache=True)\ndef encode_many")
-s = s[:a] + open("mp_enc_block.py", encoding="utf-8").read() + s[b:]
+s = s[:a] + open(os.path.join(TOOLS, "mp_enc_block.py"), encoding="utf-8").read() + s[b:]
 s = s.replace("2, NF, FJORD_F", "MAXPL, NF, FJORD_F")
 
 # outcome callers
@@ -204,6 +211,6 @@ sub("@njit(cache=True)\ndef policy_target(s0, s1, w, place, tile, ship):",
     "            return True\n"
     "    return False\n\n\n"
     "@njit(cache=True)\ndef policy_target(s0, s1, w, place, tile, ship):")
-open("mp_game.py", "w", encoding="utf-8", newline="\n").write(s)
+open(os.path.join(ROOT, "mp_game.py"), "w", encoding="utf-8", newline="\n").write(s)
 left = [m.start() for m in re.finditer(r"S_VIK \+ NL|2 \* NL|range\(2\)", s)]
 print("mp_game.py written; places to look at:", [s.count("\n", 0, p) + 1 for p in left])

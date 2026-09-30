@@ -2,23 +2,30 @@
 Play games between the network and the greedy player and record how the
 network plays, for the dashboard (make_dashboard.py).
 
-    python dashboard_data.py --games 300 --model s2_r19
+    python tools/dashboard_data.py --games 300 --model s2_r19
 
 Per game: the network's win chance and expected margin at the start of every
 turn (from its own seat), what each player took each turn (resources,
 building tiles, longships, shields, trophy), the values the network gives
 each item at the start of its turns (nn_bot.thoughts), and the final score
-of both players per category. Written to dashboard_data.json.
+of both players per category. Written to results/dashboard_data.json.
 """
+
+import os
+import sys
+
+# This script lives in tools/; the modules and files it uses are in the
+# project folder above it.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
 
 import argparse
 import json
-import os
 import random
 import time
 from concurrent.futures import ProcessPoolExecutor
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = ROOT
 ITEMS = ["wood", "sheep", "gold", "axe", "house", "watchtower", "castle"]
 CATS = ["castle", "watchtower", "house", "gold", "sheep", "wood"]
 
@@ -104,7 +111,7 @@ def main():
         games = list(ex.map(play, jobs, chunksize=2))
     out = {"model": a.model, "opponent": "greedy", "made": time.strftime("%Y-%m-%d %H:%M"),
            "games": games}
-    with open(os.path.join(HERE, "dashboard_data.json"), "w") as f:
+    with open(os.path.join(HERE, "results", "dashboard_data.json"), "w") as f:
         json.dump(out, f)
     won = sum(gm["nn_won"] for gm in games) / len(games)
     print("%d games in %.0f s; the network won %.1f%%" % (len(games), time.time() - t0, 100 * won))

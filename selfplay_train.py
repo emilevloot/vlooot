@@ -11,7 +11,7 @@ always one CHAMPION. Every round:
 
 So the network has to beat ITS OWN best version to move on; the greedy
 player is no longer the yardstick (it only gets a look each round, for the
-graphs). Everything goes to curriculum_<prefix>_log.txt / _results.json,
+graphs). Everything goes to results/curriculum_<prefix>_log.txt / _results.json,
 in the curriculum's format (so compare_runs.py and the report work too).
 
     python selfplay_train.py --prefix s1 --init c5t_full_r10 --hours 3

@@ -2,7 +2,7 @@
 Build site/: everything needed to play Looot on a web site without a server
 (GitHub Pages), the network player included.
 
-    python make_site.py
+    python tools/make_site.py
 
 The game runs in the visitor's browser (Python via Pyodide, py/). The network
 player runs there too: numpy comes from Pyodide's own site, the network file
@@ -12,10 +12,17 @@ training and its data stay private).
 """
 
 import os
+import sys
+
+# This script lives in tools/; the modules and files it uses are in the
+# project folder above it.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
 import re
 import shutil
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = ROOT
 SITE = os.path.join(HERE, "site")
 FILES = ["index.html", "editor.html", "looot.py", "nn_encode.py", "nn_bot.py", "review.py", "endgame.py", "boards.json"]
 

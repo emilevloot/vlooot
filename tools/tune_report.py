@@ -6,12 +6,19 @@ Make tune_report.html from tune_history.json: graphs of the tuning run.
 tune.py runs this by itself at the end. Open tune_report.html in a browser.
 """
 
-import json
 import os
+import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-HISTORY_FILE = os.path.join(HERE, "tune_history.json")
-REPORT_FILE = os.path.join(HERE, "tune_report.html")
+# This script lives in tools/; the modules and files it uses are in the
+# project folder above it.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+import json
+
+HERE = ROOT
+HISTORY_FILE = os.path.join(HERE, "results", "tune_history.json")
+REPORT_FILE = os.path.join(HERE, "results", "tune_report.html")
 
 
 def make():

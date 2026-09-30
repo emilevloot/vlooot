@@ -32,7 +32,7 @@ _models = {}                     # 2 -> the 2-player network, "mp" -> the 3-4-pl
 
 def pick_model(multi=False):
     """The network that plays: of all curriculum runs
-    (curriculum_<prefix>_results.json), the best full-game network that
+    (results/curriculum_<prefix>_results.json), the best full-game network that
     still loads with the current code - a 2-player network, or with
     multi=True a network for 3-4 players (made from a 2-player network by
     transfer_mp.py and trained further). Networks with final tests are
@@ -40,7 +40,7 @@ def pick_model(multi=False):
     network wins ties, as the page can show what it thinks."""
     import nn_bot
     found = []
-    for f in glob.glob(os.path.join(ROOT, "curriculum_*_results.json")):
+    for f in glob.glob(os.path.join(ROOT, "results", "curriculum_*_results.json")):
         res = json.load(open(f))
         best = res.get("stages", {}).get("full", {}).get("best")
         if not best:

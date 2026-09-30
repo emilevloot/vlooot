@@ -25,7 +25,7 @@ longships -> full. For every stage:
                so a worse round can't drag the training down.
 
 Results: curriculum_<prefix>_results.json and curriculum_<prefix>_log.txt,
-and curriculum_report.html (graphs, made by curriculum_report.py).
+and results/curriculum_report.html (graphs, made by curriculum_report.py).
 The first run (encoding version 1, no TD) is kept as prefix "cur".
 """
 
@@ -54,8 +54,8 @@ def lineup(first, other):
 class Run:
     def __init__(self, prefix):
         self.prefix = prefix
-        self.log_file = os.path.join(HERE, "curriculum_%s_log.txt" % prefix)
-        self.res_file = os.path.join(HERE, "curriculum_%s_results.json" % prefix)
+        self.log_file = os.path.join(HERE, "results", "curriculum_%s_log.txt" % prefix)
+        self.res_file = os.path.join(HERE, "results", "curriculum_%s_results.json" % prefix)
         self.results = (json.load(open(self.res_file)) if os.path.exists(self.res_file)
                         else {"prefix": prefix, "stages": {}, "final": {}})
 
