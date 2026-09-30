@@ -13,3 +13,26 @@
 22:27:08   t4_r6              vs champion t4_start:  47.0% ±5.6 (margin -10.9) -> stays challenger; vs greedy  63.5%
 22:50:31   round 7: 1500 self-play games in 574 s, trained t4_r7 in 146 s
 22:50:31   t4_r7              vs champion t4_start:  51.0% ±5.7 (margin -11.5) -> stays challenger; vs greedy  64.0%
+16:21:10 === self-play with a champion: starting from t4_start ===
+16:41:26   (training on the last 3 sets, 10.0 GB: more would not fit in memory)
+16:59:35   round 8: 3000 self-play games in 1216 s, trained t4_r8 in 171 s
+16:59:35   t4_r8              vs champion t4_start:  65.5% ±4.7 (margin -7.6) -> NEW CHAMPION; vs greedy  83.0%
+17:15:33   (training on the last 2 sets, 10.0 GB: more would not fit in memory)
+17:30:37   round 9: 3000 self-play games in 958 s, trained t4_r9 in 174 s
+17:30:37   t4_r9              vs champion t4_r8:  42.2% ±4.8 (margin -12.3) -> stays challenger; vs greedy  76.5%
+17:46:56   (training on the last 2 sets, 10.0 GB: more would not fit in memory)
+18:02:07   round 10: 3000 self-play games in 979 s, trained t4_r10 in 174 s
+18:02:07   t4_r10             vs champion t4_r8:  48.0% ±4.9 (margin -9.8) -> stays challenger; vs greedy  74.5%
+18:18:04   (training on the last 2 sets, 10.0 GB: more would not fit in memory)
+18:33:04   round 11: 3000 self-play games in 957 s, trained t4_r11 in 175 s
+18:33:04   t4_r11             vs champion t4_r8:  46.0% ±4.9 (margin -11.0) -> stays challenger; vs greedy  71.5%
+18:49:05   (training on the last 2 sets, 10.0 GB: more would not fit in memory)
+19:04:03   round 12: 3000 self-play games in 961 s, trained t4_r12 in 174 s
+19:04:03   t4_r12             vs champion t4_r8:  52.5% ±4.9 (margin -9.8) -> stays challenger; vs greedy  75.0%
+19:04:03   time budget reached: no more rounds (35 min left)
+19:04:03   champion: t4_r8
+19:07:17 FINAL t4_r8 vs greedy: wins 77.4% ±3.7, margin +13.2, longship penalty -1.6, 393 ms/turn
+19:11:23 FINAL t4_r8+2 (looks 2 turns ahead) vs greedy: wins 78.0% ±5.7, margin +12.3, longship penalty -1.4, 1353 ms/turn
+19:14:37 FINAL t4_r8 vs original greedy: wins 78.4% ±3.6, margin +15.3, longship penalty -1.6, 401 ms/turn
+19:31:47 FINAL t4_r8 vs t4_start (where it started): 58.8% ±4.3, margin -8.0
+19:31:47 Self-play training finished.

@@ -156,13 +156,157 @@
      },
      "champion": "t4_start",
      "accepted": false
+    },
+    {
+     "model": "t4_r8",
+     "kind": "challenger 8",
+     "test_mae": 11.83,
+     "arena": {
+      "games": 200,
+      "win": 0.83,
+      "margin": 15.035,
+      "score": 101.935,
+      "win_ci": 0.05206004994235024,
+      "penalty": -1.475,
+      "ms_per_turn": 399.51596400045673
+     },
+     "vs_champion": {
+      "games": 400,
+      "win": 0.655,
+      "win_ci": 0.04658609127196656,
+      "margin": -7.56875
+     },
+     "champion": "t4_start",
+     "accepted": true
+    },
+    {
+     "model": "t4_r9",
+     "kind": "challenger 9",
+     "test_mae": 11.37,
+     "arena": {
+      "games": 200,
+      "win": 0.765,
+      "margin": 10.77,
+      "score": 98.265,
+      "win_ci": 0.05876323850844165,
+      "penalty": -1.725,
+      "ms_per_turn": 399.26261262517073
+     },
+     "vs_champion": {
+      "games": 400,
+      "win": 0.4225,
+      "win_ci": 0.04840780902912257,
+      "margin": -12.28
+     },
+     "champion": "t4_r8",
+     "accepted": false
+    },
+    {
+     "model": "t4_r10",
+     "kind": "challenger 10",
+     "test_mae": 11.05,
+     "arena": {
+      "games": 200,
+      "win": 0.745,
+      "margin": 12.25,
+      "score": 100.78,
+      "win_ci": 0.060407282673532,
+      "penalty": -1.3,
+      "ms_per_turn": 381.95262795898697
+     },
+     "vs_champion": {
+      "games": 400,
+      "win": 0.48,
+      "win_ci": 0.04896078430744344,
+      "margin": -9.8325
+     },
+     "champion": "t4_r8",
+     "accepted": false
+    },
+    {
+     "model": "t4_r11",
+     "kind": "challenger 11",
+     "test_mae": 10.96,
+     "arena": {
+      "games": 200,
+      "win": 0.715,
+      "margin": 13.78,
+      "score": 100.505,
+      "win_ci": 0.06256284999902098,
+      "penalty": -2.2,
+      "ms_per_turn": 372.1426971672675
+     },
+     "vs_champion": {
+      "games": 400,
+      "win": 0.46,
+      "win_ci": 0.04884294831395828,
+      "margin": -10.9525
+     },
+     "champion": "t4_r8",
+     "accepted": false
+    },
+    {
+     "model": "t4_r12",
+     "kind": "challenger 12",
+     "test_mae": 10.66,
+     "arena": {
+      "games": 200,
+      "win": 0.75,
+      "margin": 11.19,
+      "score": 99.51,
+      "win_ci": 0.06001249869818786,
+      "penalty": -1.4,
+      "ms_per_turn": 369.00044241614523
+     },
+     "vs_champion": {
+      "games": 400,
+      "win": 0.525,
+      "win_ci": 0.04893871167082353,
+      "margin": -9.75375
+     },
+     "champion": "t4_r8",
+     "accepted": false
     }
    ],
-   "champion": "t4_start",
-   "best": "t4_start"
+   "champion": "t4_r8",
+   "best": "t4_r8"
   }
  },
- "final": {},
+ "final": {
+  "t4_r8 vs greedy": {
+   "games": 500,
+   "win": 0.774,
+   "margin": 13.16,
+   "score": 101.002,
+   "penalty": -1.6,
+   "ms_per_turn": 393.127635116621,
+   "win_ci": 0.03666027927880528
+  },
+  "t4_r8+2 (looks 2 turns ahead) vs greedy": {
+   "games": 200,
+   "win": 0.78,
+   "margin": 12.325,
+   "score": 99.845,
+   "penalty": -1.375,
+   "ms_per_turn": 1353.234580624412,
+   "win_ci": 0.05741160858223709
+  },
+  "t4_r8 vs original greedy": {
+   "games": 500,
+   "win": 0.784,
+   "margin": 15.258,
+   "score": 100.87,
+   "penalty": -1.62,
+   "ms_per_turn": 401.13729016596335,
+   "win_ci": 0.03607081674706022
+  },
+  "t4_r8 vs t4_start (the start)": {
+   "games": 500,
+   "win": 0.588,
+   "win_ci": 0.04314280124424004,
+   "margin": -8.014
+  }
+ },
  "selfplay": {
   "init": "t4_start",
   "accept": 0.53

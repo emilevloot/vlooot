@@ -60,3 +60,41 @@
 18:23:36 FINAL s2_r19 vs original greedy: wins 97.0% ±1.5, margin +34.6, longship penalty -1.7, 206 ms/turn
 18:27:19 FINAL s2_r19 vs s2_r7 (where it started): 68.0% ±4.1, margin +9.0
 18:27:19 Self-play training finished.
+12:02:53 === self-play with a champion: starting from s2_r19 ===
+12:21:36   round 24: 8000 self-play games in 494 s, trained s2_r24 in 148 s
+12:21:36   s2_r24             vs champion s2_r19:  56.2% ±4.0 (margin +3.7) -> NEW CHAMPION; vs greedy  97.0%
+12:37:40   round 25: 8000 self-play games in 516 s, trained s2_r25 in 155 s
+12:37:40   s2_r25             vs champion s2_r24:  45.2% ±4.0 (margin -2.5) -> stays challenger; vs greedy  96.0%
+12:53:45   round 26: 8000 self-play games in 514 s, trained s2_r26 in 155 s
+12:53:45   s2_r26             vs champion s2_r24:  50.7% ±4.0 (margin -0.6) -> stays challenger; vs greedy  96.3%
+13:09:39   round 27: 8000 self-play games in 514 s, trained s2_r27 in 155 s
+13:09:39   s2_r27             vs champion s2_r24:  47.7% ±4.0 (margin -0.3) -> stays challenger; vs greedy  97.0%
+13:25:30   round 28: 8000 self-play games in 512 s, trained s2_r28 in 154 s
+13:25:30   s2_r28             vs champion s2_r24:  53.2% ±4.0 (margin +1.8) -> NEW CHAMPION; vs greedy  98.0%
+13:41:34   round 29: 8000 self-play games in 517 s, trained s2_r29 in 154 s
+13:41:34   s2_r29             vs champion s2_r28:  46.5% ±4.0 (margin -1.6) -> stays challenger; vs greedy  94.3%
+13:57:48   round 30: 8000 self-play games in 520 s, trained s2_r30 in 154 s
+13:57:48   s2_r30             vs champion s2_r28:  48.2% ±4.0 (margin -1.3) -> stays challenger; vs greedy  96.7%
+14:14:01   round 31: 8000 self-play games in 524 s, trained s2_r31 in 154 s
+14:14:01   s2_r31             vs champion s2_r28:  50.5% ±4.0 (margin -0.1) -> stays challenger; vs greedy  98.3%
+14:30:05   round 32: 8000 self-play games in 514 s, trained s2_r32 in 154 s
+14:30:05   s2_r32             vs champion s2_r28:  54.2% ±4.0 (margin +1.3) -> NEW CHAMPION; vs greedy  96.3%
+14:48:46   round 33: 8000 self-play games in 529 s, trained s2_r33 in 202 s
+14:48:46   s2_r33             vs champion s2_r32:  44.7% ±4.0 (margin -1.7) -> stays challenger; vs greedy  97.0%
+15:05:21   round 34: 8000 self-play games in 539 s, trained s2_r34 in 155 s
+15:05:21   s2_r34             vs champion s2_r32:  42.8% ±4.0 (margin -2.2) -> stays challenger; vs greedy  96.3%
+15:21:57   round 35: 8000 self-play games in 539 s, trained s2_r35 in 154 s
+15:21:57   s2_r35             vs champion s2_r32:  50.2% ±4.0 (margin -0.0) -> stays challenger; vs greedy  98.0%
+15:38:53   round 36: 8000 self-play games in 534 s, trained s2_r36 in 154 s
+15:38:53   s2_r36             vs champion s2_r32:  52.2% ±4.0 (margin +0.3) -> stays challenger; vs greedy  98.0%
+15:55:29   round 37: 8000 self-play games in 547 s, trained s2_r37 in 154 s
+15:55:29   s2_r37             vs champion s2_r32:  51.0% ±4.0 (margin +1.0) -> stays challenger; vs greedy  98.0%
+16:12:10   round 38: 8000 self-play games in 533 s, trained s2_r38 in 155 s
+16:12:10   s2_r38             vs champion s2_r32:  46.5% ±4.0 (margin -0.9) -> stays challenger; vs greedy  97.0%
+16:12:10   time budget reached: no more rounds (21 min left)
+16:12:10   champion: s2_r32
+16:13:55 FINAL s2_r32 vs greedy: wins 97.0% ±1.5, margin +34.9, longship penalty -2.3, 228 ms/turn
+16:15:53 FINAL s2_r32+2 (looks 2 turns ahead) vs greedy: wins 96.5% ±2.5, margin +31.5, longship penalty -2.5, 660 ms/turn
+16:17:36 FINAL s2_r32 vs original greedy: wins 97.4% ±1.4, margin +37.2, longship penalty -2.3, 230 ms/turn
+16:21:10 FINAL s2_r32 vs s2_r19 (where it started): 60.4% ±4.3, margin +5.3
+16:21:10 Self-play training finished.
