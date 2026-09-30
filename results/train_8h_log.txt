@@ -1,0 +1,12 @@
+12:02:53 === 8-hour session ===
+12:02:53 > selfplay_train.py --prefix s2 --init s2_r19 --hours 4.5 --games 8000 --window 4 --epochs 2 --lr 5e-4 --surprise 2 --match-games 600
+16:21:10   finished in 258 min (exit code 0)
+16:21:10 2-player champion: s2_r32
+16:21:10 > selfplay_train.py --prefix t4 --init t4_start --players 3,4 --games 3000 --window 4 --epochs 2 --lr 3e-4 --surprise 2 --batch 2048 --match-games 400 --arena-games 200 --hours 3.30
+19:31:47   finished in 191 min (exit code 0)
+19:31:47 3-4-player champion: t4_r8
+19:31:47 > selfplay_record.py --games 100 --model s2_r32
+19:34:26   finished in 3 min (exit code 0)
+19:34:26 > make_dashboard.py
+19:34:26   finished in 0 min (exit code 0)
+19:34:26 === done in 7.5 hours ===

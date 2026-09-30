@@ -1,0 +1,4 @@
+18:52:30 === stage 5/5: full ===
+18:54:18   data: 1500 greedy games in 108 s
+18:55:21   trained m4_full_a in 63 s
+18:56:28   m4_full_a              wins   4.8% ±2.1, margin  -30.6, score  64.6, longship penalty  -3.8,  141 ms/turn (test error 12.76)

@@ -1,0 +1,24 @@
+{
+ "prefix": "m4",
+ "stages": {
+  "full": {
+   "steps": [
+    {
+     "model": "m4_full_a",
+     "kind": "greedy data",
+     "test_mae": 12.76,
+     "arena": {
+      "games": 400,
+      "win": 0.0475,
+      "margin": -30.565,
+      "score": 64.5925,
+      "win_ci": 0.02084516670597767,
+      "penalty": -3.8,
+      "ms_per_turn": 140.87847214616582
+     }
+    }
+   ]
+  }
+ },
+ "final": {}
+}
