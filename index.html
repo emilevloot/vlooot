@@ -1,6 +1,15 @@
 <title>Looot</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#141d25">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Looot">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Alegreya+Sans:wght@400;500;700;800&display=swap">
@@ -35,7 +44,8 @@
     background: radial-gradient(1200px 600px at 70% -10%, #23384a 0%, var(--night) 60%) fixed, var(--night);
     color: var(--snow);
     font: 16px/1.4 var(--body);
-    padding-inline: 16px;
+    padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right));
+    padding-top: env(safe-area-inset-top);
   }
   button { font: inherit; color: inherit; }
   .app { max-width: 1360px; margin: 0 auto; padding-block: 14px 40px; display: grid; gap: 14px; }
@@ -274,6 +284,7 @@
       <a class="btn" href="dashboard.html" style="text-decoration:none">AI dashboard</a>
       <a class="btn" href="editor.html" style="text-decoration:none">Board editor</a>
       <button class="btn" id="btnCoach" aria-pressed="true" title="A chess-trainer style judgement of every move">Coach: on</button>
+      <button class="btn" id="btnInstall" hidden title="Install Looot as an app on this device">Install app</button>
       <button class="btn" id="btnNew">New game</button>
     </div>
   </header>
@@ -450,7 +461,7 @@
     const W = maxx - minx + pad * 2, H = maxy - miny + pad * 2;
     const svg = $('land');
     svg.setAttribute('viewBox', `${minx - pad} ${miny - pad} ${W} ${H}`);
-    svg.style.minWidth = Math.min(W * 0.75, 820) + 'px';
+    svg.style.minWidth = Math.min(W * (innerWidth < 700 ? 0.5 : 0.75), 820) + 'px';
     svg.innerHTML = out;
   }
 
@@ -895,7 +906,7 @@
           </span>
         </div>`).join('')}
       <div class="row" style="justify-content:space-between;margin-top:14px">
-        <span style="color:var(--mist);font-size:14px">${n} players · ${n * 13} Vikings · ${n} landscape boards</span>
+        <span style="color:var(--mist);font-size:14px">${n} players · ${n * 13} Vikings · ${n} landscape boards${iosHint()}</span>
         <span class="row">${S ? '<button class="btn" id="cancelSetup">Cancel</button>' : ''}<button class="btn primary" id="startGame">Start</button></span>
       </div></div>`;
     ov.querySelectorAll('[data-seat]').forEach(b => b.onclick = () => {
@@ -1447,6 +1458,41 @@
       $('loadingCard').innerHTML = `<h2 style="font:32px var(--display);margin:0">The ships could not sail</h2><p style="color:var(--mist)">Python didn't start in this browser: ${esc(err && err.message || err)}</p>`;
     }
   }
+  // ---------- the installable web app (manifest.webmanifest, sw.js) ----------
+  // The service worker keeps a copy of the game, so it starts faster and
+  // also works without internet. Not on the local server (it would keep old
+  // copies while you edit), unless the address has ?sw.
+  if ('serviceWorker' in navigator && (!LOCAL || new URLSearchParams(location.search).has('sw'))) {
+    navigator.serviceWorker.register('sw.js').then(async reg => {
+      await navigator.serviceWorker.ready;
+      // the networks and numpy: fetched in advance, for playing offline
+      const urls = [WEB_MODEL, WEB_MODEL_MP].map(m => new URL('models/' + m + '.npz', location.href).href);
+      try {
+        const lock = await (await fetch('py/pyodide-lock.json')).json();
+        urls.push('https://cdn.jsdelivr.net/pyodide/v' + lock.info.version + '/full/' + lock.packages.numpy.file_name);
+      } catch (err) { }
+      (reg.active || navigator.serviceWorker.controller)?.postMessage({ type: 'warm', urls });
+    }).catch(err => console.warn('No offline copy:', err));
+  }
+  // "Install app": the browser's own install question, when it offers one
+  let installAsk = null;
+  addEventListener('beforeinstallprompt', e => { e.preventDefault(); installAsk = e; $('btnInstall').hidden = false; });
+  $('btnInstall').onclick = async () => {
+    if (!installAsk) return;
+    installAsk.prompt();
+    await installAsk.userChoice;
+    installAsk = null;
+    $('btnInstall').hidden = true;
+  };
+  addEventListener('appinstalled', () => { $('btnInstall').hidden = true; });
+  // iPhone and iPad have no install question: they get a tip
+  function iosHint() {
+    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const app = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+    return ios && !app ? '<br>Tip: tap Share, then “Add to Home Screen”, to install Looot as an app.' : '';
+  }
+
   boot();
 })();
 </script>

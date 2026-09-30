@@ -8,6 +8,9 @@ PROJECT MAP
   dashboard_greedy.html        the network against the greedy player
   history.html                 every run and network so far, and what changed
   boards.json                  the landscape boards (made with the editor)
+  manifest.webmanifest, sw.js  the installable web app: name, icon, and the
+                               offline copy (see PLAY ON YOUR PHONE)
+  icons\                       the app icons (tools\make_icons.py draws them)
 
   The game, the coach and the AI (these import each other, so they stay
   together in this folder; the web page loads some of them too):
@@ -48,6 +51,18 @@ PLAY
   shows its win chance and, for the three-part network, how much it wants
   each item, how well each longship in the ocean fits its fjord, and (dotted
   blue rings) where a Viking is worth most to it.
+
+PLAY ON YOUR PHONE (OR ANY COMPUTER), ALSO WITHOUT INTERNET
+  Open https://emilevloot.github.io/vlooot/ and install it as an app:
+    Android (Chrome): the "Install app" button in the game, or the menu
+                      (three dots) -> Install app / Add to Home screen.
+    iPhone / iPad (Safari): Share -> Add to Home Screen.
+    Windows / Mac (Chrome, Edge): the install icon in the address bar.
+  The first time it downloads about 32 MB (Python for the browser, numpy
+  and the two networks); after that it starts from the phone's own copy,
+  also offline (sw.js). A new version of the game arrives by itself the
+  next time you open it with internet. Changed WEB_MODEL in index.html?
+  Raise the version in sw.js (looot-v1 -> looot-v2) so old copies go.
 
 EDIT THE LANDSCAPE BOARDS
   Click "Board editor" in the game (or open
