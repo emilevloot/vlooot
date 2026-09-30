@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Looot geschiedenis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Alegreya+Sans:wght@400;500;700;800&display=swap">
+<style>
+  /* The look of the game itself: a fjord at dusk (one dark theme, like index.html). */
+  :root {
+    color-scheme: dark;
+    --night: #141d25; --slate: #1d2934; --slate-2: #253441; --line: #34485a; --grid: #26384a;
+    --snow: #eaf0ea; --mist: #9fb0b8; --muted: #7f929c;
+    --rune: #d0603f; --gold: #e6ad2e; --sea: #2b5a7e; --good: #7cc47a;
+    --p-red: #d24a3a; --p-blue: #3f8fd8; --p-yellow: #f0cf4a; --p-grey: #9aa3ab;
+    --warn: #fab219; --crit: #ff5c5c;
+    --display: "Pirata One", "Luminari", Georgia, serif;
+    --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  }
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding-inline: 16px;
+    background: radial-gradient(1200px 600px at 70% -10%, #23384a 0%, var(--night) 60%) fixed, var(--night);
+    color: var(--snow); font: 16px/1.45 var(--body);
+  }
+  body.sheet-open { overflow: hidden; }
+  main { max-width: 1240px; margin: 0 auto; padding-block: 18px 60px; }
+  a { color: inherit; }
+  header.top { display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap; }
+  header.top h1 { font: 46px/1 var(--display); margin: 0; letter-spacing: 1px; }
+  header.top h1 span { color: var(--rune); }
+  nav.tabs { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+  nav.tabs a { text-decoration: none; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line);
+               background: var(--slate); color: var(--mist); font-weight: 600; font-size: 15px; }
+  nav.tabs a.on { background: var(--snow); color: var(--night); border-color: var(--snow); }
+  nav.tabs a:hover:not(.on) { color: var(--snow); border-color: var(--mist); }
+  .sub { color: var(--mist); margin: 10px 0 18px; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .tile { background: var(--slate); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+  .tile .v { font-size: 30px; font-weight: 800; line-height: 1.1; }
+  .tile .k { color: var(--mist); font-size: 14px; }
+  .tile .d { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+  .card { background: #1a2530e6; border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; margin-bottom: 14px; }
+  .card h2 { font: 28px/1.1 var(--display); margin: 0 0 4px; letter-spacing: .5px; font-weight: 400; }
+  .card .what { color: var(--mist); margin: 0 0 10px; font-size: 15px; max-width: 78ch; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; }
+  .grid2 > .card { margin-bottom: 0; }
+  .grid2 + .card, .grid2 + .grid2 { margin-top: 14px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 14px; color: var(--mist); margin-bottom: 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .legend i.ln { height: 3px; border-radius: 2px; width: 16px; }
+
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  svg text { fill: var(--muted); font: 12px var(--body); font-variant-numeric: tabular-nums; }
+  svg .lbl { fill: var(--mist); font-size: 13px; }
+  svg .val { fill: var(--snow); font-size: 12px; font-weight: 700; }
+  .gridl { stroke: var(--grid); stroke-width: 1; }
+  .axisl { stroke: var(--line); stroke-width: 1; }
+  .hit { fill: transparent; cursor: pointer; }
+
+  /* biggest swings */
+  .swings { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+  .swing { text-align: left; background: var(--slate); border: 1px solid var(--line); border-radius: 12px;
+           padding: 10px 12px; cursor: pointer; color: var(--snow); font: inherit; }
+  .swing:hover { border-color: var(--mist); }
+  .swing .top { display: flex; justify-content: space-between; gap: 8px; font-weight: 700; }
+  .swing .x { color: var(--mist); font-size: 14px; margin-top: 3px; }
+  .up { color: var(--good); } .down { color: var(--crit); }
+
+  /* the games table */
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { background: var(--slate); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px;
+          color: var(--mist); cursor: pointer; font: 600 14px var(--body); }
+  .chip.on { background: var(--slate-2); color: var(--snow); border-color: var(--gold); }
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th { text-align: left; color: var(--muted); font-weight: 600; font-size: 13px; padding: 6px 8px;
+       border-bottom: 1px solid var(--line); white-space: nowrap; cursor: pointer; user-select: none; }
+  th.num, td.num { text-align: right; }
+  th .ar { opacity: .7; }
+  td { padding: 6px 8px; border-bottom: 1px solid #22303c; vertical-align: middle; }
+  tbody tr.g { cursor: pointer; }
+  tbody tr.g:hover { background: #ffffff08; }
+  .score b { color: var(--snow); } .score span { color: var(--mist); }
+  .pdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: 0; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 1px 8px; font-size: 13px;
+           font-weight: 700; border: 1px solid; white-space: nowrap; }
+  .badge.l1 { color: var(--warn); border-color: #fab21966; background: #fab2191a; }
+  .badge.l2 { color: var(--crit); border-color: #ff5c5c66; background: #ff5c5c1a; }
+  .badge.ok { color: var(--good); border-color: #7cc47a55; background: #7cc47a14; }
+  .badge.cb { color: #8fd3ff; border-color: #8fd3ff55; background: #8fd3ff14; }
+  .play { text-decoration: none; background: var(--rune); color: #fff; border-radius: 8px; padding: 3px 10px;
+          font-weight: 700; font-size: 14px; white-space: nowrap; }
+  .play:hover { background: #df7050; }
+  .spark { width: 150px; height: 34px; }
+  .more { margin-top: 10px; }
+
+  /* one game */
+  .sheet { position: fixed; inset: 0; z-index: 20; background: #0a0f14cc; backdrop-filter: blur(3px);
+           overflow-y: auto; padding: 24px 16px 60px; }
+  .sheet .in { max-width: 1100px; margin: 0 auto; background: #17222c; border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; }
+  .sheet .hd { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .sheet .hd h2 { font: 34px/1 var(--display); font-weight: 400; margin: 0; flex: 1; min-width: 200px; }
+  .btn { background: var(--slate-2); border: 1px solid var(--line); border-radius: 8px; padding: 7px 14px; cursor: pointer;
+         font: 600 15px var(--body); color: var(--snow); text-decoration: none; }
+  .btn:hover { border-color: var(--mist); }
+  .btn.primary { background: var(--rune); border-color: var(--rune); color: #fff; }
+  .versus { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 6px; }
+  .versus .pl { display: flex; align-items: center; gap: 10px; background: var(--slate); border: 1px solid var(--line);
+                border-radius: 12px; padding: 8px 14px; min-width: 200px; }
+  .versus .pl.win { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+  .versus .pl .s { font-size: 28px; font-weight: 800; margin-left: auto; }
+  .versus .pl .crown { color: var(--gold); font-size: 13px; font-weight: 700; }
+  .story { color: var(--mist); margin: 6px 0 12px; }
+  .timeline { display: grid; gap: 2px; margin-top: 6px; }
+  .turn { display: grid; grid-template-columns: 34px 14px 1fr auto auto; gap: 10px; align-items: center;
+          padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+  .turn:hover { background: #ffffff0a; }
+  .turn .n { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+  .turn .x { min-width: 0; }
+  .turn .x .bt { color: var(--mist); font-size: 14px; }
+  .turn .dw { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 14px; min-width: 52px; text-align: right; }
+  .turn.l1 { background: #fab21910; box-shadow: inset 3px 0 0 var(--warn); }
+  .turn.l2 { background: #ff5c5c12; box-shadow: inset 3px 0 0 var(--crit); }
+  .turn.hl { outline: 2px solid #8fd3ff; }
+  .fin td, .fin th { padding: 4px 10px; }
+
+  #tip { position: fixed; pointer-events: none; background: #0f171e; color: var(--snow); border: 1px solid var(--line);
+         border-radius: 10px; padding: 8px 10px; font-size: 14px; box-shadow: 0 8px 24px #0008; display: none;
+         z-index: 40; max-width: 320px; }
+  #tip .m { color: var(--mist); font-size: 13px; }
+  .note { color: var(--muted); font-size: 14px; margin-top: 18px; }
+  details summary { cursor: pointer; color: var(--mist); font-size: 14px; margin-top: 8px; }
+  @media (max-width: 640px) {
+    header.top h1 { font-size: 38px; }
+    .turn { grid-template-columns: 26px 12px 1fr auto; }
+    .turn .dw { display: none; }
+    .hide-s { display: none; }
+  }
+</style>
+<style>
+  .hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr); gap: 14px; margin-bottom: 14px; }
+  @media (max-width: 800px) { .hero { grid-template-columns: 1fr; } }
+  .big { background: linear-gradient(135deg, #22384a, #1a2530); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; }
+  .big .v { font: 64px/1 var(--display); letter-spacing: 1px; }
+  .big .v span { color: var(--gold); }
+  .big .k { color: var(--mist); margin-top: 6px; }
+  .tiles.hist { margin-bottom: 0; }
+  .eras { display: flex; gap: 12px; flex-wrap: wrap; font-size: 14px; color: var(--mist); margin-bottom: 6px; }
+  .eras span { display: inline-flex; align-items: center; gap: 6px; }
+  .eras i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .eras i.dia { transform: rotate(45deg); border-radius: 2px; width: 10px; height: 10px; background: var(--snow); }
+  table.runs td { vertical-align: top; }
+  table.runs .t { font-weight: 700; color: var(--snow); }
+  table.runs .d { color: var(--mist); font-size: 13.5px; max-width: 46ch; }
+  table.runs td.num, table.runs th.num { text-align: right; white-space: nowrap; }
+  .runtag { display: inline-block; font: 700 12px var(--body); padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--mist); }
+  .timeline { position: relative; display: grid; gap: 10px; padding-left: 22px; }
+  .timeline::before { content: ""; position: absolute; left: 6px; top: 4px; bottom: 4px; width: 2px; background: var(--line); }
+  .change { position: relative; background: var(--slate); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; }
+  .change::before { content: ""; position: absolute; left: -21px; top: 14px; width: 12px; height: 12px; border-radius: 50%; background: var(--gold); border: 2px solid var(--night); }
+  .change .h { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-weight: 700; }
+  .change .when { color: var(--muted); font-weight: 500; font-size: 14px; }
+  .change .x { color: var(--mist); font-size: 15px; margin-top: 2px; }
+  .change .eff { margin-top: 4px; font-size: 14px; }
+  .sp3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+  .sp3 h3 { margin: 0 0 2px; font-size: 16px; }
+  .sp3 .s { color: var(--mist); font-size: 13.5px; margin-bottom: 4px; }
+  .cellbar { position: relative; min-width: 64px; }
+  .cellbar i { position: absolute; left: 0; top: 3px; bottom: 3px; background: #d0603f55; border-radius: 3px; }
+  .cellbar span { position: relative; }
+  .vtable td, .vtable th { white-space: nowrap; }
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Lo<span>oo</span>t</h1>
+    <nav class="tabs">
+      <a href="dashboard.html">Partijen tegen zichzelf</a>
+      <a href="dashboard_greedy.html">Tegen greedy</a>
+      <a class="on" href="history.html">Geschiedenis</a>
+      <a href="index.html">Speel ▸</a>
+    </nav>
+  </header>
+  <p class="sub" id="sub"></p>
+
+  <div class="hero">
+    <div class="big"><div class="v" id="heroV"></div><div class="k" id="heroK"></div></div>
+    <div class="tiles hist" id="tiles"></div>
+  </div>
+
+  <div class="card">
+    <h2>Van het eerste netwerk tot nu</h2>
+    <p class="what">Elk netwerk dat het hele spel speelde, en hoe vaak het won van de greedy-speler (2 spelers). De kleur is het tijdperk: hoe het netwerk er toen uitzag. De ruitjes zijn de eindtests van de beste netwerken (meer partijen, betrouwbaarder). De lege stukken zijn nachten.</p>
+    <div class="eras" id="lg-progress"></div>
+    <div id="progress"></div>
+  </div>
+
+  <div class="card">
+    <h2>Alle runs</h2>
+    <p class="what">Een run is één trainingssessie met een eigen naam (de letters voor de netwerknamen: c3_full_r8 is uit run c3). Uren: de tijd dat er gerekend werd, pauzes niet meegeteld.</p>
+    <div class="tablewrap"><table class="runs" id="runs"></table></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Wat er veranderde</h2>
+      <p class="what">Elke keer dat het netwerk of de manier van trainen veranderde, met wat dat opleverde.</p>
+      <div class="timeline" id="changes"></div>
+    </div>
+    <div class="card">
+      <h2>De netwerken zelf</h2>
+      <p class="what">Wat erin gaat (kenmerken per landveld, per fjordveld en algemene getallen) en hoeveel gewichten (getallen die het leert) het heeft.</p>
+      <div class="tablewrap"><table class="vtable" id="versions"></table></div>
+      <h3 style="margin:16px 0 4px;font-size:16px">Onderlinge wedstrijden</h3>
+      <p class="what">Netwerken rechtstreeks tegen elkaar (boven de 50%: de eerste wint vaker). De streep is de onzekerheid (95%).</p>
+      <div id="matches"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Zelfspel: wie werd kampioen?</h2>
+    <p class="what">In zelfspel moet elk nieuw netwerk de kampioen verslaan: meer dan 53% van de partijen (de stippellijn). Goud: een nieuwe kampioen.</p>
+    <div class="sp3" id="selfplay"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Hoe goed schat het netwerk?</h2>
+      <p class="what">Hoeveel punten het netwerk er gemiddeld naast zit als het de eindstand voorspelt, op partijen die het niet kende (lager is beter). Elke run meet op zijn eigen partijen, dus vergelijk vooral de richting.</p>
+      <div id="mae"></div>
+    </div>
+    <div class="card">
+      <h2>Waar in de partij?</h2>
+      <p class="what">Dezelfde fout per moment in de partij (Vikings die nog over zijn, van beide spelers samen). Aan het eind wordt het netwerk steeds beter, maar exact is het nooit: daarom worden de laatste 2 beurten nu uitgerekend.</p>
+      <div class="tablewrap"><table id="phases"></table></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Trainingsdata</h2>
+      <p class="what">Hoeveel posities (een stand, gezien door één speler) elke run maakte om van te leren. Deze data mag weg: de aantallen blijven hier bewaard.</p>
+      <div id="data"></div>
+    </div>
+    <div class="card">
+      <h2>De greedy-speler afstellen</h2>
+      <p class="what">Voordat er een netwerk was, is de greedy-speler zelf afgesteld (tools/tune.py): per ronde de gemiddelde score van de beste instellingen.</p>
+      <div id="tuning"></div>
+      <p class="what" id="tuning-note" style="margin-top:8px"></p>
+    </div>
+  </div>
+  <p class="note" id="foot"></p>
+</main>
+<div id="tip" role="tooltip"></div>
+
+<script>
+const D = /*DATA*/null;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const pct = (x, d = 0) => (x * 100).toFixed(d).replace('.', ',') + '%';
+const nl = (x, d = 0) => Number(x).toLocaleString('nl-NL', { maximumFractionDigits: d, minimumFractionDigits: d });
+const ERA_COL = { 'Codering v1': '#9aa3ab', 'Codering v3': '#d95926', 'Codering v4': '#3987e5',
+                  'Zelfspel': '#199e70', 'Voorstellen': '#9085e9', '3-4 spelers': '#e6ad2e' };
+const eraOf = run => (D.eras.find(([e, runs]) => runs.includes(run)) || ['3-4 spelers'])[0];
+const RUN = Object.fromEntries(D.runs.map(r => [r.run, r]));
+const DAYS = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'];
+const dayLabel = t => { const d = new Date(t * 1000); return `${DAYS[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`; };
+const when = t => { const d = new Date(t * 1000); return `${dayLabel(t)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+
+// ---------- tooltip ----------
+const tip = $('tip');
+function showTip(e, html) {
+  tip.innerHTML = html; tip.style.display = 'block';
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+  tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+}
+const hideTip = () => { tip.style.display = 'none'; };
+function bindTips(root) {
+  root.querySelectorAll('[data-tip]').forEach(el => {
+    el.addEventListener('mousemove', e => showTip(e, el.dataset.tip));
+    el.addEventListener('mouseleave', hideTip);
+  });
+}
+const W = el => Math.max(300, $(el).clientWidth || 600);
+
+
+
+// ---------- header ----------
+const T = D.totals;
+$('sub').textContent = `Alles wat er getraind is, van ${T.first} tot ${T.last} · bijgewerkt ${D.made}`;
+const b2 = T.best2, bm = T.bestmp;
+$('heroV').innerHTML = `${pct(T.first_win)} <span>→</span> ${pct(b2[1], 1)}`;
+$('heroK').innerHTML = `zo vaak won het netwerk van de greedy-speler: het allereerste (v1) en nu ${esc(b2[2])}.` +
+  (bm ? `<br>Met 3–4 spelers wint ${esc(bm[2])} ${pct(bm[1], 1)} tegen 3 greedy-spelers (1 van de 4 zou 25% zijn).` : '');
+$('tiles').innerHTML = [
+  [nl(T.networks), 'netwerken getraind', `in ${T.runs} runs`],
+  [nl(T.hours, 0), 'uur rekenen', 'pauzes niet meegeteld'],
+  [nl(T.games / 1e6, 2) + ' mln', 'partijen gespeeld', 'om van te leren'],
+  [nl(T.positions / 1e6, 0) + ' mln', 'posities', `${nl(T.mem_gb, 0)} GB uitgepakt`],
+  [nl(T.disk_gb, 1) + ' GB', 'trainingsdata op schijf', 'mag nu weg'],
+].map(([v, k, d]) => `<div class="tile"><div class="v">${v}</div><div class="k">${k}</div><div class="d">${d}</div></div>`).join('');
+
+// ---------- a time axis with the nights ----------
+function timeAxis(pts, w, m) {
+  const t0 = Math.min(...pts), t1 = Math.max(...pts);
+  const pad = (t1 - t0) * 0.02 || 3600;
+  const lo = t0 - pad, hi = t1 + pad;
+  const X = t => m.l + (t - lo) / (hi - lo) * (w - m.l - m.r);
+  const ticks = [];
+  const d = new Date(lo * 1000); d.setHours(0, 0, 0, 0);
+  for (let t = d.getTime() / 1000 + 86400; t < hi; t += 86400) ticks.push(t);
+  return { X, lo, hi, ticks, first: lo };
+}
+
+// ---------- the progress curve ----------
+function drawProgress() {
+  const w = W('progress'), h = 340, m = { l: 44, r: 16, t: 16, b: 34 };
+  const P = D.points, F = D.finals.filter(f => !RUN[f[3]] || !RUN[f[3]].multi);
+  const ax = timeAxis(P.map(p => p[0]).concat(F.map(f => f[0])), w, m);
+  const Y = v => m.t + (1 - v) * (h - m.t - m.b);
+  let s = '';
+  for (const v of [0, .25, .5, .75, 1]) s += `<line class="${v === .5 ? 'axisl' : 'gridl'}" x1="${m.l}" x2="${w - m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${m.l - 8}" y="${Y(v) + 4}" text-anchor="end">${pct(v)}</text>`;
+  s += `<text x="${m.l + 4}" y="${h - 10}">${dayLabel(ax.first)}</text>`;
+  for (const t of ax.ticks) s += `<line class="gridl" x1="${ax.X(t)}" x2="${ax.X(t)}" y1="${m.t}" y2="${h - m.b}" stroke-dasharray="2 4"/><text x="${ax.X(t) + 4}" y="${h - 10}">${dayLabel(t)}</text>`;
+  // the eras as bands
+  for (const [era, runs] of D.eras) {
+    const ts = P.filter(p => runs.includes(p[3])).map(p => p[0]);
+    if (!ts.length) continue;
+    const x0 = ax.X(Math.min(...ts)) - 4, x1 = ax.X(Math.max(...ts)) + 4;
+    s += `<rect x="${x0}" y="${m.t}" width="${Math.max(6, x1 - x0)}" height="${h - m.t - m.b}" fill="${ERA_COL[era]}" opacity=".07"/>`;
+  }
+  for (const p of P) {
+    const [t, win, name, run, ci, games, kind] = p;
+    const tipHtml = `<b>${esc(name)}</b> · ${esc(RUN[run] ? RUN[run].title : run)}<br>wint ${pct(win, 1)} tegen greedy${ci ? ' (±' + pct(ci, 1) + ')' : ''}<br><span class='m'>${games || ''} partijen · ${esc(kind)} · ${when(t)}</span>`;
+    s += `<circle cx="${ax.X(t)}" cy="${Y(win)}" r="3.4" fill="${ERA_COL[eraOf(run)]}" opacity=".8" data-tip="${tipHtml.replace(/"/g, '&quot;')}"/>`;
+  }
+  // the final tests, labelled
+  let lastX = -1e9, flip = false;
+  for (const f of F) {
+    const [t, win, name, run, ci, games, margin] = f;
+    const x = ax.X(t), y = Y(win);
+    s += `<path d="M${x} ${y - 7} L${x + 7} ${y} L${x} ${y + 7} L${x - 7} ${y} Z" fill="var(--snow)" stroke="#141d25" stroke-width="1.5" data-tip="<b>${esc(name)}</b> · eindtest<br>wint ${pct(win, 1)} tegen greedy (±${pct(ci, 1)})<br><span class='m'>${games} partijen, ${margin > 0 ? '+' : ''}${nl(margin, 1)} punten per partij</span>"/>`;
+    flip = x - lastX < 70 ? !flip : false;
+    lastX = x;
+    const ly = flip ? y + 20 : y - 12;
+    s += `<text class="val" x="${x}" y="${ly}" text-anchor="middle" style="pointer-events:none">${pct(win, win > .9 ? 1 : 0)}</text>`;
+  }
+  $('progress').innerHTML = `<svg viewBox="0 0 ${w} ${h}" aria-label="Winst tegen greedy per netwerk, door de tijd">${s}</svg>`;
+  $('lg-progress').innerHTML = D.eras.map(([e]) => `<span><i style="background:${ERA_COL[e]}"></i>${e}</span>`).join('') +
+    `<span><i class="dia"></i>eindtest</span>`;
+  bindTips($('progress'));
+}
+
+// ---------- the runs ----------
+function drawRuns() {
+  const rows = D.runs.map(r => `<tr>
+      <td><span class="runtag" style="border-color:${ERA_COL[r.era] || 'var(--line)'}">${esc(r.run)}</span></td>
+      <td><div class="t">${esc(r.title)}</div><div class="d">${esc(r.text)}</div></td>
+      <td class="num">${r.start ? esc(r.start.slice(5).replace('-', '/')) : ''}</td>
+      <td class="num">${r.hours != null ? nl(r.hours, 1) : ''}</td>
+      <td>${esc(r.arch)}<div class="d">codering ${esc(r.enc)}</div></td>
+      <td class="num">${r.networks}</td>
+      <td class="num">${r.games ? nl(r.games) : ''}</td>
+      <td>${r.best ? `<b>${esc(r.best)}</b>` : '<span class="d">–</span>'}</td>
+      <td class="num">${r.best_win != null ? `<b>${pct(r.best_win, 1)}</b>${r.multi ? '<div class="d">tegen 3 greedy</div>' : ''}` : ''}</td>
+    </tr>`).join('');
+  $('runs').innerHTML = `<thead><tr><th>Run</th><th>Wat</th><th class="num">Start</th><th class="num">Uren</th><th>Netwerk</th><th class="num">Netwerken</th><th class="num">Partijen</th><th>Beste netwerk</th><th class="num">Tegen greedy</th></tr></thead><tbody>${rows}</tbody>`;
+}
+
+// ---------- what changed ----------
+function drawChanges() {
+  $('changes').innerHTML = D.changes.map(c => {
+    const run = c.model.split('_')[0];
+    const r = RUN[run];
+    const eff = r && r.best_win != null ? `<div class="eff">Beste van run ${esc(run)}: <b>${esc(r.best)}</b>, ${pct(r.best_win, 1)} tegen ${r.multi ? '3 greedy-spelers' : 'greedy'}</div>` : '';
+    return `<div class="change"><div class="h"><span>${esc(c.title)}</span><span class="when">${c.made ? esc(c.made.slice(5).replace('-', '/')) : ''} · ${esc(c.model)}</span></div><div class="x">${esc(c.text)}</div>${eff}</div>`;
+  }).join('');
+}
+
+// ---------- the networks: versions and matches ----------
+function drawVersions() {
+  $('versions').innerHTML = `<thead><tr><th>Netwerk</th><th>Soort</th><th>Codering</th><th class="num">Land</th><th class="num">Fjord</th><th class="num">Algemeen</th><th class="num">Gewichten</th><th>Voorstellen</th></tr></thead><tbody>` +
+    D.versions.map(v => `<tr><td><b>${esc(v.model)}</b><div class="d" style="color:var(--muted);font-size:12.5px">${esc(v.made.slice(5))}</div></td><td>${esc(v.arch)}</td><td>${esc(v.enc || '')}</td>
+      <td class="num">${v.land || ''}</td><td class="num">${v.fjord || ''}</td><td class="num">${v.glob || ''}</td>
+      <td class="num">${nl(v.weights / 1000, 0)}k</td><td>${v.proposals ? '✓' : ''}</td></tr>`).join('') + `</tbody>`;
+}
+function drawMatches() {
+  const w = W('matches'), rh = 30, lw = Math.min(250, w * .52), h = D.matches.length * rh + 24;
+  const X = v => lw + (v - .2) / .8 * (w - lw - 50);
+  let s = `<line class="axisl" x1="${X(.5)}" x2="${X(.5)}" y1="0" y2="${h - 18}"/><text x="${X(.5)}" y="${h - 4}" text-anchor="middle">50%</text>`;
+  s += `<text x="${X(.2)}" y="${h - 4}">20%</text><text x="${X(1)}" y="${h - 4}" text-anchor="end">100%</text>`;
+  D.matches.forEach((mt, i) => {
+    const y = i * rh + 6, v = mt.win, col = v >= .5 ? 'var(--gold)' : 'var(--mist)';
+    s += `<text class="lbl" x="0" y="${y + 13}">${esc(mt.a)} <tspan style="fill:var(--muted)">tegen</tspan> ${esc(mt.b)}</text>`;
+    s += `<rect x="${Math.min(X(.5), X(v))}" y="${y + 3}" width="${Math.abs(X(v) - X(.5))}" height="14" rx="3" fill="${col}" opacity=".85"/>`;
+    if (mt.ci) s += `<line x1="${X(Math.max(.2, v - mt.ci))}" x2="${X(Math.min(1, v + mt.ci))}" y1="${y + 10}" y2="${y + 10}" stroke="var(--snow)" stroke-width="1.5"/>`;
+    s += `<text class="val" x="${X(Math.max(v, .5)) + 6}" y="${y + 14}">${pct(v, 1)}</text>`;
+    s += `<rect class="hit" x="0" y="${y}" width="${w}" height="${rh}" data-tip="<b>${esc(mt.a)} tegen ${esc(mt.b)}</b><br>${pct(v, 1)} van ${mt.games} partijen${mt.margin != null ? ', ' + (mt.margin > 0 ? '+' : '') + nl(mt.margin, 1) + ' punten' : ''}${mt.note ? `<br><span class='m'>${esc(mt.note)}</span>` : ''}"/>`;
+  });
+  $('matches').innerHTML = `<svg viewBox="0 0 ${w} ${h}" aria-label="Netwerken tegen elkaar">${s}</svg>`;
+  bindTips($('matches'));
+}
+
+// ---------- self-play ----------
+function drawSelfplay() {
+  const names = { s1: 'Run s1 (vanaf c5t_full_r10)', s2: 'Run s2 (vanaf p1_r1)', t4: 'Run t4: 3–4 spelers (vanaf t4_start)' };
+  $('selfplay').innerHTML = Object.keys(D.selfplay).map(run => `<div><h3>${names[run] || run}</h3><div class="s" id="sp-s-${run}"></div><div id="sp-${run}"></div></div>`).join('');
+  for (const [run, rows] of Object.entries(D.selfplay)) {
+    const el = $('sp-' + run), w = Math.max(280, el.clientWidth || 300), h = 190, m = { l: 36, r: 8, t: 10, b: 24 };
+    const n = Math.max(...rows.map(r => r[0]));
+    const X = k => m.l + (k - .5) / n * (w - m.l - m.r), Y = v => m.t + (1 - (Math.max(.3, Math.min(.7, v)) - .3) / .4) * (h - m.t - m.b);
+    let s = '';
+    for (const v of [.3, .4, .5, .6, .7]) s += `<line class="${v === .5 ? 'axisl' : 'gridl'}" x1="${m.l}" x2="${w - m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${m.l - 5}" y="${Y(v) + 4}" text-anchor="end">${pct(v)}</text>`;
+    s += `<line x1="${m.l}" x2="${w - m.r}" y1="${Y(.53)}" y2="${Y(.53)}" stroke="var(--gold)" stroke-dasharray="4 4" opacity=".7"/>`;
+    const step = n > 20 ? 10 : 5;
+    for (let k = step; k <= n; k += step) s += `<text x="${X(k)}" y="${h - 6}" text-anchor="middle">${k}</text>`;
+    for (const [k, v, name, champ, acc, margin] of rows) {
+      const tipHtml = `<b>${esc(name)}</b> tegen kampioen ${esc(champ)}<br>${pct(v, 1)}, ${margin > 0 ? '+' : ''}${nl(margin, 1)} punten per partij<br>${acc ? '<b>nieuwe kampioen</b>' : "<span class='m'>blijft uitdager</span>"}`;
+      s += acc ? `<circle cx="${X(k)}" cy="${Y(v)}" r="5.5" fill="var(--gold)" stroke="#141d25" stroke-width="1.5" data-tip="${tipHtml.replace(/"/g, '&quot;')}"/>`
+               : `<circle cx="${X(k)}" cy="${Y(v)}" r="4" fill="none" stroke="var(--mist)" stroke-width="1.5" data-tip="${tipHtml.replace(/"/g, '&quot;')}"/>`;
+    }
+    el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" aria-label="Zelfspelrondes van ${run}">${s}</svg>`;
+    const champs = rows.filter(r => r[4]).map(r => r[2]);
+    $('sp-s-' + run).textContent = `${rows.length} rondes, ${champs.length} ${champs.length === 1 ? 'nieuwe kampioen' : 'nieuwe kampioenen'}${champs.length ? ': ' + champs.join(' → ') : ''}`;
+    bindTips(el);
+  }
+}
+
+// ---------- judging ----------
+function drawMae() {
+  const w = W('mae'), h = 250, m = { l: 40, r: 12, t: 12, b: 30 };
+  const P = D.mae;
+  const ax = timeAxis(P.map(p => p[0]), w, m);
+  const vs = P.map(p => p[1]), lo = Math.floor(Math.min(...vs)), hi = Math.ceil(Math.max(...vs));
+  const Y = v => m.t + (hi - v) / (hi - lo) * (h - m.t - m.b);
+  let s = '';
+  for (let v = lo; v <= hi; v++) s += `<line class="gridl" x1="${m.l}" x2="${w - m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${m.l - 6}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`;
+  s += `<text x="${m.l + 4}" y="${h - 8}">${dayLabel(ax.first)}</text>`;
+  for (const t of ax.ticks) s += `<text x="${ax.X(t) + 4}" y="${h - 8}">${dayLabel(t)}</text>`;
+  for (const [t, v, name, run] of P)
+    s += `<circle cx="${ax.X(t)}" cy="${Y(v)}" r="3" fill="${ERA_COL[eraOf(run)]}" opacity=".85" data-tip="<b>${esc(name)}</b><br>${nl(v, 2)} punten ernaast<br><span class='m'>${when(t)}</span>"/>`;
+  s += `<text x="${m.l}" y="${m.t - 2}" class="lbl" dy="10" dx="4">punten ernaast ↓ beter</text>`;
+  $('mae').innerHTML = `<svg viewBox="0 0 ${w} ${h}" aria-label="Schattingsfout per netwerk">${s}</svg>`;
+  bindTips($('mae'));
+}
+function drawPhases() {
+  const cols = D.phases.length ? D.phases[0][1].map(p => p[0]) : [];
+  const all = D.phases.flatMap(([, ps]) => ps.map(p => p[1]));
+  const mx = Math.max(...all);
+  $('phases').innerHTML = `<thead><tr><th>Netwerk</th>${cols.map(c => `<th class="num">${c === '0' ? 'einde' : esc(c)}</th>`).join('')}</tr></thead><tbody>` +
+    D.phases.map(([name, ps]) => `<tr><td><b>${esc(name)}</b></td>${ps.map(p => `<td class="num cellbar"><i style="width:${(p[1] / mx * 100).toFixed(0)}%"></i><span>${nl(p[1], 1)}</span></td>`).join('')}</tr>`).join('') +
+    `<tr><td style="color:var(--mist)">alleen de huidige stand</td>${(D.phases[D.phases.length - 1] || [0, []])[1].map(p => `<td class="num" style="color:var(--mist)">${nl(p[2], 1)}</td>`).join('')}</tr></tbody>`;
+}
+
+// ---------- data ----------
+function drawData() {
+  const R = D.runs.filter(r => r.positions).sort((a, b) => b.positions - a.positions);
+  const w = W('data'), rh = 26, lw = 70, h = R.length * rh + 6, mx = Math.max(...R.map(r => r.positions));
+  let s = '';
+  R.forEach((r, i) => {
+    const y = i * rh + 3, bw = (w - lw - 150) * r.positions / mx;
+    s += `<text class="lbl" x="0" y="${y + 15}">${esc(r.run)}</text>`;
+    s += `<rect x="${lw}" y="${y + 4}" width="${Math.max(2, bw)}" height="14" rx="3" fill="${ERA_COL[r.era] || '#8fd3ff'}" opacity=".85"/>`;
+    s += `<text class="val" x="${lw + bw + 6}" y="${y + 15}">${nl(r.positions / 1e6, 1)} mln · ${nl(r.gb, 1)} GB</text>`;
+    s += `<rect class="hit" x="0" y="${y}" width="${w}" height="${rh}" data-tip="<b>${esc(r.run)}</b> · ${esc(r.title)}<br>${nl(r.games)} partijen, ${nl(r.positions)} posities<br><span class='m'>${nl(r.gb, 2)} GB op schijf, ${nl(r.mem_gb, 1)} GB uitgepakt</span>"/>`;
+  });
+  $('data').innerHTML = `<svg viewBox="0 0 ${w} ${h}" aria-label="Trainingsdata per run">${s}</svg>`;
+  bindTips($('data'));
+}
+
+// ---------- tuning ----------
+function drawTuning() {
+  const tu = D.tuning;
+  if (!tu || !tu.points.length) { $('tuning').innerHTML = ''; return; }
+  const w = W('tuning'), h = 200, m = { l: 40, r: 12, t: 12, b: 26 };
+  const P = tu.points, n = P.length, vs = P.map(p => p[1]);
+  const lo = Math.floor(Math.min(...vs) - 1), hi = Math.ceil(Math.max(...vs) + 1);
+  const X = k => m.l + (k - 1) / Math.max(1, n - 1) * (w - m.l - m.r), Y = v => m.t + (hi - v) / (hi - lo) * (h - m.t - m.b);
+  let s = '';
+  for (let v = lo; v <= hi; v += 2) s += `<line class="gridl" x1="${m.l}" x2="${w - m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${m.l - 6}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`;
+  P.forEach(([k]) => s += `<text x="${X(k)}" y="${h - 8}" text-anchor="middle">${k}</text>`);
+  s += `<polyline points="${P.map(([k, v]) => `${X(k)},${Y(v)}`).join(' ')}" fill="none" stroke="var(--gold)" stroke-width="2.5"/>`;
+  P.forEach(([k, v]) => s += `<circle cx="${X(k)}" cy="${Y(v)}" r="4" fill="var(--gold)" stroke="#141d25" stroke-width="1.5" data-tip="<b>Ronde ${k}</b><br>gemiddelde score ${nl(v, 1)}"/>`);
+  $('tuning').innerHTML = `<svg viewBox="0 0 ${w} ${h}" aria-label="Afstellen van de greedy-speler">${s}</svg>`;
+  $('tuning-note').innerHTML = tu.final_adv != null ? `Eindtest (${tu.games} partijen): de afgestelde greedy scoort <b>${tu.final_adv > 0 ? '+' : ''}${nl(tu.final_adv, 1)} punten</b> meer dan de oorspronkelijke (${nl(tu.final_score, 1)} tegen ${nl(tu.original_score, 1)}).` : '';
+  bindTips($('tuning'));
+}
+
+$('foot').textContent = 'Gemaakt met tools/history_data.py (alles uit results/, models/ en data/ samengevat in results/history.json) en tools/make_history.py.';
+function drawAll() { drawProgress(); drawRuns(); drawChanges(); drawVersions(); drawMatches(); drawSelfplay(); drawMae(); drawPhases(); drawData(); drawTuning(); }
+drawAll();
+let rs; addEventListener('resize', () => { clearTimeout(rs); rs = setTimeout(drawAll, 150); });
+</script>
+</body>
+</html>

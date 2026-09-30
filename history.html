@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Looot geschiedenis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Alegreya+Sans:wght@400;500;700;800&display=swap">
+<style>
+  /* The look of the game itself: a fjord at dusk (one dark theme, like index.html). */
+  :root {
+    color-scheme: dark;
+    --night: #141d25; --slate: #1d2934; --slate-2: #253441; --line: #34485a; --grid: #26384a;
+    --snow: #eaf0ea; --mist: #9fb0b8; --muted: #7f929c;
+    --rune: #d0603f; --gold: #e6ad2e; --sea: #2b5a7e; --good: #7cc47a;
+    --p-red: #d24a3a; --p-blue: #3f8fd8; --p-yellow: #f0cf4a; --p-grey: #9aa3ab;
+    --warn: #fab219; --crit: #ff5c5c;
+    --display: "Pirata One", "Luminari", Georgia, serif;
+    --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  }
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding-inline: 16px;
+    background: radial-gradient(1200px 600px at 70% -10%, #23384a 0%, var(--night) 60%) fixed, var(--night);
+    color: var(--snow); font: 16px/1.45 var(--body);
+  }
+  body.sheet-open { overflow: hidden; }
+  main { max-width: 1240px; margin: 0 auto; padding-block: 18px 60px; }
+  a { color: inherit; }
+  header.top { display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap; }
+  header.top h1 { font: 46px/1 var(--display); margin: 0; letter-spacing: 1px; }
+  header.top h1 span { color: var(--rune); }
+  nav.tabs { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+  nav.tabs a { text-decoration: none; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line);
+               background: var(--slate); color: var(--mist); font-weight: 600; font-size: 15px; }
+  nav.tabs a.on { background: var(--snow); color: var(--night); border-color: var(--snow); }
+  nav.tabs a:hover:not(.on) { color: var(--snow); border-color: var(--mist); }
+  .sub { color: var(--mist); margin: 10px 0 18px; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .tile { background: var(--slate); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+  .tile .v { font-size: 30px; font-weight: 800; line-height: 1.1; }
+  .tile .k { color: var(--mist); font-size: 14px; }
+  .tile .d { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+  .card { background: #1a2530e6; border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; margin-bottom: 14px; }
+  .card h2 { font: 28px/1.1 var(--display); margin: 0 0 4px; letter-spacing: .5px; font-weight: 400; }
+  .card .what { color: var(--mist); margin: 0 0 10px; font-size: 15px; max-width: 78ch; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; }
+  .grid2 > .card { margin-bottom: 0; }
+  .grid2 + .card, .grid2 + .grid2 { margin-top: 14px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 14px; color: var(--mist); margin-bottom: 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .legend i.ln { height: 3px; border-radius: 2px; width: 16px; }
+
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  svg text { fill: var(--muted); font: 12px var(--body); font-variant-numeric: tabular-nums; }
+  svg .lbl { fill: var(--mist); font-size: 13px; }
+  svg .val { fill: var(--snow); font-size: 12px; font-weight: 700; }
+  .gridl { stroke: var(--grid); stroke-width: 1; }
+  .axisl { stroke: var(--line); stroke-width: 1; }
+  .hit { fill: transparent; cursor: pointer; }
+
+  /* biggest swings */
+  .swings { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+  .swing { text-align: left; background: var(--slate); border: 1px solid var(--line); border-radius: 12px;
+           padding: 10px 12px; cursor: pointer; color: var(--snow); font: inherit; }
+  .swing:hover { border-color: var(--mist); }
+  .swing .top { display: flex; justify-content: space-between; gap: 8px; font-weight: 700; }
+  .swing .x { color: var(--mist); font-size: 14px; margin-top: 3px; }
+  .up { color: var(--good); } .down { color: var(--crit); }
+
+  /* the games table */
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { background: var(--slate); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px;
+          color: var(--mist); cursor: pointer; font: 600 14px var(--body); }
+  .chip.on { background: var(--slate-2); color: var(--snow); border-color: var(--gold); }
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th { text-align: left; color: var(--muted); font-weight: 600; font-size: 13px; padding: 6px 8px;
+       border-bottom: 1px solid var(--line); white-space: nowrap; cursor: pointer; user-select: none; }
+  th.num, td.num { text-align: right; }
+  th .ar { opacity: .7; }
+  td { padding: 6px 8px; border-bottom: 1px solid #22303c; vertical-align: middle; }
+  tbody tr.g { cursor: pointer; }
+  tbody tr.g:hover { background: #ffffff08; }
+  .score b { color: var(--snow); } .score span { color: var(--mist); }
+  .pdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: 0; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 1px 8px; font-size: 13px;
+           font-weight: 700; border: 1px solid; white-space: nowrap; }
+  .badge.l1 { color: var(--warn); border-color: #fab21966; background: #fab2191a; }
+  .badge.l2 { color: var(--crit); border-color: #ff5c5c66; background: #ff5c5c1a; }
+  .badge.ok { color: var(--good); border-color: #7cc47a55; background: #7cc47a14; }
+  .badge.cb { color: #8fd3ff; border-color: #8fd3ff55; background: #8fd3ff14; }
+  .play { text-decoration: none; background: var(--rune); color: #fff; border-radius: 8px; padding: 3px 10px;
+          font-weight: 700; font-size: 14px; white-space: nowrap; }
+  .play:hover { background: #df7050; }
+  .spark { width: 150px; height: 34px; }
+  .more { margin-top: 10px; }
+
+  /* one game */
+  .sheet { position: fixed; inset: 0; z-index: 20; background: #0a0f14cc; backdrop-filter: blur(3px);
+           overflow-y: auto; padding: 24px 16px 60px; }
+  .sheet .in { max-width: 1100px; margin: 0 auto; background: #17222c; border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; }
+  .sheet .hd { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .sheet .hd h2 { font: 34px/1 var(--display); font-weight: 400; margin: 0; flex: 1; min-width: 200px; }
+  .btn { background: var(--slate-2); border: 1px solid var(--line); border-radius: 8px; padding: 7px 14px; cursor: pointer;
+         font: 600 15px var(--body); color: var(--snow); text-decoration: none; }
+  .btn:hover { border-color: var(--mist); }
+  .btn.primary { background: var(--rune); border-color: var(--rune); color: #fff; }
+  .versus { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 6px; }
+  .versus .pl { display: flex; align-items: center; gap: 10px; background: var(--slate); border: 1px solid var(--line);
+                border-radius: 12px; padding: 8px 14px; min-width: 200px; }
+  .versus .pl.win { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+  .versus .pl .s { font-size: 28px; font-weight: 800; margin-left: auto; }
+  .versus .pl .crown { color: var(--gold); font-size: 13px; font-weight: 700; }
+  .story { color: var(--mist); margin: 6px 0 12px; }
+  .timeline { display: grid; gap: 2px; margin-top: 6px; }
+  .turn { display: grid; grid-template-columns: 34px 14px 1fr auto auto; gap: 10px; align-items: center;
+          padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+  .turn:hover { background: #ffffff0a; }
+  .turn .n { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+  .turn .x { min-width: 0; }
+  .turn .x .bt { color: var(--mist); font-size: 14px; }
+  .turn .dw { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 14px; min-width: 52px; text-align: right; }
+  .turn.l1 { background: #fab21910; box-shadow: inset 3px 0 0 var(--warn); }
+  .turn.l2 { background: #ff5c5c12; box-shadow: inset 3px 0 0 var(--crit); }
+  .turn.hl { outline: 2px solid #8fd3ff; }
+  .fin td, .fin th { padding: 4px 10px; }
+
+  #tip { position: fixed; pointer-events: none; background: #0f171e; color: var(--snow); border: 1px solid var(--line);
+         border-radius: 10px; padding: 8px 10px; font-size: 14px; box-shadow: 0 8px 24px #0008; display: none;
+         z-index: 40; max-width: 320px; }
+  #tip .m { color: var(--mist); font-size: 13px; }
+  .note { color: var(--muted); font-size: 14px; margin-top: 18px; }
+  details summary { cursor: pointer; color: var(--mist); font-size: 14px; margin-top: 8px; }
+  @media (max-width: 640px) {
+    header.top h1 { font-size: 38px; }
+    .turn { grid-template-columns: 26px 12px 1fr auto; }
+    .turn .dw { display: none; }
+    .hide-s { display: none; }
+  }
+</style>
+<style>
+  .hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr); gap: 14px; margin-bottom: 14px; }
+  @media (max-width: 800px) { .hero { grid-template-columns: 1fr; } }
+  .big { background: linear-gradient(135deg, #22384a, #1a2530); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; }
+  .big .v { font: 64px/1 var(--display); letter-spacing: 1px; }
+  .big .v span { color: var(--gold); }
+  .big .k { color: var(--mist); margin-top: 6px; }
+  .tiles.hist { margin-bottom: 0; }
+  .eras { display: flex; gap: 12px; flex-wrap: wrap; font-size: 14px; color: var(--mist); margin-bottom: 6px; }
+  .eras span { display: inline-flex; align-items: center; gap: 6px; }
+  .eras i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .eras i.dia { transform: rotate(45deg); border-radius: 2px; width: 10px; height: 10px; background: var(--snow); }
+  table.runs td { vertical-align: top; }
+  table.runs .t { font-weight: 700; color: var(--snow); }
+  table.runs .d { color: var(--mist); font-size: 13.5px; max-width: 46ch; }
+  table.runs td.num, table.runs th.num { text-align: right; white-space: nowrap; }
+  .runtag { display: inline-block; font: 700 12px var(--body); padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--mist); }
+  .timeline { position: relative; display: grid; gap: 10px; padding-left: 22px; }
+  .timeline::before { content: ""; position: absolute; left: 6px; top: 4px; bottom: 4px; width: 2px; background: var(--line); }
+  .change { position: relative; background: var(--slate); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; }
+  .change::before { content: ""; position: absolute; left: -21px; top: 14px; width: 12px; height: 12px; border-radius: 50%; background: var(--gold); border: 2px solid var(--night); }
+  .change .h { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-weight: 700; }
+  .change .when { color: var(--muted); font-weight: 500; font-size: 14px; }
+  .change .x { color: var(--mist); font-size: 15px; margin-top: 2px; }
+  .change .eff { margin-top: 4px; font-size: 14px; }
+  .sp3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+  .sp3 h3 { margin: 0 0 2px; font-size: 16px; }
+  .sp3 .s { color: var(--mist); font-size: 13.5px; margin-bottom: 4px; }
+  .cellbar { position: relative; min-width: 64px; }
+  .cellbar i { position: absolute; left: 0; top: 3px; bottom: 3px; background: #d0603f55; border-radius: 3px; }
+  .cellbar span { position: relative; }
+  .vtable td, .vtable th { white-space: nowrap; }
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Lo<span>oo</span>t</h1>
+    <nav class="tabs">
+      <a href="dashboard.html">Partijen tegen zichzelf</a>
+      <a href="dashboard_greedy.html">Tegen greedy</a>
+      <a class="on" href="history.html">Geschiedenis</a>
+      <a href="index.html">Speel ▸</a>
+    </nav>
+  </header>
+  <p class="sub" id="sub"></p>
+
+  <div class="hero">
+    <div class="big"><div class="v" id="heroV"></div><div class="k" id="heroK"></div></div>
+    <div class="tiles hist" id="tiles"></div>
+  </div>
+
+  <div class="card">
+    <h2>Van het eerste netwerk tot nu</h2>
+    <p class="what">Elk netwerk dat het hele spel speelde, en hoe vaak het won van de greedy-speler (2 spelers). De kleur is het tijdperk: hoe het netwerk er toen uitzag. De ruitjes zijn de eindtests van de beste netwerken (meer partijen, betrouwbaarder). De lege stukken zijn nachten.</p>
+    <div class="eras" id="lg-progress"></div>
+    <div id="progress"></div>
+  </div>
+
+  <div class="card">
+    <h2>Alle runs</h2>
+    <p class="what">Een run is één trainingssessie met een eigen naam (de letters voor de netwerknamen: c3_full_r8 is uit run c3). Uren: de tijd dat er gerekend werd, pauzes niet meegeteld.</p>
+    <div class="tablewrap"><table class="runs" id="runs"></table></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Wat er veranderde</h2>
+      <p class="what">Elke keer dat het netwerk of de manier van trainen veranderde, met wat dat opleverde.</p>
+      <div class="timeline" id="changes"></div>
+    </div>
+    <div class="card">
+      <h2>De netwerken zelf</h2>
+      <p class="what">Wat erin gaat (kenmerken per landveld, per fjordveld en algemene getallen) en hoeveel gewichten (getallen die het leert) het heeft.</p>
+      <div class="tablewrap"><table class="vtable" id="versions"></table></div>
+      <h3 style="margin:16px 0 4px;font-size:16px">Onderlinge wedstrijden</h3>
+      <p class="what">Netwerken rechtstreeks tegen elkaar (boven de 50%: de eerste wint vaker). De streep is de onzekerheid (95%).</p>
+      <div id="matches"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Zelfspel: wie werd kampioen?</h2>
+    <p class="what">In zelfspel moet elk nieuw netwerk de kampioen verslaan: meer dan 53% van de partijen (de stippellijn). Goud: een nieuwe kampioen.</p>
+    <div class="sp3" id="selfplay"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Hoe goed schat het netwerk?</h2>
+      <p class="what">Hoeveel punten het netwerk er gemiddeld naast zit als het de eindstand voorspelt, op partijen die het niet kende (lager is beter). Elke run meet op zijn eigen partijen, dus vergelijk vooral de richting.</p>
+      <div id="mae"></div>
+    </div>
+    <div class="card">
+      <h2>Waar in de partij?</h2>
+      <p class="what">Dezelfde fout per moment in de partij (Vikings die nog over zijn, van beide spelers samen). Aan het eind wordt het netwerk steeds beter, maar exact is het nooit: daarom worden de laatste 2 beurten nu uitgerekend.</p>
+      <div class="tablewrap"><table id="phases"></table></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Trainingsdata</h2>
+      <p class="what">Hoeveel posities (een stand, gezien door één speler) elke run maakte om van te leren. Deze data mag weg: de aantallen blijven hier bewaard.</p>
+      <div id="data"></div>
+    </div>
+    <div class="card">
+      <h2>De greedy-speler afstellen</h2>
+      <p class="what">Voordat er een netwerk was, is de greedy-speler zelf afgesteld (tools/tune.py): per ronde de gemiddelde score van de beste instellingen.</p>
+      <div id="tuning"></div>
+      <p class="what" id="tuning-note" style="margin-top:8px"></p>
+    </div>
+  </div>
+  <p class="note" id="foot"></p>
+</main>
+<div id="tip" role="tooltip"></div>
+
+<script>
+const D = {"made":"2026-09-30 22:45","eras":[["Codering v1",["v1","cur","c2"]],["Codering v3",["c3"]],["Codering v4",["c4","c5v","c5t","c7a"]],["Zelfspel",["s1"]],["Voorstellen",["p1","s2"]]],"points":[[1790429135.5717747,0.23,"v1","v1",0,200,"greedy data"],[1790437375.5025876,0.173,"c2_full_a","c2",0.043,300,"greedy data"],[1790437777.2024906,0.23,"c2_full_r1","c2",0.048,300,"self-play round 1"],[1790438225.2212095,0.283,"c2_full_r2","c2",0.051,300,"self-play round 2"],[1790438692.0240877,0.303,"c2_full_r3","c2",0.052,300,"self-play round 3"],[1790439165.083194,0.3,"c2_full_r4","c2",0.052,300,"self-play round 4"],[1790439651.5312889,0.367,"c2_full_r5","c2",0.055,300,"self-play round 5"],[1790440167.5673876,0.363,"c2_full_r6","c2",0.054,300,"self-play round 6"],[1790440678.7257297,0.317,"c2_full_r7","c2",0.053,300,"self-play round 7"],[1790441176.6396499,0.303,"c2_full_r8","c2",0.052,300,"self-play round 8"],[1790500051.213746,0.49,"c3_full_a","c3",0.044,500,"greedy data"],[1790500197.8570693,0.722,"c3_full_r1","c3",0.039,500,"self-play round 1"],[1790500373.47887,0.718,"c3_full_r2","c3",0.039,500,"self-play round 2"],[1790500576.2836661,0.718,"c3_full_r3","c3",0.039,500,"self-play round 3"],[1790500784.3545315,0.724,"c3_full_r4","c3",0.039,500,"self-play round 4"],[1790500993.8432062,0.762,"c3_full_r5","c3",0.037,500,"self-play round 5"],[1790501203.2966342,0.744,"c3_full_r6","c3",0.038,500,"self-play round 6"],[1790501417.1786222,0.716,"c3_full_r7","c3",0.04,500,"self-play round 7"],[1790501634.7012422,0.808,"c3_full_r8","c3",0.035,500,"self-play round 8"],[1790501858.3649487,0.72,"c3_full_r9","c3",0.039,500,"self-play round 9"],[1790502081.0396314,0.714,"c3_full_r10","c3",0.04,500,"self-play round 10"],[1790502302.7519784,0.726,"c3_full_r11","c3",0.039,500,"self-play round 11"],[1790502522.1299882,0.706,"c3_full_r12","c3",0.04,500,"self-play round 12"],[1790502742.8196063,0.698,"c3_full_r13","c3",0.04,500,"self-play round 13"],[1790502962.8086898,0.664,"c3_full_r14","c3",0.041,500,"self-play round 14"],[1790503182.243289,0.684,"c3_full_r15","c3",0.041,500,"self-play round 15"],[1790503401.063976,0.642,"c3_full_r16","c3",0.042,500,"self-play round 16"],[1790503618.5352962,0.698,"c3_full_r17","c3",0.04,500,"self-play round 17"],[1790503839.7466733,0.62,"c3_full_r18","c3",0.043,500,"self-play round 18"],[1790504058.264927,0.676,"c3_full_r19","c3",0.041,500,"self-play round 19"],[1790504276.8089714,0.602,"c3_full_r20","c3",0.043,500,"self-play round 20"],[1790504490.9183788,0.592,"c3_full_r21","c3",0.043,500,"self-play round 21"],[1790504708.4772096,0.576,"c3_full_r22","c3",0.043,500,"self-play round 22"],[1790504925.5107918,0.694,"c3_full_r23","c3",0.04,500,"self-play round 23"],[1790505147.452556,0.622,"c3_full_r24","c3",0.043,500,"self-play round 24"],[1790505369.402097,0.55,"c3_full_r25","c3",0.044,500,"self-play round 25"],[1790505587.6627536,0.512,"c3_full_r26","c3",0.044,500,"self-play round 26"],[1790505804.558162,0.504,"c3_full_r27","c3",0.044,500,"self-play round 27"],[1790506020.345954,0.572,"c3_full_r28","c3",0.043,500,"self-play round 28"],[1790506239.294653,0.632,"c3_full_r29","c3",0.042,500,"self-play round 29"],[1790506456.5655174,0.67,"c3_full_r30","c3",0.041,500,"self-play round 30"],[1790506677.1207209,0.608,"c3_full_r31","c3",0.043,500,"self-play round 31"],[1790506893.8871427,0.544,"c3_full_r32","c3",0.044,500,"self-play round 32"],[1790507112.204151,0.634,"c3_full_r33","c3",0.042,500,"self-play round 33"],[1790507326.3720114,0.604,"c3_full_r34","c3",0.043,500,"self-play round 34"],[1790507545.0796244,0.64,"c3_full_r35","c3",0.042,500,"self-play round 35"],[1790507767.047784,0.616,"c3_full_r36","c3",0.043,500,"self-play round 36"],[1790507985.3924704,0.592,"c3_full_r37","c3",0.043,500,"self-play round 37"],[1790508205.1737857,0.536,"c3_full_r38","c3",0.044,500,"self-play round 38"],[1790508426.892222,0.542,"c3_full_r39","c3",0.044,500,"self-play round 39"],[1790508643.7133396,0.654,"c3_full_r40","c3",0.042,500,"self-play round 40"],[1790508863.8614686,0.488,"c3_full_r41","c3",0.044,500,"self-play round 41"],[1790509080.5357153,0.484,"c3_full_r42","c3",0.044,500,"self-play round 42"],[1790509297.0876942,0.506,"c3_full_r43","c3",0.044,500,"self-play round 43"],[1790509513.0641825,0.58,"c3_full_r44","c3",0.043,500,"self-play round 44"],[1790509730.1611772,0.616,"c3_full_r45","c3",0.043,500,"self-play round 45"],[1790509945.5008228,0.624,"c3_full_r46","c3",0.042,500,"self-play round 46"],[1790510163.2715845,0.58,"c3_full_r47","c3",0.043,500,"self-play round 47"],[1790510382.4640014,0.574,"c3_full_r48","c3",0.043,500,"self-play round 48"],[1790510598.621094,0.544,"c3_full_r49","c3",0.044,500,"self-play round 49"],[1790510815.4617937,0.508,"c3_full_r50","c3",0.044,500,"self-play round 50"],[1790511027.1407137,0.482,"c3_full_r51","c3",0.044,500,"self-play round 51"],[1790511239.5072715,0.588,"c3_full_r52","c3",0.043,500,"self-play round 52"],[1790511452.6751535,0.604,"c3_full_r53","c3",0.043,500,"self-play round 53"],[1790511670.6364944,0.518,"c3_full_r54","c3",0.044,500,"self-play round 54"],[1790511886.7907574,0.46,"c3_full_r55","c3",0.044,500,"self-play round 55"],[1790512103.2699356,0.622,"c3_full_r56","c3",0.043,500,"self-play round 56"],[1790512320.6907997,0.598,"c3_full_r57","c3",0.043,500,"self-play round 57"],[1790512539.9716678,0.596,"c3_full_r58","c3",0.043,500,"self-play round 58"],[1790512759.0761962,0.498,"c3_full_r59","c3",0.044,500,"self-play round 59"],[1790512975.4805539,0.52,"c3_full_r60","c3",0.044,500,"self-play round 60"],[1790513190.059004,0.596,"c3_full_r61","c3",0.043,500,"self-play round 61"],[1790513410.3365636,0.586,"c3_full_r62","c3",0.043,500,"self-play round 62"],[1790513631.648214,0.536,"c3_full_r63","c3",0.044,500,"self-play round 63"],[1790513852.7051961,0.512,"c3_full_r64","c3",0.044,500,"self-play round 64"],[1790514072.6626744,0.538,"c3_full_r65","c3",0.044,500,"self-play round 65"],[1790514293.5058622,0.53,"c3_full_r66","c3",0.044,500,"self-play round 66"],[1790514512.8532815,0.534,"c3_full_r67","c3",0.044,500,"self-play round 67"],[1790514730.8463552,0.52,"c3_full_r68","c3",0.044,500,"self-play round 68"],[1790514947.922954,0.504,"c3_full_r69","c3",0.044,500,"self-play round 69"],[1790515165.5142064,0.634,"c3_full_r70","c3",0.042,500,"self-play round 70"],[1790515384.9426386,0.534,"c3_full_r71","c3",0.044,500,"self-play round 71"],[1790515603.3454852,0.536,"c3_full_r72","c3",0.044,500,"self-play round 72"],[1790515818.2218325,0.532,"c3_full_r73","c3",0.044,500,"self-play round 73"],[1790516035.4258132,0.528,"c3_full_r74","c3",0.044,500,"self-play round 74"],[1790516251.6611547,0.624,"c3_full_r75","c3",0.042,500,"self-play round 75"],[1790516469.4623897,0.578,"c3_full_r76","c3",0.043,500,"self-play round 76"],[1790516685.9413667,0.474,"c3_full_r77","c3",0.044,500,"self-play round 77"],[1790516899.7666507,0.604,"c3_full_r78","c3",0.043,500,"self-play round 78"],[1790517116.802206,0.522,"c3_full_r79","c3",0.044,500,"self-play round 79"],[1790550041.4185286,0.584,"c5v_full_a","c5v",0.043,500,"greedy data"],[1790550250.006137,0.686,"c5v_full_r1","c5v",0.041,500,"self-play round 1"],[1790550509.766113,0.724,"c5v_full_r2","c5v",0.039,500,"self-play round 2"],[1790550814.2213967,0.744,"c5v_full_r3","c5v",0.038,500,"self-play round 3"],[1790551121.0948167,0.764,"c5v_full_r4","c5v",0.037,500,"self-play round 4"],[1790551435.1472776,0.776,"c5v_full_r5","c5v",0.037,500,"self-play round 5"],[1790551753.0043476,0.794,"c5v_full_r6","c5v",0.035,500,"self-play round 6"],[1790552074.282912,0.748,"c5v_full_r7","c5v",0.038,500,"self-play round 7"],[1790552392.9416485,0.8,"c5v_full_r8","c5v",0.035,500,"self-play round 8"],[1790552712.3599446,0.806,"c5v_full_r9","c5v",0.035,500,"self-play round 9"],[1790553033.5785701,0.846,"c5v_full_r10","c5v",0.032,500,"self-play round 10"],[1790553354.585361,0.758,"c5v_full_r11","c5v",0.038,500,"self-play round 11"],[1790553678.2503564,0.786,"c5v_full_r12","c5v",0.036,500,"self-play round 12"],[1790553999.8701954,0.808,"c5v_full_r13","c5v",0.035,500,"self-play round 13"],[1790554322.009114,0.818,"c5v_full_r14","c5v",0.034,500,"self-play round 14"],[1790554642.559705,0.832,"c5v_full_r15","c5v",0.033,500,"self-play round 15"],[1790554964.1389573,0.828,"c5v_full_r16","c5v",0.033,500,"self-play round 16"],[1790555286.8727586,0.794,"c5v_full_r17","c5v",0.035,500,"self-play round 17"],[1790555608.5863562,0.808,"c5v_full_r18","c5v",0.035,500,"self-play round 18"],[1790555931.4340177,0.818,"c5v_full_r19","c5v",0.034,500,"self-play round 19"],[1790556254.0918825,0.82,"c5v_full_r20","c5v",0.034,500,"self-play round 20"],[1790560432.168382,0.512,"c5t_full_a","c5t",0.044,500,"greedy data"],[1790560660.3712428,0.66,"c5t_full_r1","c5t",0.042,500,"self-play round 1"],[1790560950.880105,0.678,"c5t_full_r2","c5t",0.041,500,"self-play round 2"],[1790561290.307168,0.692,"c5t_full_r3","c5t",0.04,500,"self-play round 3"],[1790561633.9339566,0.752,"c5t_full_r4","c5t",0.038,500,"self-play round 4"],[1790561979.22217,0.792,"c5t_full_r5","c5t",0.036,500,"self-play round 5"],[1790562335.2497568,0.794,"c5t_full_r6","c5t",0.035,500,"self-play round 6"],[1790562693.7051942,0.804,"c5t_full_r7","c5t",0.035,500,"self-play round 7"],[1790563059.2557638,0.766,"c5t_full_r8","c5t",0.037,500,"self-play round 8"],[1790563423.215947,0.788,"c5t_full_r9","c5t",0.036,500,"self-play round 9"],[1790563786.9881217,0.838,"c5t_full_r10","c5t",0.032,500,"self-play round 10"],[1790564149.416314,0.756,"c5t_full_r11","c5t",0.038,500,"self-play round 11"],[1790564512.2145371,0.76,"c5t_full_r12","c5t",0.037,500,"self-play round 12"],[1790564873.4616404,0.762,"c5t_full_r13","c5t",0.037,500,"self-play round 13"],[1790565234.738948,0.762,"c5t_full_r14","c5t",0.037,500,"self-play round 14"],[1790565595.6348515,0.818,"c5t_full_r15","c5t",0.034,500,"self-play round 15"],[1790565956.9524488,0.696,"c5t_full_r16","c5t",0.04,500,"self-play round 16"],[1790592850.3201368,0.554,"c7a_full_a","c7a",0.044,500,"greedy data"],[1790593600.2816408,0.86,"s1_r1","s1",0.039,300,"challenger 1"],[1790593936.1624105,0.823,"s1_r2","s1",0.043,300,"challenger 2"],[1790594315.1911755,0.847,"s1_r3","s1",0.041,300,"challenger 3"],[1790594746.4609022,0.877,"s1_r4","s1",0.037,300,"challenger 4"],[1790595184.5984309,0.88,"s1_r5","s1",0.037,300,"challenger 5"],[1790595620.6852415,0.863,"s1_r6","s1",0.039,300,"challenger 6"],[1790596053.683403,0.847,"s1_r7","s1",0.041,300,"challenger 7"],[1790596485.4518082,0.863,"s1_r8","s1",0.039,300,"challenger 8"],[1790596916.6884067,0.9,"s1_r9","s1",0.034,300,"challenger 9"],[1790597351.5364354,0.897,"s1_r10","s1",0.034,300,"challenger 10"],[1790597788.003289,0.89,"s1_r11","s1",0.035,300,"challenger 11"],[1790598224.3796675,0.893,"s1_r12","s1",0.035,300,"challenger 12"],[1790598663.0886157,0.887,"s1_r13","s1",0.036,300,"challenger 13"],[1790599106.039862,0.877,"s1_r14","s1",0.037,300,"challenger 14"],[1790599550.709991,0.853,"s1_r15","s1",0.04,300,"challenger 15"],[1790599997.5921385,0.927,"s1_r16","s1",0.029,300,"challenger 16"],[1790600440.2487926,0.893,"s1_r17","s1",0.035,300,"challenger 17"],[1790600887.9802346,0.89,"s1_r18","s1",0.035,300,"challenger 18"],[1790601329.8666365,0.927,"s1_r19","s1",0.029,300,"challenger 19"],[1790601772.7129064,0.917,"s1_r20","s1",0.031,300,"challenger 20"],[1790615237.415289,0.883,"s1_r21","s1",0.036,300,"challenger 21"],[1790615679.2684531,0.913,"s1_r22","s1",0.032,300,"challenger 22"],[1790616116.4110198,0.923,"s1_r23","s1",0.03,300,"challenger 23"],[1790616552.2364552,0.9,"s1_r24","s1",0.034,300,"challenger 24"],[1790616978.398401,0.917,"s1_r25","s1",0.031,300,"challenger 25"],[1790617406.1356807,0.88,"s1_r26","s1",0.037,300,"challenger 26"],[1790617832.784742,0.923,"s1_r27","s1",0.03,300,"challenger 27"],[1790618261.0730746,0.92,"s1_r28","s1",0.031,300,"challenger 28"],[1790618691.390476,0.89,"s1_r29","s1",0.035,300,"challenger 29"],[1790619122.845361,0.95,"s1_r30","s1",0.025,300,"challenger 30"],[1790619553.0931563,0.897,"s1_r31","s1",0.034,300,"challenger 31"],[1790619981.065291,0.9,"s1_r32","s1",0.034,300,"challenger 32"],[1790620409.5244954,0.923,"s1_r33","s1",0.03,300,"challenger 33"],[1790620835.6746483,0.907,"s1_r34","s1",0.033,300,"challenger 34"],[1790621264.448715,0.947,"s1_r35","s1",0.025,300,"challenger 35"],[1790621694.726852,0.867,"s1_r36","s1",0.038,300,"challenger 36"],[1790622122.1855934,0.91,"s1_r37","s1",0.032,300,"challenger 37"],[1790622549.0011015,0.913,"s1_r38","s1",0.032,300,"challenger 38"],[1790622975.053119,0.917,"s1_r39","s1",0.031,300,"challenger 39"],[1790623403.2422335,0.86,"s1_r40","s1",0.039,300,"challenger 40"],[1790623825.1108444,0.913,"s1_r41","s1",0.032,300,"challenger 41"],[1790624249.9423993,0.937,"s1_r42","s1",0.028,300,"challenger 42"],[1790624676.939507,0.943,"s1_r43","s1",0.026,300,"challenger 43"],[1790675191.0378377,0.927,"s2_r1","s2",0.029,300,"challenger 1"],[1790676074.5962422,0.94,"s2_r2","s2",0.027,300,"challenger 2"],[1790677007.579914,0.91,"s2_r3","s2",0.032,300,"challenger 3"],[1790677992.7332306,0.917,"s2_r4","s2",0.031,300,"challenger 4"],[1790678974.607091,0.933,"s2_r5","s2",0.028,300,"challenger 5"],[1790679955.1785023,0.883,"s2_r6","s2",0.036,300,"challenger 6"],[1790680931.9791238,0.947,"s2_r7","s2",0.025,300,"challenger 7"],[1790681879.6371195,0.95,"s2_r8","s2",0.025,300,"challenger 8"],[1790682822.2086797,0.927,"s2_r9","s2",0.029,300,"challenger 9"],[1790683845.521662,0.913,"s2_r10","s2",0.032,300,"challenger 10"],[1790686427.732749,0.943,"s2_r11","s2",0.026,300,"challenger 11"],[1790687420.049449,0.92,"s2_r12","s2",0.031,300,"challenger 12"],[1790688387.786611,0.953,"s2_r13","s2",0.024,300,"challenger 13"],[1790689355.563803,0.967,"s2_r14","s2",0.02,300,"challenger 14"],[1790690319.3009124,0.93,"s2_r15","s2",0.029,300,"challenger 15"],[1790691264.2287931,0.943,"s2_r16","s2",0.026,300,"challenger 16"],[1790692207.009265,0.913,"s2_r17","s2",0.032,300,"challenger 17"],[1790693156.29062,0.96,"s2_r18","s2",0.022,300,"challenger 18"],[1790694093.3513176,0.977,"s2_r19","s2",0.017,300,"challenger 19"],[1790695676.9265406,0.96,"s2_r20","s2",0.022,300,"challenger 20"],[1790696616.4684541,0.973,"s2_r21","s2",0.018,300,"challenger 21"],[1790697562.116662,0.96,"s2_r22","s2",0.022,300,"challenger 22"],[1790698505.613462,0.97,"s2_r23","s2",0.019,300,"challenger 23"],[1790763214.5058568,0.97,"s2_r24","s2",0.019,300,"challenger 24"],[1790764367.3295593,0.96,"s2_r25","s2",0.022,300,"challenger 25"],[1790765327.7536197,0.963,"s2_r26","s2",0.021,300,"challenger 26"],[1790766292.452829,0.97,"s2_r27","s2",0.019,300,"challenger 27"],[1790767244.5266912,0.98,"s2_r28","s2",0.016,300,"challenger 28"],[1790768201.3168797,0.943,"s2_r29","s2",0.026,300,"challenger 29"],[1790769168.3626688,0.967,"s2_r30","s2",0.02,300,"challenger 30"],[1790770146.6595392,0.983,"s2_r31","s2",0.014,300,"challenger 31"],[1790771109.1838415,0.963,"s2_r32","s2",0.021,300,"challenger 32"],[1790772132.2763696,0.97,"s2_r33","s2",0.019,300,"challenger 33"],[1790773219.1533532,0.963,"s2_r34","s2",0.021,300,"challenger 34"],[1790774213.18874,0.98,"s2_r35","s2",0.016,300,"challenger 35"],[1790775203.7100327,0.98,"s2_r36","s2",0.016,300,"challenger 36"],[1790776232.8976045,0.98,"s2_r37","s2",0.016,300,"challenger 37"],[1790777216.4651136,0.97,"s2_r38","s2",0.019,300,"challenger 38"]],"points_mp":[[1790614521.3480508,0.048,"m4_full_a","m4",0.021,400,"greedy data"],[1790706032.313365,0.62,"t4_r1","t4",0.067,200,"challenger 1"],[1790707412.399877,0.63,"t4_r2","t4",0.067,200,"challenger 2"],[1790708844.373738,0.585,"t4_r3","t4",0.068,200,"challenger 3"],[1790710229.5337603,0.625,"t4_r4","t4",0.067,200,"challenger 4"],[1790711604.895643,0.665,"t4_r5","t4",0.065,200,"challenger 5"],[1790712967.0388105,0.635,"t4_r6","t4",0.067,200,"challenger 6"],[1790714347.6121027,0.64,"t4_r7","t4",0.067,200,"challenger 7"],[1790779456.0460622,0.83,"t4_r8","t4",0.052,200,"challenger 8"],[1790781506.858486,0.765,"t4_r9","t4",0.059,200,"challenger 9"],[1790783389.7508082,0.745,"t4_r10","t4",0.06,200,"challenger 10"],[1790785257.8864286,0.715,"t4_r11","t4",0.063,200,"challenger 11"],[1790787118.7237878,0.75,"t4_r12","t4",0.06,200,"challenger 12"]],"finals":[[1790429135.5717747,0.23,"v1","v1",0.058,200,-17.9],[1790439651.5312889,0.323,"c2_full_r5","c2",0.053,300,-10.7],[1790501634.7012422,0.756,"c3_full_r8","c3",0.038,500,13.4],[1790553033.5785701,0.804,"c5v_full_r10","c5v",0.035,500,16.5],[1790563786.9881217,0.808,"c5t_full_r10","c5t",0.035,500,17.4],[1790592850.3201368,0.578,"c7a_full_a","c7a",0.043,500,4.0],[1790601772.7129064,0.906,"s1_r20","s1",0.026,500,24.2],[1790624676.939507,0.91,"s1_r43","s1",0.025,500,25.2],[1790680931.9791238,0.92,"s2_r7","s2",0.024,500,25.0],[1790694093.3513176,0.966,"s2_r19","s2",0.016,500,31.8],[1790771109.1838415,0.97,"s2_r32","s2",0.015,500,34.9],[1790779456.0460622,0.774,"t4_r8","t4",0.037,500,13.2]],"runs":[{"run":"v1","title":"Het eerste netwerk","text":"Een waardenetwerk (hex-convoluties over het land en de fjorden) dat leert van partijen van de greedy-speler: wie wint er, met hoeveel punten?","era":"Codering v1","start":"2026-09-26 15:25","hours":null,"networks":1,"arch":"gewoon","enc":"v1","weights":331326,"games":0,"positions":0,"gb":0,"mem_gb":0,"best":"v1","best_win":0.23,"best_margin":-17.9,"multi":false},{"run":"cur","title":"Eerste curriculum","text":"De regels stap voor stap (grondstoffen, gebouwen, bouwplaatsen, schepen, het hele spel), met zelfspel en TD-leren in elke stap.","era":"Codering v1","start":"2026-09-26 15:36","hours":0.98,"networks":17,"arch":"gewoon","enc":"v1","weights":331326,"games":56500,"positions":3014200,"gb":0.25,"mem_gb":10.5,"best":null,"best_win":null,"best_margin":null,"multi":false},{"run":"c2","title":"Curriculum 2","text":"Het curriculum opnieuw, langer; de laatste run met de eerste codering.","era":"Codering v1","start":"2026-09-26 16:57","hours":1.91,"networks":21,"arch":"gewoon","enc":"v1","weights":332382,"games":66000,"positions":3476000,"gb":0.38,"mem_gb":12.9,"best":"c2_full_r5","best_win":0.323,"best_margin":-10.7,"multi":false},{"run":"c3","title":"Codering v3","text":"Per landveld wat een Viking daar oplevert (tegels, ketens) en een 'boodschappenlijst': wat je schepen en bouwplaatsen nog missen. 80 zelfspelrondes.","era":"Codering v3","start":"2026-09-27 10:09","hours":5.76,"networks":102,"arch":"gewoon","enc":"v3","weights":339246,"games":818000,"positions":41604296,"gb":6.72,"mem_gb":195.3,"best":"c3_full_r8","best_win":0.756,"best_margin":13.4,"multi":false},{"run":"c4","title":"Run 4 (vastgelopen)","text":"Gestopt na twee stappen: het GPU-geheugen liep vol (data en netwerk samen). Daarna: data in het gewone geheugen, per batch naar de GPU.","era":"Codering v4","start":"2026-09-27 22:52","hours":0.24,"networks":6,"arch":"gewoon","enc":"v4","weights":415982,"games":58000,"positions":3124000,"gb":0.73,"mem_gb":15.7,"best":null,"best_win":null,"best_margin":null,"multi":false},{"run":"c5v","title":"Codering v4, gewoon netwerk","text":"Een beurtklok (hoeveel beurten nog) en 'pooling' over het hele bord, zodat het netwerk verder vooruit kan plannen.","era":"Codering v4","start":"2026-09-28 00:02","hours":2.77,"networks":39,"arch":"gewoon","enc":"v4","weights":415982,"games":314000,"positions":16276058,"gb":4.66,"mem_gb":81.6,"best":"c5v_full_r10","best_win":0.804,"best_margin":16.5,"multi":false},{"run":"c5t","title":"Het driedelige netwerk","text":"Jouw idee: een fjord-deel (waarde van elk item), een bord-deel (waar moet ik zetten) en een schip-deel (welk schip past), die elkaar berichten sturen.","era":"Codering v4","start":"2026-09-28 02:49","hours":2.72,"networks":35,"arch":"driedelig","enc":"v4","weights":436383,"games":288000,"positions":14976112,"gb":4.26,"mem_gb":75.1,"best":"c5t_full_r10","best_win":0.808,"best_margin":17.4,"multi":false},{"run":"c7a","title":"Aandacht (transformer)","text":"Een netwerk met aandacht over alle velden, fjorden en schepen tegelijk. Te weinig tijd gehad om eerlijk te vergelijken; niet verder gegaan.","era":"Codering v4","start":"2026-09-28 10:32","hours":2.55,"networks":19,"arch":"aandacht","enc":"v4","weights":460277,"games":154000,"positions":8276000,"gb":2.21,"mem_gb":41.5,"best":"c7a_full_a","best_win":0.578,"best_margin":4.0,"multi":false},{"run":"s1","title":"Zelfspel met een kampioen","text":"Alleen nog tegen zichzelf: een nieuw netwerk moet de kampioen verslaan (meer dan 53% van 400 partijen) om hem te vervangen. Vanaf c5t_full_r10.","era":"Zelfspel","start":"2026-09-28 13:06","hours":5.22,"networks":43,"arch":"driedelig","enc":"v4","weights":436383,"games":344000,"positions":17200584,"gb":5.25,"mem_gb":86.2,"best":"s1_r43","best_win":0.91,"best_margin":25.2,"multi":false},{"run":"p1","title":"Voorstellen (policy)","text":"Het netwerk leert ook welke zetten de zoektocht uiteindelijk kiest (eigen 'torens', zodat de waarde niet slechter wordt), en stelt die zetten zelf voor.","era":"Voorstellen","start":"2026-09-29 11:10","hours":null,"networks":1,"arch":"driedelig","enc":"v4","weights":557255,"games":8000,"positions":400028,"gb":0.14,"mem_gb":2.4,"best":"p1_r1","best_win":null,"best_margin":null,"multi":false},{"run":"s2","title":"Zelfspel met voorstellen","text":"De voorstellen kiezen welke velden en fjordplekken de zoektocht probeert; de helft van de partijen op willekeurige borden. Laatste sessie: lagere leersnelheid, 2 epochs, extra gewicht waar het netwerk ernaast zat, 600 keuringspartijen.","era":"Voorstellen","start":"2026-09-29 11:46","hours":11.14,"networks":38,"arch":"driedelig","enc":"v4","weights":557255,"games":304000,"positions":15200522,"gb":5.25,"mem_gb":90.4,"best":"s2_r32","best_win":0.97,"best_margin":34.9,"multi":false},{"run":"m4","title":"Eerste poging 4 spelers","text":"Het 2-spelernetwerk overgezet naar 4 spelers en getraind op greedy-partijen: mislukt (4,8% tegen 3 greedy-spelers).","era":"3-4 spelers","start":"2026-09-28 18:52","hours":0.07,"networks":2,"arch":"driedelig (2-4)","enc":"v4 (2-4 spelers)","weights":540271,"games":3900,"positions":764404,"gb":0.26,"mem_gb":7.4,"best":null,"best_win":null,"best_margin":null,"multi":true},{"run":"t4","title":"3 en 4 spelers","text":"s2_r19 overgezet naar de codering voor 2-4 spelers (t4_start: precies hetzelfde voor 2 spelers), daarna zelfspel met 3 en 4 spelers. Laatste sessie: 3000 partijen per ronde en een geheugenbudget.","era":"3-4 spelers","start":"2026-09-29 19:47","hours":5.86,"networks":13,"arch":"driedelig (2-4)","enc":"v4 (2-4 spelers)","weights":674167,"games":25500,"positions":3916054,"gb":1.42,"mem_gb":42.6,"best":"t4_r8","best_win":0.774,"best_margin":13.2,"multi":true}],"selfplay":{"s1":[[1,0.56,"s1_r1","c5t_full_r10",true,1.7],[2,0.502,"s1_r2","s1_r1",false,-0.4],[3,0.535,"s1_r3","s1_r1",true,0.7],[4,0.463,"s1_r4","s1_r3",false,-0.6],[5,0.472,"s1_r5","s1_r3",false,-1.6],[6,0.557,"s1_r6","s1_r3",true,2.9],[7,0.407,"s1_r7","s1_r6",false,-3.2],[8,0.517,"s1_r8","s1_r6",false,0.5],[9,0.537,"s1_r9","s1_r6",true,0.4],[10,0.445,"s1_r10","s1_r9",false,-0.8],[11,0.527,"s1_r11","s1_r9",false,1.8],[12,0.53,"s1_r12","s1_r9",false,1.6],[13,0.537,"s1_r13","s1_r9",true,0.5],[14,0.455,"s1_r14","s1_r13",false,-1.1],[15,0.45,"s1_r15","s1_r13",false,-1.0],[16,0.517,"s1_r16","s1_r13",false,1.1],[17,0.512,"s1_r17","s1_r13",false,1.2],[18,0.502,"s1_r18","s1_r13",false,0.5],[19,0.505,"s1_r19","s1_r13",false,0.9],[20,0.57,"s1_r20","s1_r13",true,2.6],[21,0.47,"s1_r21","s1_r20",false,-1.8],[22,0.495,"s1_r22","s1_r20",false,-0.8],[23,0.505,"s1_r23","s1_r20",false,-0.2],[24,0.5,"s1_r24","s1_r20",false,1.0],[25,0.455,"s1_r25","s1_r20",false,-0.6],[26,0.515,"s1_r26","s1_r20",false,0.8],[27,0.505,"s1_r27","s1_r20",false,0.3],[28,0.53,"s1_r28","s1_r20",false,1.2],[29,0.5,"s1_r29","s1_r20",false,-0.6],[30,0.52,"s1_r30","s1_r20",false,-0.2],[31,0.51,"s1_r31","s1_r20",false,0.6],[32,0.48,"s1_r32","s1_r20",false,-0.5],[33,0.517,"s1_r33","s1_r20",false,0.7],[34,0.512,"s1_r34","s1_r20",false,0.1],[35,0.525,"s1_r35","s1_r20",false,0.9],[36,0.465,"s1_r36","s1_r20",false,-2.1],[37,0.515,"s1_r37","s1_r20",false,0.0],[38,0.535,"s1_r38","s1_r20",true,0.3],[39,0.45,"s1_r39","s1_r38",false,-2.2],[40,0.525,"s1_r40","s1_r38",false,-0.3],[41,0.482,"s1_r41","s1_r38",false,-0.2],[42,0.51,"s1_r42","s1_r38",false,0.2],[43,0.535,"s1_r43","s1_r38",true,1.6]],"s2":[[1,0.497,"s2_r1","p1_r1",false,0.4],[2,0.542,"s2_r2","p1_r1",true,1.9],[3,0.475,"s2_r3","s2_r2",false,-0.8],[4,0.475,"s2_r4","s2_r2",false,-0.3],[5,0.517,"s2_r5","s2_r2",false,0.9],[6,0.52,"s2_r6","s2_r2",false,0.3],[7,0.54,"s2_r7","s2_r2",true,1.7],[8,0.438,"s2_r8","s2_r7",false,-2.4],[9,0.52,"s2_r9","s2_r7",false,0.3],[10,0.495,"s2_r10","s2_r7",false,-0.6],[11,0.61,"s2_r11","s2_r7",true,5.3],[12,0.475,"s2_r12","s2_r11",false,-1.1],[13,0.46,"s2_r13","s2_r11",false,-0.7],[14,0.517,"s2_r14","s2_r11",false,1.3],[15,0.565,"s2_r15","s2_r11",true,2.3],[16,0.443,"s2_r16","s2_r15",false,-3.8],[17,0.502,"s2_r17","s2_r15",false,-0.3],[18,0.497,"s2_r18","s2_r15",false,-0.6],[19,0.537,"s2_r19","s2_r15",true,1.7],[20,0.448,"s2_r20","s2_r19",false,-1.4],[21,0.475,"s2_r21","s2_r19",false,-0.8],[22,0.51,"s2_r22","s2_r19",false,-0.1],[23,0.525,"s2_r23","s2_r19",false,0.8],[24,0.562,"s2_r24","s2_r19",true,3.7],[25,0.452,"s2_r25","s2_r24",false,-2.5],[26,0.507,"s2_r26","s2_r24",false,-0.6],[27,0.477,"s2_r27","s2_r24",false,-0.3],[28,0.532,"s2_r28","s2_r24",true,1.8],[29,0.465,"s2_r29","s2_r28",false,-1.6],[30,0.482,"s2_r30","s2_r28",false,-1.3],[31,0.505,"s2_r31","s2_r28",false,-0.1],[32,0.542,"s2_r32","s2_r28",true,1.3],[33,0.447,"s2_r33","s2_r32",false,-1.7],[34,0.428,"s2_r34","s2_r32",false,-2.2],[35,0.502,"s2_r35","s2_r32",false,-0.0],[36,0.522,"s2_r36","s2_r32",false,0.3],[37,0.51,"s2_r37","s2_r32",false,1.0],[38,0.465,"s2_r38","s2_r32",false,-0.9]],"t4":[[1,0.483,"t4_r1","t4_start",false,-11.9],[2,0.443,"t4_r2","t4_start",false,-11.9],[3,0.423,"t4_r3","t4_start",false,-11.6],[4,0.417,"t4_r4","t4_start",false,-12.2],[5,0.447,"t4_r5","t4_start",false,-12.2],[6,0.47,"t4_r6","t4_start",false,-10.9],[7,0.51,"t4_r7","t4_start",false,-11.5],[8,0.655,"t4_r8","t4_start",true,-7.6],[9,0.422,"t4_r9","t4_r8",false,-12.3],[10,0.48,"t4_r10","t4_r8",false,-9.8],[11,0.46,"t4_r11","t4_r8",false,-11.0],[12,0.525,"t4_r12","t4_r8",false,-9.8]]},"mae":[[1790429135.5717747,12.46,"v1","v1"],[1790430940.5456226,13.63,"cur_full_a","cur"],[1790431216.012726,14.17,"cur_full","cur"],[1790437375.5025876,13.37,"c2_full_a","c2"],[1790437777.2024906,13.46,"c2_full_r1","c2"],[1790438225.2212095,13.76,"c2_full_r2","c2"],[1790438692.0240877,13.78,"c2_full_r3","c2"],[1790439165.083194,14.01,"c2_full_r4","c2"],[1790439651.5312889,14.03,"c2_full_r5","c2"],[1790440167.5673876,13.95,"c2_full_r6","c2"],[1790440678.7257297,14.02,"c2_full_r7","c2"],[1790441176.6396499,13.84,"c2_full_r8","c2"],[1790500051.213746,12.98,"c3_full_a","c3"],[1790500197.8570693,12.72,"c3_full_r1","c3"],[1790500373.47887,12.62,"c3_full_r2","c3"],[1790500576.2836661,12.49,"c3_full_r3","c3"],[1790500784.3545315,12.7,"c3_full_r4","c3"],[1790500993.8432062,12.81,"c3_full_r5","c3"],[1790501203.2966342,12.88,"c3_full_r6","c3"],[1790501417.1786222,12.7,"c3_full_r7","c3"],[1790501634.7012422,12.66,"c3_full_r8","c3"],[1790501858.3649487,12.65,"c3_full_r9","c3"],[1790502081.0396314,12.82,"c3_full_r10","c3"],[1790502302.7519784,12.83,"c3_full_r11","c3"],[1790502522.1299882,12.69,"c3_full_r12","c3"],[1790502742.8196063,12.68,"c3_full_r13","c3"],[1790502962.8086898,12.78,"c3_full_r14","c3"],[1790503182.243289,12.92,"c3_full_r15","c3"],[1790503401.063976,12.83,"c3_full_r16","c3"],[1790503618.5352962,12.87,"c3_full_r17","c3"],[1790503839.7466733,13.09,"c3_full_r18","c3"],[1790504058.264927,12.98,"c3_full_r19","c3"],[1790504276.8089714,12.81,"c3_full_r20","c3"],[1790504490.9183788,12.84,"c3_full_r21","c3"],[1790504708.4772096,12.96,"c3_full_r22","c3"],[1790504925.5107918,12.98,"c3_full_r23","c3"],[1790505147.452556,12.91,"c3_full_r24","c3"],[1790505369.402097,12.88,"c3_full_r25","c3"],[1790505587.6627536,12.76,"c3_full_r26","c3"],[1790505804.558162,13.03,"c3_full_r27","c3"],[1790506020.345954,13.24,"c3_full_r28","c3"],[1790506239.294653,13.53,"c3_full_r29","c3"],[1790506456.5655174,13.13,"c3_full_r30","c3"],[1790506677.1207209,12.88,"c3_full_r31","c3"],[1790506893.8871427,12.63,"c3_full_r32","c3"],[1790507112.204151,12.97,"c3_full_r33","c3"],[1790507326.3720114,13.1,"c3_full_r34","c3"],[1790507545.0796244,12.96,"c3_full_r35","c3"],[1790507767.047784,12.81,"c3_full_r36","c3"],[1790507985.3924704,12.59,"c3_full_r37","c3"],[1790508205.1737857,12.86,"c3_full_r38","c3"],[1790508426.892222,12.86,"c3_full_r39","c3"],[1790508643.7133396,13.12,"c3_full_r40","c3"],[1790508863.8614686,13.11,"c3_full_r41","c3"],[1790509080.5357153,13.28,"c3_full_r42","c3"],[1790509297.0876942,13.28,"c3_full_r43","c3"],[1790509513.0641825,13.43,"c3_full_r44","c3"],[1790509730.1611772,13.38,"c3_full_r45","c3"],[1790509945.5008228,13.25,"c3_full_r46","c3"],[1790510163.2715845,13.07,"c3_full_r47","c3"],[1790510382.4640014,13.01,"c3_full_r48","c3"],[1790510598.621094,12.91,"c3_full_r49","c3"],[1790510815.4617937,12.78,"c3_full_r50","c3"],[1790511027.1407137,12.84,"c3_full_r51","c3"],[1790511239.5072715,13.07,"c3_full_r52","c3"],[1790511452.6751535,13.23,"c3_full_r53","c3"],[1790511670.6364944,13.28,"c3_full_r54","c3"],[1790511886.7907574,13.11,"c3_full_r55","c3"],[1790512103.2699356,12.88,"c3_full_r56","c3"],[1790512320.6907997,13.07,"c3_full_r57","c3"],[1790512539.9716678,13.1,"c3_full_r58","c3"],[1790512759.0761962,12.85,"c3_full_r59","c3"],[1790512975.4805539,12.56,"c3_full_r60","c3"],[1790513190.059004,12.7,"c3_full_r61","c3"],[1790513410.3365636,13.07,"c3_full_r62","c3"],[1790513631.648214,13.3,"c3_full_r63","c3"],[1790513852.7051961,13.27,"c3_full_r64","c3"],[1790514072.6626744,13.11,"c3_full_r65","c3"],[1790514293.5058622,13.04,"c3_full_r66","c3"],[1790514512.8532815,13.14,"c3_full_r67","c3"],[1790514730.8463552,13.16,"c3_full_r68","c3"],[1790514947.922954,13.01,"c3_full_r69","c3"],[1790515165.5142064,12.92,"c3_full_r70","c3"],[1790515384.9426386,12.84,"c3_full_r71","c3"],[1790515603.3454852,12.78,"c3_full_r72","c3"],[1790515818.2218325,12.86,"c3_full_r73","c3"],[1790516035.4258132,12.94,"c3_full_r74","c3"],[1790516251.6611547,13.0,"c3_full_r75","c3"],[1790516469.4623897,13.12,"c3_full_r76","c3"],[1790516685.9413667,13.31,"c3_full_r77","c3"],[1790516899.7666507,13.44,"c3_full_r78","c3"],[1790517116.802206,13.26,"c3_full_r79","c3"],[1790550041.4185286,12.82,"c5v_full_a","c5v"],[1790550250.006137,12.37,"c5v_full_r1","c5v"],[1790550509.766113,12.23,"c5v_full_r2","c5v"],[1790550814.2213967,12.09,"c5v_full_r3","c5v"],[1790551121.0948167,12.23,"c5v_full_r4","c5v"],[1790551435.1472776,12.24,"c5v_full_r5","c5v"],[1790551753.0043476,12.36,"c5v_full_r6","c5v"],[1790552074.282912,12.26,"c5v_full_r7","c5v"],[1790552392.9416485,12.21,"c5v_full_r8","c5v"],[1790552712.3599446,12.04,"c5v_full_r9","c5v"],[1790553033.5785701,12.2,"c5v_full_r10","c5v"],[1790553354.585361,12.21,"c5v_full_r11","c5v"],[1790553678.2503564,12.27,"c5v_full_r12","c5v"],[1790553999.8701954,11.98,"c5v_full_r13","c5v"],[1790554322.009114,12.0,"c5v_full_r14","c5v"],[1790554642.559705,12.1,"c5v_full_r15","c5v"],[1790554964.1389573,12.13,"c5v_full_r16","c5v"],[1790555286.8727586,12.22,"c5v_full_r17","c5v"],[1790555608.5863562,12.08,"c5v_full_r18","c5v"],[1790555931.4340177,12.21,"c5v_full_r19","c5v"],[1790556254.0918825,12.15,"c5v_full_r20","c5v"],[1790560432.168382,13.08,"c5t_full_a","c5t"],[1790560660.3712428,12.78,"c5t_full_r1","c5t"],[1790560950.880105,12.84,"c5t_full_r2","c5t"],[1790561290.307168,12.72,"c5t_full_r3","c5t"],[1790561633.9339566,12.7,"c5t_full_r4","c5t"],[1790561979.22217,12.53,"c5t_full_r5","c5t"],[1790562335.2497568,12.2,"c5t_full_r6","c5t"],[1790562693.7051942,11.88,"c5t_full_r7","c5t"],[1790563059.2557638,12.29,"c5t_full_r8","c5t"],[1790563423.215947,12.36,"c5t_full_r9","c5t"],[1790563786.9881217,12.24,"c5t_full_r10","c5t"],[1790564149.416314,11.93,"c5t_full_r11","c5t"],[1790564512.2145371,11.79,"c5t_full_r12","c5t"],[1790564873.4616404,11.99,"c5t_full_r13","c5t"],[1790565234.738948,12.02,"c5t_full_r14","c5t"],[1790565595.6348515,11.86,"c5t_full_r15","c5t"],[1790565956.9524488,11.81,"c5t_full_r16","c5t"],[1790592850.3201368,12.73,"c7a_full_a","c7a"],[1790593600.2816408,11.02,"s1_r1","s1"],[1790593936.1624105,11.1,"s1_r2","s1"],[1790594315.1911755,11.15,"s1_r3","s1"],[1790594746.4609022,11.22,"s1_r4","s1"],[1790595184.5984309,11.3,"s1_r5","s1"],[1790595620.6852415,11.19,"s1_r6","s1"],[1790596053.683403,11.22,"s1_r7","s1"],[1790596485.4518082,11.14,"s1_r8","s1"],[1790596916.6884067,11.13,"s1_r9","s1"],[1790597351.5364354,11.16,"s1_r10","s1"],[1790597788.003289,11.14,"s1_r11","s1"],[1790598224.3796675,11.09,"s1_r12","s1"],[1790598663.0886157,11.03,"s1_r13","s1"],[1790599106.039862,11.18,"s1_r14","s1"],[1790599550.709991,11.19,"s1_r15","s1"],[1790599997.5921385,11.11,"s1_r16","s1"],[1790600440.2487926,11.15,"s1_r17","s1"],[1790600887.9802346,11.08,"s1_r18","s1"],[1790601329.8666365,11.3,"s1_r19","s1"],[1790601772.7129064,11.45,"s1_r20","s1"],[1790615237.415289,11.34,"s1_r21","s1"],[1790615679.2684531,11.27,"s1_r22","s1"],[1790616116.4110198,11.28,"s1_r23","s1"],[1790616552.2364552,10.92,"s1_r24","s1"],[1790616978.398401,11.09,"s1_r25","s1"],[1790617406.1356807,11.14,"s1_r26","s1"],[1790617832.784742,11.02,"s1_r27","s1"],[1790618261.0730746,11.19,"s1_r28","s1"],[1790618691.390476,11.02,"s1_r29","s1"],[1790619122.845361,11.12,"s1_r30","s1"],[1790619553.0931563,11.14,"s1_r31","s1"],[1790619981.065291,10.99,"s1_r32","s1"],[1790620409.5244954,10.99,"s1_r33","s1"],[1790620835.6746483,10.96,"s1_r34","s1"],[1790621264.448715,10.92,"s1_r35","s1"],[1790621694.726852,11.06,"s1_r36","s1"],[1790622122.1855934,11.12,"s1_r37","s1"],[1790622549.0011015,10.98,"s1_r38","s1"],[1790622975.053119,11.15,"s1_r39","s1"],[1790623403.2422335,11.22,"s1_r40","s1"],[1790623825.1108444,11.23,"s1_r41","s1"],[1790624249.9423993,11.18,"s1_r42","s1"],[1790624676.939507,11.11,"s1_r43","s1"],[1790673046.2429597,11.15,"p1_r1","p1"],[1790675191.0378377,11.66,"s2_r1","s2"],[1790676074.5962422,11.32,"s2_r2","s2"],[1790677007.579914,11.23,"s2_r3","s2"],[1790677992.7332306,11.22,"s2_r4","s2"],[1790678974.607091,11.3,"s2_r5","s2"],[1790679955.1785023,11.14,"s2_r6","s2"],[1790680931.9791238,10.98,"s2_r7","s2"],[1790681879.6371195,11.02,"s2_r8","s2"],[1790682822.2086797,10.93,"s2_r9","s2"],[1790683845.521662,10.91,"s2_r10","s2"],[1790686427.732749,11.31,"s2_r11","s2"],[1790687420.049449,11.52,"s2_r12","s2"],[1790688387.786611,11.94,"s2_r13","s2"],[1790689355.563803,12.06,"s2_r14","s2"],[1790690319.3009124,11.97,"s2_r15","s2"],[1790691264.2287931,12.1,"s2_r16","s2"],[1790692207.009265,11.94,"s2_r17","s2"],[1790693156.29062,11.74,"s2_r18","s2"],[1790694093.3513176,11.79,"s2_r19","s2"],[1790695676.9265406,11.69,"s2_r20","s2"],[1790696616.4684541,11.64,"s2_r21","s2"],[1790697562.116662,11.68,"s2_r22","s2"],[1790698505.613462,11.73,"s2_r23","s2"],[1790763214.5058568,11.46,"s2_r24","s2"],[1790764367.3295593,11.5,"s2_r25","s2"],[1790765327.7536197,11.36,"s2_r26","s2"],[1790766292.452829,11.27,"s2_r27","s2"],[1790767244.5266912,11.01,"s2_r28","s2"],[1790768201.3168797,11.21,"s2_r29","s2"],[1790769168.3626688,11.22,"s2_r30","s2"],[1790770146.6595392,11.05,"s2_r31","s2"],[1790771109.1838415,10.94,"s2_r32","s2"],[1790772132.2763696,10.9,"s2_r33","s2"],[1790773219.1533532,10.86,"s2_r34","s2"],[1790774213.18874,10.8,"s2_r35","s2"],[1790775203.7100327,10.89,"s2_r36","s2"],[1790776232.8976045,11.15,"s2_r37","s2"],[1790777216.4651136,11.28,"s2_r38","s2"]],"phases":[["v1",[["21-26",16.2,16.93],["16-20",15.2,17.38],["11-15",13.66,17.64],["6-10",11.4,16.25],["1-5",7.96,12.05],["0",4.69,0.0]]],["c2_full_r5",[["21-26",17.61,18.11],["16-20",17.1,18.59],["11-15",15.81,18.81],["6-10",13.1,16.4],["1-5",9.07,11.39],["0",4.61,0.0]]],["c3_full_r8",[["21-26",16.44,17.12],["16-20",15.41,17.58],["11-15",13.98,18.32],["6-10",11.76,16.88],["1-5",7.95,11.24],["0",4.67,0.0]]],["c5t_full_r10",[["21-26",15.87,16.59],["16-20",14.98,17.14],["11-15",13.76,17.9],["6-10",11.51,16.55],["1-5",7.44,10.88],["0",3.6,0.0]]],["s1_r43",[["21-26",14.38,15.37],["16-20",13.43,16.23],["11-15",12.41,17.4],["6-10",10.43,17.34],["1-5",6.95,11.02],["0",3.62,0.0]]],["s2_r19",[["21-26",14.88,15.6],["16-20",14.14,16.27],["11-15",13.1,17.64],["6-10",11.07,16.76],["1-5",7.73,11.65],["0",4.6,0.0]]],["s2_r32",[["21-26",14.16,14.92],["16-20",13.27,16.05],["11-15",12.07,17.94],["6-10",10.04,16.8],["1-5",7.03,11.25],["0",4.18,0.0]]]],"versions":[{"model":"v1","made":"2026-09-26 15:25","arch":"gewoon","enc":"v1","land":19,"fjord":30,"glob":104,"weights":331326,"proposals":false},{"model":"c3_full_r8","made":"2026-09-27 11:33","arch":"gewoon","enc":"v3","land":36,"fjord":33,"glob":128,"weights":339246,"proposals":false},{"model":"c5v_full_r10","made":"2026-09-28 01:50","arch":"gewoon","enc":"v4","land":38,"fjord":35,"glob":158,"weights":415982,"proposals":false},{"model":"c5t_full_r10","made":"2026-09-28 04:49","arch":"driedelig","enc":"v4","land":38,"fjord":35,"glob":158,"weights":436383,"proposals":false},{"model":"c7a_full_a","made":"2026-09-28 12:54","arch":"aandacht","enc":"v4","land":38,"fjord":35,"glob":158,"weights":460277,"proposals":false},{"model":"p1_r1","made":"2026-09-29 11:10","arch":"driedelig","enc":"v4","land":38,"fjord":35,"glob":158,"weights":557255,"proposals":true},{"model":"s2_r32","made":"2026-09-30 14:25","arch":"driedelig","enc":"v4","land":38,"fjord":35,"glob":158,"weights":557255,"proposals":true},{"model":"t4_r8","made":"2026-09-30 16:44","arch":"driedelig (2-4)","enc":"v4 (2-4 spelers)","land":39,"fjord":35,"glob":176,"weights":674167,"proposals":true}],"changes":[{"model":"v1","title":"Waardenetwerk","text":"Hex-convoluties over het landbord en beide fjorden, plus wat algemene getallen; voorspelt het puntenverschil aan het eind en de winkans.","made":"2026-09-26 15:25"},{"model":"cur_resources_a","title":"Curriculum en TD-leren","text":"Eerst simpele regels, dan steeds meer; het netwerk leert ook van zijn eigen oordeel een paar beurten later (minder ruis dan alleen de uitslag).","made":"2026-09-26 15:36"},{"model":"c3_resources_a","title":"Codering v3","text":"Per veld: wat een Viking daar zou opleveren (tegels, ketens van Vikingen) en wat op je 'boodschappenlijst' staat.","made":"2026-09-27 10:09"},{"model":"c5v_resources_a","title":"Codering v4","text":"Een beurtklok (12 beurten) en pooling-blokken: het hele bord in een paar getallen, zodat ook verre velden meetellen.","made":"2026-09-28 00:02"},{"model":"c5t_resources_a","title":"Driedelig netwerk","text":"Fjord-deel, bord-deel en schip-deel met berichten tussen de delen; de uitleg 'wat het netwerk denkt' in het spel komt hiervandaan.","made":"2026-09-28 02:49"},{"model":"c7a_resources_a","title":"Aandacht","text":"Een kleine transformer (2 lagen, 2 koppen) over alle velden.","made":"2026-09-28 10:32"},{"model":"s1_r1","title":"Zelfspel met kampioen","text":"Geen greedy meer als maatstaf: alleen een nieuw netwerk dat de kampioen verslaat, mag verder. Het netwerk kiest ook zelf de fjordindeling.","made":"2026-09-28 13:06"},{"model":"p1_r1","title":"Voorstellen","text":"Extra uitgangen (eigen torens) die voorspellen welke plaatsing, fjordplek en welk schip de zoektocht kiest; ze stellen zelf kandidaten voor.","made":"2026-09-29 11:10"},{"model":"s2_r1","title":"Voorstellen in de zoektocht","text":"De voorstellen kiezen welke velden en fjordplekken geprobeerd worden (plus 1 greedy-plek als vangnet); later ook willekeurige borden.","made":"2026-09-29 11:46"},{"model":"t4_start","title":"2-4 spelers","text":"Een codering voor 2-4 spelers (alle 4 borden, 'de tegenstander' = de sterkste); een 2-spelernetwerk wordt precies overgezet.","made":"2026-09-29 19:47"},{"model":"s2_r24","title":"Leren waar het mis ging","text":"Lagere leersnelheid en 2 epochs (het netwerk leerde de data uit het hoofd), posities waar het ernaast zat tellen zwaarder, en de laatste 2 beurten worden exact uitgerekend in plaats van geschat.","made":"2026-09-30 12:13"}],"matches":[{"a":"c5t_full_r10","b":"c7a_full_a","win":0.846,"ci":0.03163855288726083,"margin":17.62,"games":500},{"a":"c5t_full_r10","b":"s1_r20","win":0.304,"ci":0.04031925332641962,"margin":-9.11,"games":500},{"a":"c5v_full_r10","b":"c5t_full_r10","win":0.486,"ci":0.04380974883287965,"margin":-0.596,"games":500},{"a":"s1_r20","b":"c7a_full_a","win":0.878,"ci":0.02868786592272071,"margin":23.834,"games":500},{"a":"s1_r20","b":"c5t_full_r10","win":0.676,"ci":0.041022008688020146,"margin":7.526,"games":500,"note":"the start"},{"a":"s1_r43","b":"s1_r20","win":0.554,"ci":0.04357058398506956,"margin":1.96,"games":500,"note":"yesterday's champion"},{"a":"s2_r7","b":"p1_r1","win":0.606,"ci":0.04283073154640252,"margin":4.426,"games":500,"note":"the start"},{"a":"s2_r19","b":"s2_r7","win":0.68,"ci":0.04088843748543101,"margin":9.008,"games":500,"note":"the start"},{"a":"s2_r32","b":"s2_r19","win":0.604,"ci":0.042868385889837275,"margin":5.29,"games":500,"note":"the start"},{"a":"t4_r8","b":"t4_start","win":0.588,"ci":0.04314280124424004,"margin":-8.014,"games":500,"note":"the start"},{"a":"s2_r19!e","b":"s2_r19","win":0.535,"ci":0.049,"margin":0.77,"games":400,"note":"het eindspel exact rekenen (endgame.py) tegen alleen het netwerk"},{"a":"s2_r32","b":"s2_r19","win":0.65,"ci":0.047,"margin":6.37,"games":400,"note":"tussentijdse meting tijdens de 8-uurstraining"}],"tuning":{"points":[[1,82.97],[2,82.14],[3,82.51],[4,83.01],[5,82.5],[6,83.39],[7,84.27],[8,86.55],[9,85.46],[10,85.01],[11,84.89]],"final_adv":3.9166666666666665,"final_score":86.40833333333333,"original_score":82.49166666666666,"games":600},"totals":{"networks":337,"runs":13,"games":2470900,"positions":129778258,"disk_gb":31.7,"mem_gb":666.9,"hours":39.2,"first":"2026-09-26 15:25","last":"2026-09-30 18:51","best2":[1790771109.1838415,0.97,"s2_r32","s2",0.015,500,34.9],"bestmp":[1790779456.0460622,0.774,"t4_r8","t4",0.037,500,13.2],"first_win":0.23}};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const pct = (x, d = 0) => (x * 100).toFixed(d).replace('.', ',') + '%';
+const nl = (x, d = 0) => Number(x).toLocaleString('nl-NL', { maximumFractionDigits: d, minimumFractionDigits: d });
+const ERA_COL = { 'Codering v1': '#9aa3ab', 'Codering v3': '#d95926', 'Codering v4': '#3987e5',
+                  'Zelfspel': '#199e70', 'Voorstellen': '#9085e9', '3-4 spelers': '#e6ad2e' };
+const eraOf = run => (D.eras.find(([e, runs]) => runs.includes(run)) || ['3-4 spelers'])[0];
+const RUN = Object.fromEntries(D.runs.map(r => [r.run, r]));
+const DAYS = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'];
+const dayLabel = t => { const d = new Date(t * 1000); return `${DAYS[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`; };
+const when = t => { const d = new Date(t * 1000); return `${dayLabel(t)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+
+// ---------- tooltip ----------
+const tip = $('tip');
+function showTip(e, html) {
+  tip.innerHTML = html; tip.style.display = 'block';
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+  tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+}
+const hideTip = () => { tip.style.display = 'none'; };
+function bindTips(root) {
+  root.querySelectorAll('[data-tip]').forEach(el => {
+    el.addEventListener('mousemove', e => showTip(e, el.dataset.tip));
+    el.addEventListener('mouseleave', hideTip);
+  });
+}
+const W = el => Math.max(300, $(el).clientWidth || 600);
+
+
+
+// ---------- header ----------
+const T = D.totals;
+$('sub').textContent = `Alles wat er getraind is, van ${T.first} tot ${T.last} · bijgewerkt ${D.made}`;
+const b2 = T.best2, bm = T.bestmp;
+$('heroV').innerHTML = `${pct(T.first_win)} <span>→</span> ${pct(b2[1], 1)}`;
+$('heroK').innerHTML = `zo vaak won het netwerk van de greedy-speler: het allereerste (v1) en nu ${esc(b2[2])}.` +
+  (bm ? `<br>Met 3–4 spelers wint ${esc(bm[2])} ${pct(bm[1], 1)} tegen 3 greedy-spelers (1 van de 4 zou 25% zijn).` : '');
+$('tiles').innerHTML = [
+  [nl(T.networks), 'netwerken getraind', `in ${T.runs} runs`],
+  [nl(T.hours, 0), 'uur rekenen', 'pauzes niet meegeteld'],
+  [nl(T.games / 1e6, 2) + ' mln', 'partijen gespeeld', 'om van te leren'],
+  [nl(T.positions / 1e6, 0) + ' mln', 'posities', `${nl(T.mem_gb, 0)} GB uitgepakt`],
+  [nl(T.disk_gb, 1) + ' GB', 'trainingsdata op schijf', 'mag nu weg'],
+].map(([v, k, d]) => `<div class="tile"><div class="v">${v}</div><div class="k">${k}</div><div class="d">${d}</div></div>`).join('');
+
+// ---------- a time axis with the nights ----------
+function timeAxis(pts, w, m) {
+  const t0 = Math.min(...pts), t1 = Math.max(...pts);
+  const pad = (t1 - t0) * 0.02 || 3600;
+  const lo = t0 - pad, hi = t1 + pad;
+  const X = t => m.l + (t - lo) / (hi - lo) * (w - m.l - m.r);
+  const ticks = [];
+  const d = new Date(lo * 1000); d.setHours(0, 0, 0, 0);
+  for (let t = d.getTime() / 1000 + 86400; t < hi; t += 86400) ticks.push(t);
+  return { X, lo, hi, ticks, first: lo };
+}
+
+// ---------- the progress curve ----------
+function drawProgress() {
+  const w = W('progress'), h = 340, m = { l: 44, r: 16, t: 16, b: 34 };
+  const P = D.points, F = D.finals.filter(f => !RUN[f[3]] || !RUN[f[3]].multi);
+  const ax = timeAxis(P.map(p => p[0]).concat(F.map(f => f[0])), w, m);
+  const Y = v => m.t + (1 - v) * (h - m.t - m.b);
+  let s = '';
+  for (const v of [0, .25, .5, .75, 1]) s += `<line class="${v === .5 ? 'axisl' : 'gridl'}" x1="${m.l}" x2="${w - m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${m.l - 8}" y="${Y(v) + 4}" text-anchor="end">${pct(v)}</text>`;
+  s += `<text x="${m.l + 4}" y="${h - 10}">${dayLabel(ax.first)}</text>`;
+  for (const t of ax.ticks) s += `<line class="gridl" x1="${ax.X(t)}" x2="${ax.X(t)}" y1="${m.t}" y2="${h - m.b}" stroke-dasharray="2 4"/><text x="${ax.X(t) + 4}" y="${h - 10}">${dayLabel(t)}</text>`;
+  // the eras as bands
+  for (const [era, runs] of D.eras) {
+    const ts = P.filter(p => runs.includes(p[3])).map(p => p[0]);
+    if (!ts.length) continue;
+    const x0 = ax.X(Math.min(...ts)) - 4, x1 = ax.X(Math.max(...ts)) + 4;
+    s += `<rect x="${x0}" y="${m.t}" width="${Math.max(6, x1 - x0)}" height="${h - m.t - m.b}" fill="${ERA_COL[era]}" opacity=".07"/>`;
+  }
+  for (const p of P) {
+    const [t, win, name, run, ci, games, kind] = p;
+    const tipHtml = `<b>${esc(name)}</b> · ${esc(RUN[run] ? RUN[run].title : run)}<br>wint ${pct(win, 1)} tegen greedy${ci ? ' (±' + pct(ci, 1) + ')' : ''}<br><span class='m'>${games || ''} partijen · ${esc(kind)} · ${when(t)}</span>`;
+    s += `<circle cx="${ax.X(t)}" cy="${Y(win)}" r="3.4" fill="${ERA_COL[eraOf(run)]}" opacity=".8" data-tip="${tipHtml.replace(/"/g, '&quot;')}"/>`;
+  }
+  // the final tests, labelled
+  let lastX = -1e9, flip = false;
+  for (const f of F) {
+    const [t, win, name, run, ci, games, margin] = f;
+    const x = ax.X(t), y = Y(win);
+    s += `<path d="M${x} ${y - 7} L${x + 7} ${y} L${x} ${y + 7} L${x - 7} ${y} Z" fill="var(--snow)" stroke="#141d25" stroke-width="1.5" data-tip="<b>${esc(name)}</b> · eindtest<br>wint ${pct(win, 1)} tegen greedy (±${pct(ci, 1)})<br><span class='m'>${games} partijen, ${margin > 0 ? '+' : ''}${nl(margin, 1)} punten per partij</span>"/>`;
+    flip = x - lastX < 70 ? !flip : false;
+    lastX = x;
+    const ly = flip ? y + 20 : y - 12;
+    s += `<text class="val" x="${x}" y="${ly}" text-anchor="middle" style="pointer-events:none">${pct(win, win > .9 ? 1 : 0)}</text>`;
+  }
+  $('progress').innerHTML = `<svg viewBox="0 0 ${w} ${h}" aria-label="Winst tegen greedy per netwerk, door de tijd">${s}</svg>`;
+  $('lg-progress').innerHTML = D.eras.map(([e]) => `<span><i style="background:${ERA_COL[e]}"></i>${e}</span>`).join('') +
+    `<span><i class="dia"></i>eindtest</span>`;
+  bindTips($('progress'));
+}
+
+// ---------- the runs ----------
+function drawRuns() {
+  const rows = D.runs.map(r => `<tr>
+      <td><span class="runtag" style="border-color:${ERA_COL[r.era] || 'var(--line)'}">${esc(r.run)}</span></td>
+      <td><div class="t">${esc(r.title)}</div><div class="d">${esc(r.text)}</div></td>
+      <td class="num">${r.start ? esc(r.start.slice(5).replace('-', '/')) : ''}</td>
+      <td class="num">${r.hours != null ? nl(r.hours, 1) : ''}</td>
+      <td>${esc(r.arch)}<div class="d">codering ${esc(r.enc)}</div></td>
+      <td class="num">${r.networks}</td>
+      <td class="num">${r.games ? nl(r.games) : ''}</td>
+      <td>${r.best ? `<b>${esc(r.best)}</b>` : '<span class="d">–</span>'}</td>
+      <td class="num">${r.best_win != null ? `<b>${pct(r.best_win, 1)}</b>${r.multi ? '<div class="d">tegen 3 greedy</div>' : ''}` : ''}</td>
+    </tr>`).join('');
+  $('runs').innerHTML = `<thead><tr><th>Run</th><th>Wat</th><th class="num">Start</th><th class="num">Uren</th><th>Netwerk</th><th class="num">Netwerken</th><th class="num">Partijen</th><th>Beste netwerk</th><th class="num">Tegen greedy</th></tr></thead><tbody>${rows}</tbody>`;
+}
+
+// ---------- what changed ----------
+function drawChanges() {
+  $('changes').innerHTML = D.changes.map(c => {
+    const run = c.model.split('_')[0];
+    const r = RUN[run];
+    const eff = r && r.best_win != null ? `<div class="eff">Beste van run ${esc(run)}: <b>${esc(r.best)}</b>, ${pct(r.best_win, 1)} tegen ${r.multi ? '3 greedy-spelers' : 'greedy'}</div>` : '';
+    return `<div class="change"><div class="h"><span>${esc(c.title)}</span><span class="when">${c.made ? esc(c.made.slice(5).replace('-', '/')) : ''} · ${esc(c.model)}</span></div><div class="x">${esc(c.text)}</div>${eff}</div>`;
+  }).join('');
+}
+
+// ---------- the networks: versions and matches ----------
+function drawVersions() {
+  $('versions').innerHTML = `<thead><tr><th>Netwerk</th><th>Soort</th><th>Codering</th><th class="num">Land</th><th class="num">Fjord</th><th class="num">Algemeen</th><th class="num">Gewichten</th><th>Voorstellen</th></tr></thead><tbody>` +
+    D.versions.map(v => `<tr><td><b>${esc(v.model)}</b><div class="d" style="color:var(--muted);font-size:12.5px">${esc(v.made.slice(5))}</div></td><td>${esc(v.arch)}</td><td>${esc(v.enc || '')}</td>
+      <td class="num">${v.land || ''}</td><td class="num">${v.fjord || ''}</td><td class="num">${v.glob || ''}</td>
+      <td class="num">${nl(v.weights / 1000, 0)}k</td><td>${v.proposals ? '✓' : ''}</td></tr>`).join('') + `</tbody>`;
+}
+function drawMatches() {
+  const w = W('matches'), rh = 30, lw = Math.min(250, w * .52), h = D.matches.length * rh + 24;
+  const X = v => lw + (v - .2) / .8 * (w - lw - 50);
+  let s = `<line class="axisl" x1="${X(.5)}" x2="${X(.5)}" y1="0" y2="${h - 18}"/><text x="${X(.5)}" y="${h - 4}" text-anchor="middle">50%</text>`;
+  s += `<text x="${X(.2)}" y="${h - 4}">20%</text><text x="${X(1)}" y="${h - 4}" text-anchor="end">100%</text>`;
+  D.matches.forEach((mt, i) => {
+    const y = i * rh + 6, v = mt.win, col = v >= .5 ? 'var(--gold)' : 'var(--mist)';
+    s += `<text class="lbl" x="0" y="${y + 13}">${esc(mt.a)} <tspan style="fill:var(--muted)">tegen</tspan> ${esc(mt.b)}</text>`;
+    s += `<rect x="${Math.min(X(.5), X(v))}" y="${y + 3}" width="${Math.abs(X(v) - X(.5))}" height="14" rx="3" fill="${col}" opacity=".85"/>`;
+    if (mt.ci) s += `<line x1="${X(Math.max(.2, v - mt.ci))}" x2="${X(Math.min(1, v + mt.ci))}" y1="${y + 10}" y2="${y + 10}" stroke="var(--snow)" stroke-width="1.5"/>`;
+    s += `<text class="val" x="${X(Math.max(v, .5)) + 6}" y="${y + 14}">${pct(v, 1)}</text>`;
+    s += `<rect class="hit" x="0" y="${y}" width="${w}" height="${rh}" data-tip="<b>${esc(mt.a)} tegen ${esc(mt.b)}</b><br>${pct(v, 1)} van ${mt.games} partijen${mt.margin != null ? ', ' + (mt.margin > 0 ? '+' : '') + nl(mt.margin, 1) + ' punten' : ''}${mt.note ? `<br><span class='m'>${esc(mt.note)}</span>` : ''}"/>`;
+  });
+  $('matches').innerHTML = `<svg viewBox="0 0 ${w} ${h}" aria-label="Netwerken tegen elkaar">${s}</svg>`;
+  bindTips($('matches'));
+}
+
+// ---------- self-play ----------
+function drawSelfplay() {
+  const names = { s1: 'Run s1 (vanaf c5t_full_r10)', s2: 'Run s2 (vanaf p1_r1)', t4: 'Run t4: 3–4 spelers (vanaf t4_start)' };
+  $('selfplay').innerHTML = Object.keys(D.selfplay).map(run => `<div><h3>${names[run] || run}</h3><div class="s" id="sp-s-${run}"></div><div id="sp-${run}"></div></div>`).join('');
+  for (const [run, rows] of Object.entries(D.selfplay)) {
+    const el = $('sp-' + run), w = Math.max(280, el.clientWidth || 300), h = 190, m = { l: 36, r: 8, t: 10, b: 24 };
+    const n = Math.max(...rows.map(r => r[0]));
+    const X = k => m.l + (k - .5) / n * (w - m.l - m.r), Y = v => m.t + (1 - (Math.max(.3, Math.min(.7, v)) - .3) / .4) * (h - m.t - m.b);
+    let s = '';
+    for (const v of [.3, .4, .5, .6, .7]) s += `<line class="${v === .5 ? 'axisl' : 'gridl'}" x1="${m.l}" x2="${w - m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${m.l - 5}" y="${Y(v) + 4}" text-anchor="end">${pct(v)}</text>`;
+    s += `<line x1="${m.l}" x2="${w - m.r}" y1="${Y(.53)}" y2="${Y(.53)}" stroke="var(--gold)" stroke-dasharray="4 4" opacity=".7"/>`;
+    const step = n > 20 ? 10 : 5;
+    for (let k = step; k <= n; k += step) s += `<text x="${X(k)}" y="${h - 6}" text-anchor="middle">${k}</text>`;
+    for (const [k, v, name, champ, acc, margin] of rows) {
+      const tipHtml = `<b>${esc(name)}</b> tegen kampioen ${esc(champ)}<br>${pct(v, 1)}, ${margin > 0 ? '+' : ''}${nl(margin, 1)} punten per partij<br>${acc ? '<b>nieuwe kampioen</b>' : "<span class='m'>blijft uitdager</span>"}`;
+      s += acc ? `<circle cx="${X(k)}" cy="${Y(v)}" r="5.5" fill="var(--gold)" stroke="#141d25" stroke-width="1.5" data-tip="${tipHtml.replace(/"/g, '&quot;')}"/>`
+               : `<circle cx="${X(k)}" cy="${Y(v)}" r="4" fill="none" stroke="var(--mist)" stroke-width="1.5" data-tip="${tipHtml.replace(/"/g, '&quot;')}"/>`;
+    }
+    el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" aria-label="Zelfspelrondes van ${run}">${s}</svg>`;
+    const champs = rows.filter(r => r[4]).map(r => r[2]);
+    $('sp-s-' + run).textContent = `${rows.length} rondes, ${champs.length} ${champs.length === 1 ? 'nieuwe kampioen' : 'nieuwe kampioenen'}${champs.length ? ': ' + champs.join(' → ') : ''}`;
+    bindTips(el);
+  }
+}
+
+// ---------- judging ----------
+function drawMae() {
+  const w = W('mae'), h = 250, m = { l: 40, r: 12, t: 12, b: 30 };
+  const P = D.mae;
+  const ax = timeAxis(P.map(p => p[0]), w, m);
+  const vs = P.map(p => p[1]), lo = Math.floor(Math.min(...vs)), hi = Math.ceil(Math.max(...vs));
+  const Y = v => m.t + (hi - v) / (hi - lo) * (h - m.t - m.b);
+  let s = '';
+  for (let v = lo; v <= hi; v++) s += `<line class="gridl" x1="${m.l}" x2="${w - m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${m.l - 6}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`;
+  s += `<text x="${m.l + 4}" y="${h - 8}">${dayLabel(ax.first)}</text>`;
+  for (const t of ax.ticks) s += `<text x="${ax.X(t) + 4}" y="${h - 8}">${dayLabel(t)}</text>`;
+  for (const [t, v, name, run] of P)
+    s += `<circle cx="${ax.X(t)}" cy="${Y(v)}" r="3" fill="${ERA_COL[eraOf(run)]}" opacity=".85" data-tip="<b>${esc(name)}</b><br>${nl(v, 2)} punten ernaast<br><span class='m'>${when(t)}</span>"/>`;
+  s += `<text x="${m.l}" y="${m.t - 2}" class="lbl" dy="10" dx="4">punten ernaast ↓ beter</text>`;
+  $('mae').innerHTML = `<svg viewBox="0 0 ${w} ${h}" aria-label="Schattingsfout per netwerk">${s}</svg>`;
+  bindTips($('mae'));
+}
+function drawPhases() {
+  const cols = D.phases.length ? D.phases[0][1].map(p => p[0]) : [];
+  const all = D.phases.flatMap(([, ps]) => ps.map(p => p[1]));
+  const mx = Math.max(...all);
+  $('phases').innerHTML = `<thead><tr><th>Netwerk</th>${cols.map(c => `<th class="num">${c === '0' ? 'einde' : esc(c)}</th>`).join('')}</tr></thead><tbody>` +
+    D.phases.map(([name, ps]) => `<tr><td><b>${esc(name)}</b></td>${ps.map(p => `<td class="num cellbar"><i style="width:${(p[1] / mx * 100).toFixed(0)}%"></i><span>${nl(p[1], 1)}</span></td>`).join('')}</tr>`).join('') +
+    `<tr><td style="color:var(--mist)">alleen de huidige stand</td>${(D.phases[D.phases.length - 1] || [0, []])[1].map(p => `<td class="num" style="color:var(--mist)">${nl(p[2], 1)}</td>`).join('')}</tr></tbody>`;
+}
+
+// ---------- data ----------
+function drawData() {
+  const R = D.runs.filter(r => r.positions).sort((a, b) => b.positions - a.positions);
+  const w = W('data'), rh = 26, lw = 70, h = R.length * rh + 6, mx = Math.max(...R.map(r => r.positions));
+  let s = '';
+  R.forEach((r, i) => {
+    const y = i * rh + 3, bw = (w - lw - 150) * r.positions / mx;
+    s += `<text class="lbl" x="0" y="${y + 15}">${esc(r.run)}</text>`;
+    s += `<rect x="${lw}" y="${y + 4}" width="${Math.max(2, bw)}" height="14" rx="3" fill="${ERA_COL[r.era] || '#8fd3ff'}" opacity=".85"/>`;
+    s += `<text class="val" x="${lw + bw + 6}" y="${y + 15}">${nl(r.positions / 1e6, 1)} mln · ${nl(r.gb, 1)} GB</text>`;
+    s += `<rect class="hit" x="0" y="${y}" width="${w}" height="${rh}" data-tip="<b>${esc(r.run)}</b> · ${esc(r.title)}<br>${nl(r.games)} partijen, ${nl(r.positions)} posities<br><span class='m'>${nl(r.gb, 2)} GB op schijf, ${nl(r.mem_gb, 1)} GB uitgepakt</span>"/>`;
+  });
+  $('data').innerHTML = `<svg viewBox="0 0 ${w} ${h}" aria-label="Trainingsdata per run">${s}</svg>`;
+  bindTips($('data'));
+}
+
+// ---------- tuning ----------
+function drawTuning() {
+  const tu = D.tuning;
+  if (!tu || !tu.points.length) { $('tuning').innerHTML = ''; return; }
+  const w = W('tuning'), h = 200, m = { l: 40, r: 12, t: 12, b: 26 };
+  const P = tu.points, n = P.length, vs = P.map(p => p[1]);
+  const lo = Math.floor(Math.min(...vs) - 1), hi = Math.ceil(Math.max(...vs) + 1);
+  const X = k => m.l + (k - 1) / Math.max(1, n - 1) * (w - m.l - m.r), Y = v => m.t + (hi - v) / (hi - lo) * (h - m.t - m.b);
+  let s = '';
+  for (let v = lo; v <= hi; v += 2) s += `<line class="gridl" x1="${m.l}" x2="${w - m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${m.l - 6}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`;
+  P.forEach(([k]) => s += `<text x="${X(k)}" y="${h - 8}" text-anchor="middle">${k}</text>`);
+  s += `<polyline points="${P.map(([k, v]) => `${X(k)},${Y(v)}`).join(' ')}" fill="none" stroke="var(--gold)" stroke-width="2.5"/>`;
+  P.forEach(([k, v]) => s += `<circle cx="${X(k)}" cy="${Y(v)}" r="4" fill="var(--gold)" stroke="#141d25" stroke-width="1.5" data-tip="<b>Ronde ${k}</b><br>gemiddelde score ${nl(v, 1)}"/>`);
+  $('tuning').innerHTML = `<svg viewBox="0 0 ${w} ${h}" aria-label="Afstellen van de greedy-speler">${s}</svg>`;
+  $('tuning-note').innerHTML = tu.final_adv != null ? `Eindtest (${tu.games} partijen): de afgestelde greedy scoort <b>${tu.final_adv > 0 ? '+' : ''}${nl(tu.final_adv, 1)} punten</b> meer dan de oorspronkelijke (${nl(tu.final_score, 1)} tegen ${nl(tu.original_score, 1)}).` : '';
+  bindTips($('tuning'));
+}
+
+$('foot').textContent = 'Gemaakt met tools/history_data.py (alles uit results/, models/ en data/ samengevat in results/history.json) en tools/make_history.py.';
+function drawAll() { drawProgress(); drawRuns(); drawChanges(); drawVersions(); drawMatches(); drawSelfplay(); drawMae(); drawPhases(); drawData(); drawTuning(); }
+drawAll();
+let rs; addEventListener('resize', () => { clearTimeout(rs); rs = setTimeout(drawAll, 150); });
+</script>
+</body>
+</html>

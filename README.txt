@@ -6,6 +6,7 @@ PROJECT MAP
   dashboard.html               how the network plays against itself: every
                                game clickable, mistakes, replays
   dashboard_greedy.html        the network against the greedy player
+  history.html                 every run and network so far, and what changed
   boards.json                  the landscape boards (made with the editor)
 
   The game, the coach and the AI (these import each other, so they stay
@@ -185,5 +186,8 @@ THE COACH, THE DASHBOARDS AND THE 8-HOUR TRAINING
                   (replays\, results\selfplay_data.json)
   tools\dashboard_data.py    the network against greedy (results\dashboard_data.json)
   tools\make_dashboard.py    dashboard.html and dashboard_greedy.html from those
+  tools\history_data.py     all runs, networks and training data summed up in
+                  results\history.json (run it before cleaning up models\ and data\)
+  tools\make_history.py     history.html from that
   tools\train_8h.py          (start\start_8h.bat) 2 players 4.5 hours, then 3-4
                   players, then new dashboard games; logs in results\
