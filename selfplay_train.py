@@ -18,10 +18,46 @@ in the curriculum's format (so compare_runs.py and the report work too).
 """
 
 import argparse
+import glob
+import os
 import time
+import zipfile
+
+import numpy as np
 
 import curriculum as C
 import looot as L
+
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+
+
+def data_gb(prefix):
+    """How much memory the data files of one self-play set take once loaded
+    (read from the arrays' headers: nothing is unpacked)."""
+    total = 0
+    for path in glob.glob(os.path.join(DATA_DIR, prefix + "_*.npz")):
+        with zipfile.ZipFile(path) as zf:
+            for name in zf.namelist():
+                with zf.open(name) as f:
+                    version = np.lib.format.read_magic(f)
+                    shape, _, dtype = (np.lib.format.read_array_header_1_0(f) if version == (1, 0)
+                                       else np.lib.format.read_array_header_2_0(f))
+                    total += int(np.prod(shape)) * dtype.itemsize
+    return total / 1e9
+
+
+def fit_window(sets, window, budget_gb):
+    """The newest sets to train on: at most `window`, and no more than
+    budget_gb of memory together (4-player games take much more room than
+    2-player games: while loading, a part of it is in memory twice)."""
+    chosen, total = [], 0.0
+    for name in reversed(sets[-window:]):
+        gb = data_gb(name)
+        if chosen and total + gb > budget_gb:
+            break
+        chosen.insert(0, name)
+        total += gb
+    return chosen, total
 
 
 def match(a, b, games, seed, players=2):
@@ -58,6 +94,8 @@ def main():
                          "at a table of 4 (challenger, champion, challenger, champion) and the "
                          "test is against 3 greedy players")
     ap.add_argument("--batch", default="4096", help="positions per training step")
+    ap.add_argument("--max-gb", type=float, default=12.0,
+                    help="at most this much training data in memory (older sets are left out)")
     ap.add_argument("--surprise", default="0",
                     help="extra weight on positions the champion judged far off "
                          "(train_nn.py --surprise)")
@@ -94,7 +132,11 @@ def main():
             t1 += t
         sp.append(name)
         new = "%s_r%d" % (a.prefix, k)
-        out, t2 = R.run(["train_nn.py", "--data"] + sp[-a.window:] +
+        window, gb = fit_window(sp, a.window, a.max_gb)
+        if len(window) < min(a.window, len(sp)):
+            R.log("  (training on the last %d sets, %.1f GB: more would not fit in memory)"
+                  % (len(window), gb))
+        out, t2 = R.run(["train_nn.py", "--data"] + window +
                         ["--name", new, "--epochs", str(a.epochs), "--init", champion,
                          "--lr", a.lr, "--td", str(a.td), "--td-mix", "0.5", "--batch", a.batch] +
                         (["--surprise", a.surprise] if float(a.surprise) else []))
