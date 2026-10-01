@@ -52,6 +52,21 @@ PLAY
   each item, how well each longship in the ocean fits its fjord, and (dotted
   blue rings) where a Viking is worth most to it.
 
+PLAY WITH FRIENDS ONLINE
+  The game opens with a menu. "Play with friends" makes a lobby with a
+  code, a link and a QR code; friends open the link (or choose "Join a
+  game" and type the code). Every seat can be a friend, you, the computer
+  or the network; then Start. After the game, "Back to the lobby" plays
+  again with the same friends.
+  The host's browser runs the game, the network and the coach; the
+  friends' browsers only draw the board and send their moves, so they
+  need no Python and join quickly. The browsers find each other through
+  PeerJS (a free matchmaking service) and then talk directly (WebRTC).
+  It needs internet, and the host must keep the game open: when the host
+  leaves, the game ends. A friend who loses the connection opens the link
+  again and gets the seat back; meanwhile the host can let the computer
+  play for them.
+
 PLAY ON YOUR PHONE (OR ANY COMPUTER), ALSO WITHOUT INTERNET
   Open https://emilevloot.github.io/vlooot/ and install it as an app:
     Android (Chrome): the "Install app" button in the game, or the menu

@@ -1253,6 +1253,13 @@ class Api:
     def end_turn(self):
         return self._do(self.game.end_turn)
 
+    def set_player(self, idx, ai, nn=False):
+        """Online: the computer (ai) takes over a seat whose player left, or
+        gives it back when they return."""
+        p = self.game.players[idx]
+        p.ai, p.nn = bool(ai), bool(ai) and bool(nn)
+        return self._state()
+
     def save_state(self):
         return json.dumps(self.game.save_state())
 

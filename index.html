@@ -274,6 +274,38 @@
   .cell .bestring { stroke: #81b64c; stroke-width: 3.5; stroke-dasharray: 7 4; fill: #81b64c2e; pointer-events: none; }
   .cell .played-f { stroke: #fff; stroke-width: 3; fill: none; pointer-events: none; }
   @media (max-width: 640px) { .evalbar { flex-basis: 16px; min-height: 200px; } .evalbar i span { font-size: 8px; } }
+
+  /* ---------- the start menu and online play ---------- */
+  .menu { width: min(460px, 100%); text-align: center; }
+  .menu .logo { width: 92px; height: 92px; border-radius: 22px; box-shadow: 0 10px 30px #0008; }
+  .menu h2 { font: 64px/1 var(--display); margin: 8px 0 0; }
+  .menu h2 span { color: var(--rune); }
+  .menu .tag { color: var(--mist); margin: 6px 0 16px; }
+  .mbtn { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; background: var(--slate-2);
+          border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; margin-top: 10px; cursor: pointer;
+          color: var(--snow); font: inherit; }
+  .mbtn:hover { border-color: var(--gold); }
+  .mbtn .ic { width: 36px; flex: none; display: grid; place-items: center; }
+  .mbtn b { display: block; font-size: 18px; }
+  .mbtn small { color: var(--mist); font-size: 14px; }
+  .mbtn.primary { background: var(--rune); border-color: var(--rune); }
+  .mbtn.primary small { color: #ffe3da; }
+  .mlinks { display: flex; gap: 6px 16px; flex-wrap: wrap; justify-content: center; margin-top: 16px; font-size: 14px; }
+  .mlinks a, .mlinks button { color: var(--mist); background: none; border: 0; cursor: pointer; font: inherit; text-decoration: underline; padding: 0; }
+  .mlinks a:hover, .mlinks button:hover { color: var(--snow); }
+  .engine { color: var(--mist); font-size: 14px; margin-top: 12px; min-height: 20px; }
+  .code { font: 800 36px/1.1 var(--body); letter-spacing: 6px; color: var(--gold); }
+  .lobbyhead { display: flex; gap: 14px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; margin: 6px 0 10px; }
+  .lobbyhead > div:first-child { min-width: 0; flex: 1; }
+  .qr svg { width: 128px; height: 128px; background: #fff; border-radius: 10px; display: block; }
+  .online { color: var(--good); font-size: 13px; font-weight: 700; }
+  .offline { color: var(--mist); font-size: 13px; }
+  .lobbyseat .fname { min-width: 0; }
+  .field { display: grid; gap: 4px; text-align: left; margin-top: 12px; color: var(--mist); font-size: 14px; }
+  .field input { background: var(--night); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+                 color: var(--snow); font: inherit; font-size: 18px; }
+  .field input.codein { letter-spacing: 5px; text-transform: uppercase; font-weight: 800; }
+  @media (max-width: 640px) { .lobbyseat { grid-template-columns: 16px 1fr; } .lobbyseat .seg { grid-column: 1 / -1; justify-self: start; } }
 </style>
 
 <div class="app">
@@ -285,7 +317,7 @@
       <a class="btn" href="editor.html" style="text-decoration:none">Board editor</a>
       <button class="btn" id="btnCoach" aria-pressed="true" title="A chess-trainer style judgement of every move">Coach: on</button>
       <button class="btn" id="btnInstall" hidden title="Install Looot as an app on this device">Install app</button>
-      <button class="btn" id="btnNew">New game</button>
+      <button class="btn" id="btnNew">Menu</button>
     </div>
   </header>
 
@@ -415,7 +447,7 @@
     const pad = s + 4;
     const legalSet = new Set(sel.occupy ? S.legal_occupy : S.legal);
     const me = S.players[S.current];
-    const humanTurn = !me.ai && !S.game_over;
+    const humanTurn = myTurn();
     const wants = new Set(thoughts && thoughts.best_spaces || []);
     let out = '';
     for (const c of S.land) {
@@ -500,7 +532,7 @@
     const P = S.players[view];
     const s = 27;
     const me = S.players[S.current];
-    const mine = view === S.current && !me.ai && !S.game_over;
+    const mine = view === S.current && myTurn();
     const pending = S.pending[sel.tile] || S.pending[0];
     const helpSet = new Set(mine && S.phase === 'tiles' && pending ? (S.helpful[pending.type] || []) : []);
     const placing = mine && (S.phase === 'tiles' || S.phase === 'ship');
@@ -565,7 +597,7 @@
     $('players').innerHTML = S.players.map((p, i) => `
       <div class="pchip${i === S.current && !S.game_over ? ' turn' : ''}${i === view ? ' viewing' : ''}" data-view="${i}" tabindex="0" role="button" aria-label="Show ${esc(p.name)}'s fjord">
         <span class="dot" style="background:${PCOL[p.color]}"></span>
-        <span class="nm">${esc(p.name)}${p.ai ? ` <small style="color:var(--mist);font-weight:500">(${p.nn ? 'network' : 'computer'})</small>` : ''}</span>
+        <span class="nm">${esc(p.name)}${p.ai ? ` <small style="color:var(--mist);font-weight:500">(${p.nn ? 'network' : 'computer'})</small>` : ''}${seatTag(i)}</span>
         <span class="meta">${p.vikings_left} Vikings · ${p.score.total} pts · ${p.axes} axes</span>
       </div>`).join('');
   }
@@ -578,6 +610,8 @@
       what = `<b>Game over.</b> ${S.winners.map(i => esc(S.players[i].name)).join(' & ')} ${S.winners.length > 1 ? 'share' : 'wins'} the title of Jarl.`;
     } else if (p.ai) {
       what = p.nn ? 'The network is thinking…' : 'The computer is thinking…';
+    } else if (!myTurn()) {
+      what = waitingText(p);
     } else if (S.phase === 'place') {
       what = sel.occupy ? '<b>Stack</b> your Viking on an occupied space (gold rings).' : '<b>Place a Viking</b> on a gold-ringed space.';
       if (S.extra_active) what = '<b>Second Viking</b> from your shield: ' + what;
@@ -602,7 +636,7 @@
     $('fjordTitle').innerHTML = `${P.name === 'You' ? 'Your' : esc(P.name) + "'s"} fjord${view !== S.current ? ' <small>(viewing)</small>' : ''}`;
     $('scoreMini').innerHTML = `<b>${sc.total}</b> pts · ${P.vikings_left} Vikings left`;
     let h = '';
-    const human = !p.ai && !S.game_over && view === S.current;
+    const human = myTurn() && view === S.current;
     if (human && S.phase === 'place') {
       h += `<div class="label">Shields for this Viking</div><div class="row">`;
       h += shieldBtn('occupy', 'Stack on occupied space', p.shields.occupy, sel.occupy, '↧');
@@ -659,20 +693,30 @@
     renderPlayers(); renderStatus(); renderLand(); renderFjord(); renderActions();
     renderEval(); renderCoach();
     if (S.game_over && !render.shownEnd) { render.shownEnd = true; showScores(); }
+    netBroadcast();
   }
 
   // ---------- talking to Python ----------
   function call(fn, ...args) {
+    if (NET.role === 'guest') { send(NET.host, { t: 'act', fn, args }); return ''; }
     const res = JSON.parse(api[fn](...args));
     lastError = res.error || '';
     S = res;
     render();
     maybeAI();
     refreshThoughts();
+    return lastError;
+  }
+
+  // May the player at this screen move now? (Online: only on its own seats.)
+  function myTurn() {
+    if (!S || S.game_over || R) return false;
+    if (S.players[S.current].ai) return false;
+    return !NET.role || NET.mine.includes(S.current);
   }
 
   function maybeAI() {
-    if (!S || S.game_over || busy) return;
+    if (!S || S.game_over || busy || NET.role === 'guest') return;
     const p = S.players[S.current];
     if (!p.ai) { if (view !== S.current && !S.players[view].ai) {} return; }
     busy = true;
@@ -680,6 +724,7 @@
       const res = p.nn ? await nnTurn() : api.ai_turn();
       busy = false;
       S = JSON.parse(res);
+      if (NET.giveBack.size) giveBack();
       const nxt = S.players[S.current];
       if (!nxt.ai) view = S.current;
       render();
@@ -769,6 +814,7 @@
   // What the network thinks of the game right now, from its own seat: asked
   // after every change. Only the newest answer counts.
   async function refreshThoughts() {
+    if (NET.role === 'guest') return;
     const seq = ++thinkSeq;
     let t = null;
     if (S && S.players.some(p => p.nn) && NN_IN_BROWSER) {
@@ -852,7 +898,7 @@
     const p = S.players[S.current];
     if (t.dataset.view !== undefined) { view = +t.dataset.view; render(); return; }
     if (t.dataset.act === 'scores') { showScores(); return; }
-    if (p.ai || S.game_over) return;
+    if (!myTurn()) return;
     if (t.dataset.k && S.phase === 'place' && t.classList.contains('legal')) {
       const [q, r] = t.dataset.k.split(',').map(Number);
       call('place_viking', q, r, sel.occupy, sel.double);
@@ -907,7 +953,7 @@
         </div>`).join('')}
       <div class="row" style="justify-content:space-between;margin-top:14px">
         <span style="color:var(--mist);font-size:14px">${n} players · ${n * 13} Vikings · ${n} landscape boards${iosHint()}</span>
-        <span class="row">${S ? '<button class="btn" id="cancelSetup">Cancel</button>' : ''}<button class="btn primary" id="startGame">Start</button></span>
+        <span class="row"><button class="btn" data-menu="menu">Menu</button><button class="btn primary" id="startGame">Start</button></span>
       </div></div>`;
     ov.querySelectorAll('[data-seat]').forEach(b => b.onclick = () => {
       saveNames();
@@ -916,8 +962,6 @@
       if (seats.filter(x => x.on).length < 2) seats[1].on = true;
       showSetup();
     });
-    const cancel = $('cancelSetup');
-    if (cancel) cancel.onclick = () => { ov.hidden = true; };
     $('startGame').onclick = () => {
       saveNames();
       const ps = seats.filter(s => s.on).map((s, i) => ({ name: (s.name || 'Player').slice(0, 18), ai: s.ai, nn: !!s.nn }));
@@ -958,17 +1002,17 @@
       <div class="row" style="justify-content:flex-end;margin-top:14px">
         <button class="btn" id="closeScores">Look at the board</button>
         ${coachOn && hist && hist.turns.length ? '<button class="btn" id="toReview">Game review</button>' : ''}
-        <button class="btn primary" id="again">New game</button>
+        <button class="btn primary" id="again">${NET.role === 'host' ? 'Back to the lobby' : NET.role === 'guest' ? 'Menu' : 'New game'}</button>
       </div></div>`;
     if ($('toReview')) $('toReview').onclick = showReview;
     $('closeScores').onclick = () => { ov.hidden = true; };
-    $('again').onclick = showSetup;
+    $('again').onclick = () => NET.role === 'host' ? hostLobby() : NET.role === 'guest' ? showMenu() : showSetup();
   }
 
   $('btnNew').onclick = () => {
     if (R && !R.G.live) { location.href = location.pathname; return; }
     if (R) R.back.fn();
-    if (api) showSetup();
+    showMenu();
   };
 
   // ---------- the coach: every finished turn judged like a chess trainer ----------
@@ -1010,7 +1054,7 @@
 
   // Called on every redraw: has a turn ended since the last one?
   function trackTurns() {
-    if (R || !hist || !S || !api) return;
+    if (R || !hist || !S || !api || NET.role === 'guest') return;
     const key = S.turn_no + (S.game_over ? '/over' : '');
     if (key === hist.key) return;
     const now = api.save_state();
@@ -1032,6 +1076,7 @@
         let rev;
         try { rev = await reviewTurn(t); } catch (err) { rev = { error: errText(err) }; }
         t.rev = rev;
+        netRev(t);
         if (h === hist && !R) { renderCoach(); renderEval(); }
         if (!coachOn) break;
       }
@@ -1170,7 +1215,7 @@
           ${rv.best && rv.loss > 0.6 ? `<div class="bestline">Best was: <b>${esc(rv.best.text)}</b></div>` : ''}
           <div class="row" style="margin-top:6px">
             ${rv.best && rv.loss > 0.6 ? `<button class="btn sm${showing ? ' on' : ''}" data-coach="show" data-k="${k}">${showing ? 'Hide' : 'Show'} the best move</button>` : ''}
-            ${S.game_over ? `<button class="btn sm" data-coach="replay" data-k="${k}">Review this turn</button>` : ''}
+            ${S.game_over && api ? `<button class="btn sm" data-coach="replay" data-k="${k}">Review this turn</button>` : ''}
           </div></div></div>`;
       } else if (rv) {
         out += `<div class="bubble">${clsIcon(null, true)}<div>Turn ${k + 1}: the network's own move.</div></div>`;
@@ -1249,16 +1294,17 @@
       <div class="row" style="justify-content:flex-end;margin-top:14px">
         <button class="btn" id="rvScores">Scores</button>
         <button class="btn" id="rvClose">Look at the board</button>
-        <button class="btn primary" id="rvStart">${firstBad >= 0 ? 'Review the first mistake' : 'Step through the game'}</button>
+        ${api ? `<button class="btn primary" id="rvStart">${firstBad >= 0 ? 'Review the first mistake' : 'Step through the game'}</button>` : ''}
       </div></div>`;
     $('rvScores').onclick = showScores;
     $('rvClose').onclick = () => { ov.hidden = true; };
-    $('rvStart').onclick = () => openLiveReview(firstBad >= 0 ? firstBad + 1 : 1);
+    if ($('rvStart')) $('rvStart').onclick = () => openLiveReview(firstBad >= 0 ? firstBad + 1 : 1);
     ov.querySelectorAll('.gm').forEach(g => g.addEventListener('click', () => openLiveReview(+g.dataset.turn)));
   }
 
   // Step through the game just played, with the coach's judgement of every turn.
   function openLiveReview(turn) {
+    if (!api) return;
     const h = hist;
     if (!h || !h.turns.length) return;
     const final = api.save_state();
@@ -1414,6 +1460,521 @@
       <span class="what">${R.alt && b ? esc(b.better) : esc(t.text_en || t.text)}${alt}<br><span style="color:var(--mist);font-size:14px">${R.alt ? '' : 'White ring: where the Viking of this turn went. '}${b ? 'Green dashes: the best move. ' : ''}The fjord shown is ${esc(who.name)}'s.</span></span>`;
   }
 
+  // ---------- the start menu ----------
+  let engine = null;                       // Python and the rules, loading (a promise)
+  let engineFailed = '';
+  const ensureEngine = () => engine || (engine = boot());
+  const smallViking = (col, x = 17) => `<svg viewBox="0 0 34 30" width="34" height="30" aria-hidden="true">${viking(x, 16, col, 1.15)}</svg>`;
+
+  function showMenu() {
+    const ov = $('overlay');
+    ov.hidden = false;
+    const resume = S && !S.game_over && !R;
+    ov.innerHTML = `<div class="card menu" role="dialog" aria-label="Looot">
+      <img class="logo" src="icons/icon-192.png" alt="">
+      <h2>Lo<span>oo</span>t</h2>
+      <div class="tag">Vikings, longships and a neural network</div>
+      ${resume ? `<button class="mbtn primary" data-menu="resume"><span class="ic">${smallViking('red')}</span><span><b>Back to the game</b><small>${NET.role ? 'The online game with ' + esc(NET.code) : 'Carry on where you were'}</small></span></button>` : ''}
+      <button class="mbtn${resume ? '' : ' primary'}" data-menu="play"><span class="ic">${smallViking('red')}</span><span><b>Play</b><small>Against the computer or the network, or with people at this screen</small></span></button>
+      <button class="mbtn" data-menu="host"><span class="ic"><svg viewBox="0 0 34 30" width="34" height="30" aria-hidden="true">${viking(11, 16, 'red', 1.05)}${viking(23, 16, 'blue', 1.05)}</svg></span><span><b>Play with friends</b><small>Make a lobby and send your friends the link</small></span></button>
+      <button class="mbtn" data-menu="join"><span class="ic">${smallViking('blue')}</span><span><b>Join a game</b><small>With the code a friend sent you</small></span></button>
+      <div class="engine" id="engineMsg">${engineFailed ? `<span class="err">${esc(engineFailed)}</span>` : api ? '' : 'Loading the game…'}</div>
+      <div class="mlinks">
+        <button data-menu="rules">How to play</button>
+        <a href="dashboard.html">AI dashboard</a><a href="history.html">History</a><a href="editor.html">Board editor</a>
+        ${installAsk ? '<button data-menu="install">Install app</button>' : ''}
+      </div></div>`;
+  }
+
+  function showRules() {
+    const ov = $('overlay');
+    ov.hidden = false;
+    const rules = document.querySelector('details.rules');
+    ov.innerHTML = `<div class="card" role="dialog" aria-label="How to play" style="width:min(680px,100%)">
+      <h2>How to play</h2>${rules ? rules.innerHTML.replace(/<summary>[\s\S]*?<\/summary>/, '') : ''}
+      <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn primary" data-menu="menu">Back</button></div></div>`;
+  }
+
+  async function afterEngine(next) {
+    if (!api) {
+      const el = $('engineMsg');
+      if (el) el.innerHTML = '<span class="spin sm"></span> Loading the game…';
+      try { await ensureEngine(); } catch (err) { return; }
+    }
+    next();
+  }
+
+  $('overlay').addEventListener('click', e => {
+    const b = e.target.closest('[data-menu]');
+    if (!b) return;
+    const what = b.dataset.menu;
+    if (what === 'menu') showMenu();
+    if (what === 'resume') $('overlay').hidden = true;
+    if (what === 'rules') showRules();
+    if (what === 'install') $('btnInstall').click();
+    // leaving a running online game: ask first (for a host it ends the game for everyone)
+    const leaving = NET.role && NET.started && S && !S.game_over && (what === 'play' || what === 'join' ||
+                    (what === 'host' && NET.role === 'guest'));
+    if (leaving && !confirm(NET.role === 'host' ? 'This ends the online game for everyone. Go on?' : 'Leave the online game?')) return;
+    if (what === 'play') afterEngine(() => { leaveOnline(); showSetup(); });
+    if (what === 'host') afterEngine(() => hostLobby());
+    if (what === 'join') { leaveOnline(); showJoin(''); }
+  });
+
+  // ---------- playing online with friends ----------
+  // The host's browser runs the game: Python, the network and the coach.
+  // The friends' browsers only draw the board and send their moves to the
+  // host; they need no Python, so joining is quick, also on a phone. The
+  // browsers find each other through PeerJS (a free matchmaking service)
+  // and then talk directly (WebRTC). If the host closes the game, it ends.
+  const PEERJS = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
+  const QRJS = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js';
+  const ACTS = new Set(['place_viking', 'place_tile', 'use_extra', 'pick_ship', 'cancel_ship',
+                        'place_ship', 'claim_trophy', 'end_turn']);
+  const store = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { } return null; };
+  const NET = {
+    role: null,          // null: a game on this screen; 'host' or 'guest'
+    peer: null, code: null,
+    me: store('looot.id') || (() => { const id = Math.random().toString(36).slice(2, 10); store('looot.id', id); return id; })(),
+    conns: new Map(),    // host: a friend's id -> the connection
+    names: {},           // host: a friend's id -> name
+    host: null,          // guest: the connection to the host
+    lobby: [],           // host: the seats [{name, kind: here|friend|ai|nn|open|off, owner}]
+    owners: [],          // host: game seat -> the id of the person playing it (null: computer)
+    status: [],          // guest: game seat -> 'you' | 'on' | 'away' | null (computer)
+    mine: [],            // the game seats this screen plays
+    takenOver: [],       // host: seats the computer plays because their player left
+    giveBack: new Set(), // host: ... whose player is back (given back once the computer's turn is over)
+    started: false, sent: null, lastTurn: -1,
+  };
+  const myName = () => (store('looot.name') || '').slice(0, 18);
+  const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const newCode = () => Array.from({ length: 5 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
+  const peerId = code => 'vlooot-' + code.toLowerCase();
+  const joinLink = code => location.origin + location.pathname + '?join=' + code;
+  function loadScript(src) {
+    return new Promise((ok, bad) => {
+      if (document.querySelector(`script[src="${src}"]`) && (src !== PEERJS || window.Peer)) return ok();
+      const s = document.createElement('script');
+      s.src = src; s.onload = ok; s.onerror = () => bad(new Error('could not load ' + src));
+      document.head.appendChild(s);
+    });
+  }
+  // what a seat is called and who plays it, for the players' chips and the status line
+  function seatTag(k) {
+    if (!NET.role || !S) return '';
+    const st = NET.role === 'host'
+      ? (NET.owners[k] === null || NET.owners[k] === undefined ? null
+         : NET.owners[k] === NET.me ? 'you' : NET.conns.has(NET.owners[k]) ? 'on' : 'away')
+      : NET.status[k];
+    return st === 'you' ? ' <small class="online">you</small>' : st === 'away' ? ' <small class="offline">away</small>' : '';
+  }
+  function waitingText(p) {
+    const k = S.current;
+    const away = NET.role === 'host' ? NET.owners[k] && NET.owners[k] !== NET.me && !NET.conns.has(NET.owners[k])
+                                     : NET.status[k] === 'away';
+    let t = `Waiting for <b>${esc(p.name)}</b>…`;
+    if (away) t = `<b>${esc(p.name)}</b> has lost the connection.` +
+      (NET.role === 'host' ? ' <button class="btn sm" data-online="takeover">Let the computer play for them</button>' : ' Waiting for them to come back…');
+    return t;
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-online]');
+    if (!b) return;
+    const what = b.dataset.online;
+    if (what === 'takeover' && NET.role === 'host' && S && !S.game_over) {
+      const k = S.current;
+      S = JSON.parse(api.set_player(k, true, false));
+      NET.takenOver[k] = true;
+      render(); maybeAI();
+    }
+    if (what === 'start') hostStart();
+    if (what === 'close') { leaveOnline(); showMenu(); }
+    if (what === 'copy') {
+      const link = joinLink(NET.code);
+      (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(
+        () => { b.textContent = 'Copied!'; setTimeout(() => { b.textContent = 'Copy link'; }, 1500); },
+        () => prompt('Send your friends this link:', link));
+    }
+    if (what === 'share') navigator.share({ title: 'Looot', text: 'Play Looot with me! Code ' + NET.code, url: joinLink(NET.code) }).catch(() => { });
+    if (what === 'join') {
+      const name = ($('joinName').value || '').trim().slice(0, 18), code = ($('joinCode').value || '').trim().toUpperCase();
+      if (!name) { $('joinName').focus(); return; }
+      if (code.length < 4) { $('joinCode').focus(); return; }
+      store('looot.name', name);
+      guestJoin(code);
+    }
+    if (what === 'reconnect') guestConnect();
+  });
+
+  // ----- the host -----
+  async function hostLobby() {
+    if (NET.role !== 'host') {
+      leaveOnline();
+      const el = $('engineMsg');
+      if (el) el.innerHTML = '<span class="spin sm"></span> Making a lobby…';
+      try {
+        await loadScript(PEERJS);
+        await openPeer(0);
+      } catch (err) {
+        NET.role = null;
+        if ($('engineMsg')) $('engineMsg').innerHTML = `<span class="err">No lobby: ${esc(err.message || err.type || err)}. Is there internet?</span>`;
+        return;
+      }
+      NET.role = 'host';
+      NET.lobby = [{ name: myName() || 'Host', kind: 'here', owner: NET.me },
+                   { name: '', kind: 'open' }, { name: 'Ragnar', kind: 'off' }, { name: 'Hilda', kind: 'off' }];
+    }
+    NET.started = false;
+    showLobby();
+    lobbyBroadcast();
+    loadScript(QRJS).then(drawQr, () => { });
+  }
+
+  function openPeer(tries) {
+    return new Promise((ok, bad) => {
+      const code = newCode();
+      const peer = new Peer(peerId(code));
+      let up = false;
+      peer.on('open', () => { up = true; NET.peer = peer; NET.code = code; ok(); });
+      peer.on('connection', conn => hostAccept(conn));
+      peer.on('disconnected', () => { if (NET.peer === peer) try { peer.reconnect(); } catch (e) { } });
+      peer.on('error', err => {
+        if (!up) {
+          peer.destroy();
+          if (err.type === 'unavailable-id' && tries < 5) openPeer(tries + 1).then(ok, bad);
+          else bad(err);
+        }
+      });
+    });
+  }
+
+  function hostAccept(conn) {
+    conn.on('data', m => hostReceive(conn, m));
+    conn.on('close', () => hostLost(conn));
+    conn.on('error', () => hostLost(conn));
+  }
+
+  function hostReceive(conn, m) {
+    if (!m || typeof m !== 'object' || NET.role !== 'host') return;
+    if (m.t === 'hello') {
+      const id = String(m.id || '').slice(0, 24) || conn.peer;
+      const name = String(m.name || '').trim().slice(0, 18) || 'Friend';
+      const old = NET.conns.get(id);
+      if (old && old !== conn) try { old.close(); } catch (e) { }
+      conn.who = id;
+      NET.conns.set(id, conn);
+      NET.names[id] = name;
+      if (!NET.started) {
+        let seat = NET.lobby.find(s => s.kind === 'friend' && s.owner === id) ||
+                   NET.lobby.find(s => s.kind === 'open') || NET.lobby.find(s => s.kind === 'off');
+        if (seat) { seat.kind = 'friend'; seat.owner = id; seat.name = name; }
+        showLobby(); lobbyBroadcast();
+      } else {
+        // back in a running game: the seat is theirs again (also when the computer stood in)
+        const k = NET.owners.indexOf(id);
+        if (k >= 0 && NET.takenOver[k]) { NET.giveBack.add(k); giveBack(); }
+        render();
+        sendState(conn, true);
+        if (hist) hist.turns.forEach((t, k2) => { if (t.rev) send(conn, revMsg(k2)); });
+      }
+      return;
+    }
+    if (m.t === 'act' && NET.started && S && !S.game_over) {
+      if (NET.owners[S.current] !== conn.who || S.players[S.current].ai) return;
+      if (!ACTS.has(m.fn) || !Array.isArray(m.args) || m.args.length > 4 ||
+          !m.args.every(a => typeof a === 'number' || typeof a === 'boolean')) return;
+      const err = call(m.fn, ...m.args);
+      if (err) { lastError = ''; renderStatus(); send(conn, { t: 'err', text: err }); }
+      return;
+    }
+    if (m.t === 'bye') hostLost(conn);
+  }
+
+  function giveBack() {
+    if (busy || NET.role !== 'host') return;          // after the computer's turn (maybeAI calls again)
+    for (const k of NET.giveBack) {
+      S = JSON.parse(api.set_player(k, false, false));
+      NET.takenOver[k] = false;
+    }
+    NET.giveBack.clear();
+  }
+
+  function hostLost(conn) {
+    const id = conn.who;
+    if (!id || NET.conns.get(id) !== conn) return;
+    NET.conns.delete(id);
+    if (NET.role !== 'host') return;
+    if (!NET.started) {
+      const seat = NET.lobby.find(s => s.kind === 'friend' && s.owner === id);
+      if (seat) { seat.kind = 'open'; seat.owner = null; seat.name = ''; }
+      showLobby(); lobbyBroadcast();
+    } else if (S) render();
+  }
+
+  const send = (conn, m) => { try { if (conn && conn.open) conn.send(m); } catch (e) { } };
+
+  function lobbyBroadcast() {
+    for (const [id, c] of NET.conns)
+      send(c, { t: 'lobby', code: NET.code, seats: NET.lobby.map(s => ({ name: s.name, kind: s.kind, you: s.owner === id })) });
+  }
+
+  function lobbyColors(seats) {
+    // the game gives the colours in order to the seats that play
+    let k = 0;
+    return seats.map(s => (s.kind === 'off' || s.kind === 'open') ? null : SEAT_COL[k++]);
+  }
+
+  function showLobby() {
+    if (NET.started) return;
+    const ov = $('overlay');
+    ov.hidden = false;
+    const cols = lobbyColors(NET.lobby);
+    const playing = NET.lobby.filter(s => s.kind !== 'off' && s.kind !== 'open').length;
+    const friends = NET.lobby.filter(s => s.kind === 'friend').length;
+    const link = joinLink(NET.code);
+    ov.innerHTML = `<div class="card" role="dialog" aria-label="Lobby" style="width:min(620px,100%)">
+      <h2>Lobby</h2>
+      <div class="lobbyhead">
+        <div><div class="offline">Game code</div><div class="code">${esc(NET.code)}</div>
+          <div class="row" style="margin-top:8px">
+            ${navigator.share ? '<button class="btn sm primary" data-online="share">Share link</button>' : ''}
+            <button class="btn sm" data-online="copy">Copy link</button></div>
+          <div class="offline" style="margin-top:6px;word-break:break-all">${esc(link)}</div></div>
+        <div class="qr" id="lobbyQr" title="Scan to join"></div>
+      </div>
+      <p>Friends open the link (or choose <b>Join a game</b> and type the code). Each seat can also be you, the computer or the network.</p>
+      ${NET.lobby.map((s, i) => `
+        <div class="seat lobbyseat" style="${s.kind === 'off' ? 'opacity:.45' : ''}">
+          <span class="dot" style="width:14px;height:14px;border-radius:50%;background:${cols[i] ? PCOL[cols[i]] : 'var(--line)'}"></span>
+          ${s.kind === 'friend'
+            ? `<span class="fname"><b>${esc(s.name)}</b> <span class="${NET.conns.has(s.owner) ? 'online' : 'offline'}">${NET.conns.has(s.owner) ? '● online' : '○ away'}</span></span>
+               <span class="seg"><button data-lseat="${i}" data-kind="open">Remove</button></span>`
+            : s.kind === 'open' ? `<span class="fname offline">Waiting for a friend…</span>
+               <span class="seg">${lobbySeg(i, s)}</span>`
+            : `<input type="text" id="lname${i}" value="${esc(s.name)}" aria-label="Name of seat ${i + 1}" ${s.kind === 'off' ? 'disabled' : ''}>
+               <span class="seg">${lobbySeg(i, s)}</span>`}
+        </div>`).join('')}
+      <div class="row" style="justify-content:space-between;margin-top:14px">
+        <span class="offline">${playing} playing${friends ? ` · ${friends} friend${friends > 1 ? 's' : ''}` : ''}</span>
+        <span class="row"><button class="btn" data-online="close">Close lobby</button>
+          <button class="btn primary" data-online="start" ${playing >= 2 ? '' : 'disabled'}>Start</button></span>
+      </div></div>`;
+    ov.querySelectorAll('[data-lseat]').forEach(b => b.onclick = () => {
+      lobbyNames();
+      const s = NET.lobby[+b.dataset.lseat], k = b.dataset.kind;
+      if (s.kind === 'friend' && k !== 'friend') {         // removing a friend: they stay connected, without a seat
+        const c = NET.conns.get(s.owner);
+        if (c) send(c, { t: 'lobby', code: NET.code, seats: [], removed: true });
+        s.owner = null;
+      }
+      s.kind = k;
+      if (k === 'here' && !s.name) s.name = myName() || 'Player';
+      if ((k === 'ai' || k === 'nn') && !s.name) s.name = ['Astrid', 'Ragnar', 'Hilda', 'Bjorn'][+b.dataset.lseat];
+      showLobby(); lobbyBroadcast();
+    });
+    ov.querySelectorAll('input[id^=lname]').forEach(inp => inp.onchange = () => { lobbyNames(); lobbyBroadcast(); });
+    drawQr();
+  }
+  function lobbySeg(i, s) {
+    return [['open', 'Friend'], ['here', 'You'], ['ai', 'Computer'], ['nn', 'Network']].concat(i >= 2 ? [['off', 'Empty']] : [])
+      .map(([k, label]) => `<button data-lseat="${i}" data-kind="${k}" class="${s.kind === k ? 'on' : ''}">${label}</button>`).join('');
+  }
+  function lobbyNames() {
+    NET.lobby.forEach((s, i) => { const el = $('lname' + i); if (el && el.value.trim()) s.name = el.value.trim().slice(0, 18); });
+    const mine = NET.lobby.find(s => s.kind === 'here');
+    if (mine) store('looot.name', mine.name);
+  }
+  function drawQr() {
+    const el = $('lobbyQr');
+    if (!el || !window.qrcode || !NET.code) return;
+    const qr = qrcode(0, 'M');
+    qr.addData(joinLink(NET.code));
+    qr.make();
+    el.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+  }
+
+  function hostStart() {
+    if (NET.role !== 'host') return;
+    lobbyNames();
+    const seats = NET.lobby.filter(s => s.kind !== 'off' && s.kind !== 'open');
+    if (seats.length < 2) return;
+    const ps = seats.map(s => ({ name: (s.name || 'Player').slice(0, 18), ai: s.kind === 'ai' || s.kind === 'nn', nn: s.kind === 'nn' }));
+    NET.owners = seats.map(s => s.kind === 'here' ? NET.me : s.kind === 'friend' ? s.owner : null);
+    NET.mine = NET.owners.map((o, i) => o === NET.me ? i : -1).filter(i => i >= 0);
+    NET.takenOver = seats.map(() => false);
+    NET.started = true;
+    NET.sent = null;
+    $('overlay').hidden = true;
+    render.shownEnd = false;
+    S = JSON.parse(api.new_game(JSON.stringify(ps), -1));
+    newHistory();
+    view = NET.mine.length ? NET.mine[0] : 0;
+    if (NET.mine.includes(S.current)) view = S.current;
+    lastError = '';
+    thoughts = null;
+    render(); maybeAI(); refreshThoughts();
+  }
+
+  function stateMsg(id) {
+    return { t: 'state', S, code: NET.code,
+             status: NET.owners.map(o => o === null ? null : o === id ? 'you' : (o === NET.me || NET.conns.has(o)) ? 'on' : 'away') };
+  }
+  function sendState(conn) { send(conn, stateMsg(conn.who)); }
+  // after every change of the game: the new state to every friend
+  function netBroadcast() {
+    if (NET.role !== 'host' || !NET.started || NET.sent === S) return;
+    NET.sent = S;
+    for (const c of NET.conns.values()) sendState(c);
+  }
+  // the coach's judgement of a turn, without the big copy of the board
+  function revMsg(k) {
+    const t = hist.turns[k];
+    let rev = t.rev;
+    if (rev && rev.best && rev.best.state) {
+      const { state, ...best } = rev.best;
+      rev = { ...rev, best };
+    }
+    return { t: 'rev', k, who: t.who, nn: t.nn, rev };
+  }
+  function netRev(t) {
+    if (NET.role !== 'host' || !hist) return;
+    const k = hist.turns.indexOf(t);
+    if (k >= 0) for (const c of NET.conns.values()) send(c, revMsg(k));
+  }
+
+  // ----- a friend joining -----
+  function showJoin(code, note) {
+    const ov = $('overlay');
+    ov.hidden = false;
+    ov.innerHTML = `<div class="card menu" role="dialog" aria-label="Join a game">
+      <img class="logo" src="icons/icon-192.png" alt="">
+      <h2 style="font-size:44px">Join a game</h2>
+      <div class="field"><label for="joinName">Your name</label><input id="joinName" maxlength="18" value="${esc(myName())}" autocomplete="nickname"></div>
+      <div class="field"><label for="joinCode">Game code</label><input id="joinCode" class="codein" maxlength="8" value="${esc(code || '')}" autocomplete="off" autocapitalize="characters"></div>
+      <div class="engine" id="joinMsg">${note ? `<span class="err">${esc(note)}</span>` : ''}</div>
+      <div class="row" style="justify-content:space-between;margin-top:10px">
+        <button class="btn" data-menu="menu">Menu</button><button class="btn primary" data-online="join">Join</button></div></div>`;
+    const first = myName() ? $('joinCode') : $('joinName');
+    if (!(code && myName())) setTimeout(() => first.focus(), 50);
+    ov.querySelectorAll('input').forEach(inp => inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') ov.querySelector('[data-online="join"]').click();
+    }));
+  }
+  const joinMsg = html => { const el = $('joinMsg'); if (el) el.innerHTML = html; };
+
+  async function guestJoin(code) {
+    leaveOnline();
+    joinMsg('<span class="spin sm"></span> Looking for the game…');
+    try { await loadScript(PEERJS); } catch (err) { joinMsg('<span class="err">Could not load the connection code. Is there internet?</span>'); return; }
+    NET.role = 'guest';
+    NET.code = code;
+    NET.started = false;
+    NET.peer = new Peer();
+    NET.peer.on('open', () => guestConnect());
+    NET.peer.on('disconnected', () => { try { NET.peer.reconnect(); } catch (e) { } });
+    NET.peer.on('error', err => {
+      if (NET.role !== 'guest') return;
+      const text = err.type === 'peer-unavailable'
+        ? `No game with code ${code}. Is the host's game still open?`
+        : 'Connection trouble (' + err.type + ').';
+      if (NET.started) { lastError = text; renderStatus(); }
+      else showJoin(code, text);
+    });
+  }
+
+  function guestConnect() {
+    if (NET.role !== 'guest' || !NET.peer) return;
+    if (NET.peer.disconnected) { try { NET.peer.reconnect(); } catch (e) { } }
+    const conn = NET.peer.connect(peerId(NET.code), { reliable: true });
+    NET.host = conn;
+    conn.on('open', () => send(conn, { t: 'hello', id: NET.me, name: myName() }));
+    conn.on('data', m => { if (NET.host === conn) guestReceive(m); });
+    conn.on('close', () => { if (NET.host === conn) guestLost(); });
+    conn.on('error', () => { if (NET.host === conn) guestLost(); });
+  }
+
+  function guestReceive(m) {
+    if (!m || typeof m !== 'object') return;
+    if (m.t === 'lobby') {
+      NET.started = false;
+      showGuestLobby(m);
+    } else if (m.t === 'state') {
+      const fresh = !NET.started || !S || m.S.seed !== S.seed;
+      NET.started = true;
+      S = m.S;
+      NET.status = m.status;
+      NET.mine = m.status.map((o, i) => o === 'you' ? i : -1).filter(i => i >= 0);
+      if (fresh) {
+        hist = { key: '', state: null, who: 0, turns: [] };
+        render.shownEnd = false;
+        view = NET.mine.length ? NET.mine[0] : 0;
+        NET.lastTurn = -1;
+        $('overlay').hidden = true;
+      }
+      // when it becomes your turn, your fjord is shown
+      const turnKey = S.turn_no + ':' + S.current;
+      if (NET.mine.includes(S.current) && NET.lastTurn !== turnKey) view = S.current;
+      NET.lastTurn = turnKey;
+      lastError = '';
+      render();
+    } else if (m.t === 'rev') {
+      if (!hist) hist = { key: '', state: null, who: 0, turns: [] };
+      while (hist.turns.length <= m.k) hist.turns.push({ who: 0, nn: false, rev: null });
+      hist.turns[m.k] = { who: m.who, nn: m.nn, rev: m.rev };
+      if (S) { renderCoach(); renderEval(); }
+    } else if (m.t === 'err') {
+      lastError = m.text;
+      if (S) renderStatus();
+    } else if (m.t === 'bye') {
+      guestLost('The host has closed the game.');
+    }
+  }
+
+  function showGuestLobby(m) {
+    const ov = $('overlay');
+    ov.hidden = false;
+    const cols = lobbyColors(m.seats);
+    const me = m.seats.findIndex(s => s.you);
+    ov.innerHTML = `<div class="card" role="dialog" aria-label="Lobby" style="width:min(560px,100%)">
+      <h2>Lobby</h2>
+      <div class="lobbyhead"><div><div class="offline">Game code</div><div class="code">${esc(NET.code)}</div></div></div>
+      <p>${me >= 0 ? `You play the <b style="color:${PCOL[cols[me]]}">${cols[me]}</b> Vikings. ` : m.removed ? 'The host gave your seat to someone else; you can watch. ' : 'All seats are taken; you can watch. '}Waiting for the host to start the game…</p>
+      ${m.seats.filter(s => s.kind !== 'off').map(s => {
+        const i = m.seats.indexOf(s);
+        return `<div class="seat lobbyseat"><span class="dot" style="width:14px;height:14px;border-radius:50%;background:${cols[i] ? PCOL[cols[i]] : 'var(--line)'}"></span>
+          <span class="fname">${s.kind === 'open' ? '<span class="offline">Waiting for a friend…</span>' : `<b>${esc(s.name)}</b>${s.you ? ' <span class="online">you</span>' : ''}`}</span>
+          <span class="offline">${{ here: 'host', friend: 'friend', ai: 'computer', nn: 'network', open: '' }[s.kind]}</span></div>`;
+      }).join('')}
+      <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" data-online="close">Leave</button></div></div>`;
+  }
+
+  function guestLost(text) {
+    if (NET.role !== 'guest') return;
+    NET.host = null;
+    if (S && S.game_over) return;
+    const ov = $('overlay');
+    ov.hidden = false;
+    ov.innerHTML = `<div class="card menu" role="dialog" aria-label="Connection lost">
+      <h2 style="font-size:40px">${text ? 'Game over' : 'Connection lost'}</h2>
+      <p>${esc(text || 'The connection to the host was lost.')}</p>
+      <div class="row" style="justify-content:center;margin-top:10px">
+        <button class="btn" data-online="close">Menu</button>
+        ${text ? '' : '<button class="btn primary" data-online="reconnect">Reconnect</button>'}</div></div>`;
+  }
+
+  // leave the online game (the host ends it for everyone)
+  function leaveOnline() {
+    if (!NET.role) return;
+    if (NET.role === 'host') for (const c of NET.conns.values()) send(c, { t: 'bye' });
+    if (NET.role === 'guest' && NET.host) send(NET.host, { t: 'bye' });
+    const peer = NET.peer;
+    NET.role = null; NET.peer = null; NET.host = null; NET.code = null;
+    NET.conns = new Map(); NET.started = false; NET.mine = []; NET.owners = []; NET.status = [];
+    if (peer) setTimeout(() => { try { peer.destroy(); } catch (e) { } }, 300);
+  }
+  addEventListener('pagehide', () => { if (NET.role === 'host') for (const c of NET.conns.values()) send(c, { t: 'bye' }); });
+
   // ---------- boot Python ----------
   async function boot() {
     try {
@@ -1423,7 +1984,7 @@
         sc.src = base + 'pyodide.js'; sc.onload = ok; sc.onerror = () => bad(new Error('Could not load Pyodide'));
         document.head.appendChild(sc);
       });
-      $('loadMsg').textContent = 'Starting Python…';
+      bootMsg('Starting Python…');
       // The standard library ships as base64 text; turn it back into a zip blob.
       const b64 = await (await fetch(base + 'python_stdlib.b64.txt')).text();
       const bin = Uint8Array.from(atob(b64.trim()), ch => ch.charCodeAt(0));
@@ -1436,7 +1997,7 @@
         : realFetch(u, o);
       const py = await loadPyodide({ indexURL: base, stdLibURL });
       window.fetch = realFetch;
-      $('loadMsg').textContent = 'Loading the rules…';
+      bootMsg('Loading the rules…');
       // looot.py next to this page (published copies may call it looot.py.txt),
       // written into Python's own files so nn_bot.py can import it too
       let res = await fetch('looot.py', { cache: 'no-store' }).catch(() => null);
@@ -1453,10 +2014,17 @@
       }
       const rp = new URLSearchParams(location.search);
       if (rp.has('replay')) await startReplay(rp.get('replay'), +(rp.get('turn') || 0));
-      else showSetup();
+      bootMsg('');
     } catch (err) {
-      $('loadingCard').innerHTML = `<h2 style="font:32px var(--display);margin:0">The ships could not sail</h2><p style="color:var(--mist)">Python didn't start in this browser: ${esc(err && err.message || err)}</p>`;
+      engineFailed = "Python didn't start in this browser: " + (err && err.message || err);
+      if ($('loadingCard')) $('loadingCard').innerHTML = `<h2 style="font:32px var(--display);margin:0">The ships could not sail</h2><p style="color:var(--mist)">${esc(engineFailed)}</p>`;
+      else bootMsg(engineFailed, true);
+      throw err;
     }
+  }
+  function bootMsg(text, bad) {
+    const el = $('engineMsg') || $('loadMsg');
+    if (el) el.innerHTML = bad ? `<span class="err">${esc(text)}</span>` : esc(text);
   }
   // ---------- the installable web app (manifest.webmanifest, sw.js) ----------
   // The service worker keeps a copy of the game, so it starts faster and
@@ -1493,6 +2061,13 @@
     return ios && !app ? '<br>Tip: tap Share, then “Add to Home Screen”, to install Looot as an app.' : '';
   }
 
-  boot();
+  // ---------- starting up ----------
+  const startup = new URLSearchParams(location.search);
+  if (startup.has('replay')) engine = boot();                 // a game from the dashboard
+  else if (startup.has('join')) {                              // a friend's link: no Python needed
+    const code = startup.get('join').toUpperCase().slice(0, 8);
+    showJoin(code);
+    if (myName()) guestJoin(code);
+  } else { showMenu(); engine = boot(); }
 })();
 </script>
