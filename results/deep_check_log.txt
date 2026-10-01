@@ -1,0 +1,182 @@
+30 games played in 41 s: 828 positions, 216 moves to judge
+1476 starts, 43200 playouts in 123 jobs
+  384/43200 playouts (28 per second), about 26 minutes left
+  768/43200 playouts (48 per second), about 15 minutes left
+  1152/43200 playouts (29 per second), about 24 minutes left
+  1536/43200 playouts (35 per second), about 20 minutes left
+  1920/43200 playouts (38 per second), about 18 minutes left
+  2304/43200 playouts (42 per second), about 16 minutes left
+  2688/43200 playouts (44 per second), about 15 minutes left
+  3072/43200 playouts (47 per second), about 14 minutes left
+  3456/43200 playouts (49 per second), about 14 minutes left
+  3840/43200 playouts (43 per second), about 15 minutes left
+  4224/43200 playouts (42 per second), about 16 minutes left
+  4608/43200 playouts (45 per second), about 14 minutes left
+  4992/43200 playouts (45 per second), about 14 minutes left
+  5376/43200 playouts (46 per second), about 14 minutes left
+  5760/43200 playouts (45 per second), about 14 minutes left
+  6144/43200 playouts (46 per second), about 13 minutes left
+  6528/43200 playouts (46 per second), about 13 minutes left
+  6912/43200 playouts (45 per second), about 14 minutes left
+  7296/43200 playouts (44 per second), about 14 minutes left
+  7680/43200 playouts (45 per second), about 13 minutes left
+  8064/43200 playouts (45 per second), about 13 minutes left
+  8448/43200 playouts (44 per second), about 13 minutes left
+  8832/43200 playouts (45 per second), about 13 minutes left
+  9216/43200 playouts (46 per second), about 12 minutes left
+  9600/43200 playouts (43 per second), about 13 minutes left
+  9984/43200 playouts (44 per second), about 13 minutes left
+  10368/43200 playouts (45 per second), about 12 minutes left
+  10752/43200 playouts (47 per second), about 12 minutes left
+  11136/43200 playouts (45 per second), about 12 minutes left
+  11520/43200 playouts (46 per second), about 11 minutes left
+  11904/43200 playouts (46 per second), about 11 minutes left
+  12288/43200 playouts (44 per second), about 12 minutes left
+  12672/43200 playouts (44 per second), about 12 minutes left
+  13056/43200 playouts (45 per second), about 11 minutes left
+  13440/43200 playouts (45 per second), about 11 minutes left
+  13824/43200 playouts (45 per second), about 11 minutes left
+  14208/43200 playouts (45 per second), about 11 minutes left
+  14592/43200 playouts (46 per second), about 10 minutes left
+  14976/43200 playouts (46 per second), about 10 minutes left
+  15360/43200 playouts (46 per second), about 10 minutes left
+  15744/43200 playouts (46 per second), about 10 minutes left
+  16128/43200 playouts (45 per second), about 10 minutes left
+  16512/43200 playouts (46 per second), about 10 minutes left
+  16896/43200 playouts (46 per second), about 9 minutes left
+  17280/43200 playouts (46 per second), about 9 minutes left
+  17664/43200 playouts (46 per second), about 9 minutes left
+  18048/43200 playouts (46 per second), about 9 minutes left
+  18432/43200 playouts (46 per second), about 9 minutes left
+  18816/43200 playouts (46 per second), about 9 minutes left
+  19200/43200 playouts (46 per second), about 9 minutes left
+  19584/43200 playouts (45 per second), about 9 minutes left
+  19968/43200 playouts (45 per second), about 9 minutes left
+  20352/43200 playouts (46 per second), about 8 minutes left
+  20736/43200 playouts (46 per second), about 8 minutes left
+  21120/43200 playouts (46 per second), about 8 minutes left
+  21504/43200 playouts (45 per second), about 8 minutes left
+  21888/43200 playouts (46 per second), about 8 minutes left
+  22272/43200 playouts (45 per second), about 8 minutes left
+  22656/43200 playouts (44 per second), about 8 minutes left
+  23040/43200 playouts (44 per second), about 8 minutes left
+  23424/43200 playouts (45 per second), about 7 minutes left
+  23808/43200 playouts (46 per second), about 7 minutes left
+  24192/43200 playouts (45 per second), about 7 minutes left
+  24576/43200 playouts (44 per second), about 7 minutes left
+  24960/43200 playouts (44 per second), about 7 minutes left
+  25344/43200 playouts (45 per second), about 7 minutes left
+  25728/43200 playouts (45 per second), about 7 minutes left
+  26112/43200 playouts (45 per second), about 6 minutes left
+  26496/43200 playouts (45 per second), about 6 minutes left
+  26880/43200 playouts (45 per second), about 6 minutes left
+  27264/43200 playouts (44 per second), about 6 minutes left
+  27648/43200 playouts (45 per second), about 6 minutes left
+  28032/43200 playouts (45 per second), about 6 minutes left
+  28416/43200 playouts (45 per second), about 5 minutes left
+  28800/43200 playouts (45 per second), about 5 minutes left
+  29184/43200 playouts (46 per second), about 5 minutes left
+  29568/43200 playouts (46 per second), about 5 minutes left
+  29952/43200 playouts (46 per second), about 5 minutes left
+  30336/43200 playouts (46 per second), about 5 minutes left
+  30720/43200 playouts (46 per second), about 5 minutes left
+  31104/43200 playouts (46 per second), about 4 minutes left
+  31488/43200 playouts (46 per second), about 4 minutes left
+  31872/43200 playouts (46 per second), about 4 minutes left
+  32256/43200 playouts (46 per second), about 4 minutes left
+  32640/43200 playouts (46 per second), about 4 minutes left
+  33024/43200 playouts (46 per second), about 4 minutes left
+  33408/43200 playouts (47 per second), about 3 minutes left
+  33792/43200 playouts (46 per second), about 3 minutes left
+  34176/43200 playouts (46 per second), about 3 minutes left
+  34560/43200 playouts (46 per second), about 3 minutes left
+  34944/43200 playouts (46 per second), about 3 minutes left
+  35328/43200 playouts (46 per second), about 3 minutes left
+  35712/43200 playouts (45 per second), about 3 minutes left
+  36096/43200 playouts (45 per second), about 3 minutes left
+  36480/43200 playouts (46 per second), about 2 minutes left
+  36864/43200 playouts (46 per second), about 2 minutes left
+  37248/43200 playouts (46 per second), about 2 minutes left
+  37632/43200 playouts (46 per second), about 2 minutes left
+  38016/43200 playouts (46 per second), about 2 minutes left
+  38400/43200 playouts (46 per second), about 2 minutes left
+  38784/43200 playouts (46 per second), about 2 minutes left
+  39168/43200 playouts (46 per second), about 1 minutes left
+  39360/43200 playouts (46 per second), about 1 minutes left
+  39552/43200 playouts (44 per second), about 1 minutes left
+  39744/43200 playouts (42 per second), about 1 minutes left
+  39936/43200 playouts (42 per second), about 1 minutes left
+  40128/43200 playouts (41 per second), about 1 minutes left
+  40320/43200 playouts (41 per second), about 1 minutes left
+  40512/43200 playouts (41 per second), about 1 minutes left
+  40704/43200 playouts (40 per second), about 1 minutes left
+  40896/43200 playouts (39 per second), about 1 minutes left
+  41088/43200 playouts (38 per second), about 1 minutes left
+  41280/43200 playouts (38 per second), about 1 minutes left
+  41472/43200 playouts (38 per second), about 1 minutes left
+  41664/43200 playouts (37 per second), about 1 minutes left
+  41856/43200 playouts (37 per second), about 1 minutes left
+  42048/43200 playouts (36 per second), about 1 minutes left
+  42240/43200 playouts (35 per second), about 0 minutes left
+  42432/43200 playouts (34 per second), about 0 minutes left
+  42624/43200 playouts (34 per second), about 0 minutes left
+  42816/43200 playouts (34 per second), about 0 minutes left
+  43008/43200 playouts (34 per second), about 0 minutes left
+  43200/43200 playouts (31 per second), about 0 minutes left
+
+2 players (552 positions):
+  chance to win, the bar:    typical difference 25.8% (mean 20.0%; the playouts' own luck 5.5%)
+  chance to win, the bubble: typical difference 26.3% (network minus playouts on average +1.5%)
+  final margin:              typical difference 10.9 points (bias +0.7); against the real end 20.6, the futures themselves differ by 10.2
+  slope (1 = right, below 1: the network goes too far from even): 1.15
+  margin slope (above 1: big leads squeezed): 1.39; close positions (|margin| < 15) 10.2 points, big leads 13.1 points (bias +0.2)
+    start   chance 16.8%   margin  7.2 points   (vs the real end 25.8, futures differ 15.5)
+    early   chance 25.0%   margin 11.2 points   (vs the real end 24.0, futures differ 13.1)
+    middle  chance 24.9%   margin 11.3 points   (vs the real end 21.0, futures differ 10.8)
+    late    chance 29.7%   margin 11.9 points   (vs the real end 18.2, futures differ  6.2)
+    end     chance 29.6%   margin 11.4 points   (vs the real end 13.7, futures differ  1.2)
+  calibration: 2.7%->2.3% (111)  14.9%->3.1% (61)  24.9%->5.7% (46)  35.7%->30.0% (89)  45.8%->43.7% (269)  54.2%->56.3% (269)  64.3%->70.0% (89)  75.1%->94.3% (46)  85.1%->96.9% (61)  97.3%->97.7% (111)
+
+3-4 players (246 positions):
+  chance to win, the bar:    typical difference 23.1% (mean 17.9%; the playouts' own luck 6.9%)
+  chance to win, the bubble: typical difference 23.0% (network minus playouts on average +5.9%)
+  final margin:              typical difference 9.8 points (bias +3.8); against the real end 11.4, the futures themselves differ by 9.7
+  slope (1 = right, below 1: the network goes too far from even): 1.29
+  margin slope (above 1: big leads squeezed): 1.43; close positions (|margin| < 15) 8.2 points, big leads 13.7 points (bias +8.2)
+    start   chance 11.8%   margin  4.5 points   (vs the real end 15.2, futures differ 14.8)
+    early   chance 19.1%   margin  8.5 points   (vs the real end 12.9, futures differ 12.9)
+    middle  chance 26.2%   margin 13.0 points   (vs the real end 11.6, futures differ 10.2)
+    late    chance 25.9%   margin 11.5 points   (vs the real end  9.6, futures differ  4.8)
+    end     chance 26.4%   margin  7.2 points   (vs the real end  7.5, futures differ  0.4)
+  calibration: 4.1%->0.2% (202)  15.7%->6.9% (126)  25.0%->19.7% (252)  34.8%->42.3% (129)  44.2%->53.5% (61)  54.5%->75.9% (44)  63.8%->76.3% (33)  73.6%->84.7% (22)  86.3%->85.7% (14)  94.0%->100.0% (17)
+
+The coach, 2 players, all judged moves (216 moves, 138 compared in pairs):
+  points lost, coach against the deep analysis: typical difference 10.1 (without the playouts' own luck of ±2.1), mean difference 7.5, coach minus deep -0.5, correlation 0.38, slope 1.50
+  same verdict (fine / inaccuracy / mistake or worse): 41.7%
+  called a mistake or blunder: 23; of those at least an inaccuracy after playing out: 73.9%, still a mistake: 65.2%
+  called fine: 161; of those a clear mistake after playing out: 39.1%
+  another move than the network's first choice clearly better after playing out: 29.0%
+  close games (93 moves): mean difference 7.4, coach minus deep -0.8, correlation 0.37
+  lopsided games (45 moves): mean difference 7.7, coach minus deep +0.2, correlation 0.42
+  last 2 turns (36 moves): difference with the deep analysis: network 3.0, exact count 3.0 points
+
+The coach, 2 players, the greedy (72 moves, 67 compared in pairs):
+  points lost, coach against the deep analysis: typical difference 10.0 (without the playouts' own luck of ±1.9), mean difference 8.0, coach minus deep -0.3, correlation 0.48, slope 1.69
+  same verdict (fine / inaccuracy / mistake or worse): 45.8%
+  called a mistake or blunder: 23; of those at least an inaccuracy after playing out: 73.9%, still a mistake: 65.2%
+  called fine: 22; of those a clear mistake after playing out: 31.8%
+  another move than the network's first choice clearly better after playing out: 25.4%
+  close games (24 moves): mean difference 8.3, coach minus deep -0.8, correlation 0.55
+  lopsided games (43 moves): mean difference 7.8, coach minus deep +0.0, correlation 0.40
+  last 2 turns (12 moves): difference with the deep analysis: network 6.3, exact count 7.9 points
+
+The coach, 2 players, the student (144 moves, 71 compared in pairs):
+  points lost, coach against the deep analysis: typical difference 10.2 (without the playouts' own luck of ±2.3), mean difference 7.1, coach minus deep -0.7, correlation 0.24, slope 3.32
+  same verdict (fine / inaccuracy / mistake or worse): 39.6%
+  called a mistake or blunder: 0; of those at least an inaccuracy after playing out: -, still a mistake: -
+  called fine: 139; of those a clear mistake after playing out: 40.3%
+  another move than the network's first choice clearly better after playing out: 32.4%
+  close games (69 moves): mean difference 7.1, coach minus deep -0.8, correlation 0.23
+  last 2 turns (24 moves): difference with the deep analysis: network 1.3, exact count 0.6 points
+
+Done in 24 minutes; results/deep_check.json

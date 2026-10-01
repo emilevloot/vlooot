@@ -25,6 +25,7 @@ server.py (/ai-analyze) for the local game.
 import copy
 import random
 import time
+import zlib
 
 import numpy as np
 
@@ -63,9 +64,11 @@ def play_out(starts, me, model, n, seed=1, parallel=256):
     the end n times, the network on every seat, the bag of longships
     shuffled for each playout - for playout k the same way for every start
     (ships in the same order, the same dice). Returns per start an array
-    [n, 2]: the final margin of player `me` and whether it won (1, 0.5 for
-    a tie, 0), row k being playout k."""
-    F = _engine(len(starts[0].players))
+    [n, 2]: the final margin of player `me` and its share of the win (1,
+    0.5 for a tie of two, 0), row k being playout k. me=None: for every
+    player, an array [n, players, 2]."""
+    npl = len(starts[0].players)
+    F = _engine(npl)
     net = _net(model)
     rng = np.random.default_rng(seed)
     F.seed(seed % (2 ** 31))
@@ -80,14 +83,15 @@ def play_out(starts, me, model, n, seed=1, parallel=256):
                 bag = s[F.S_BAG:F.S_BAG + nb].copy()
                 s[F.S_BAG:F.S_BAG + nb] = bag[np.argsort(order[r][bag], kind="stable")]
             jobs.append((i, r, s, gs))
-    out = [np.zeros((n, 2)) for _ in starts]
+    out = [np.zeros((n, npl, 2)) for _ in starts]
     todo = list(range(len(jobs)))
     players = []
     slots = []
 
     def finish(slot):
         i, r = jobs[slot["j"]][:2]
-        out[i][r] = F.outcome(slot["s"], me)
+        s = slot["s"]
+        out[i][r] = [F.outcome(s, p) if npl == 2 else F.outcome(s, slot["gs"], p) for p in range(npl)]
 
     def advance(slot, answer):
         """Run a playout until its next question for the network; True when it ended."""
@@ -139,7 +143,7 @@ def play_out(starts, me, model, n, seed=1, parallel=256):
             else:
                 keep.append(sl)
         slots = keep
-    return out
+    return out if me is None else [o[:, me] for o in out]
 
 
 def same_move(ga, gb, me):
@@ -147,6 +151,34 @@ def same_move(ga, gb, me):
     pa, pb = ga.players[me], gb.players[me]
     return (pa.fjord == pb.fjord and pa.trophy == pb.trophy and pa.shields == pb.shields
             and {c: v.count(me) for c, v in ga.vikings.items()} == {c: v.count(me) for c, v in gb.vikings.items()})
+
+
+def candidates(model, g0):
+    """The moves the network considers for the player to move in g0 (as
+    the coach does): the games after them and the network's final margin
+    for each, best first."""
+    bot = nn_bot.NNBot(random.Random(0), model)
+    cands, vals = bot._candidates(copy.deepcopy(g0))
+    order = np.argsort(-vals)
+    return [cands[k][5] for k in order], vals[order]
+
+
+def alternatives(g0, g1, games, vals, alts=3, lang="en"):
+    """The best `alts` of the candidates (games, vals: candidates()) other
+    than the move from g0 to g1: [(game after it, describe(), value)]."""
+    me = g0.current
+    chosen, texts = [], {review.describe(g0, g1, me, lang)["text"]}
+    for g, v in zip(games, vals):
+        if same_move(g, g1, me):
+            continue
+        d = review.describe(g0, g, me, lang)
+        if d["text"] in texts:                      # the same move in other words (fjord spaces)
+            continue
+        texts.add(d["text"])
+        chosen.append((g, d, float(v)))
+        if len(chosen) >= alts:
+            break
+    return chosen
 
 
 def analyse_turn(model, before, after, n=16, alts=3, lang="en"):
@@ -158,24 +190,10 @@ def analyse_turn(model, before, after, n=16, alts=3, lang="en"):
     g0 = L.Game.load_state(before)
     g1 = L.Game.load_state(after)
     me = g0.current
-    bot = nn_bot.NNBot(random.Random(0), model)
-    cands, vals = bot._candidates(copy.deepcopy(g0))
-    order = list(np.argsort(-vals))
-    chosen, texts = [], {review.describe(g0, g1, me, lang)["text"]}
-    for k in order:
-        g = cands[k][5]
-        if same_move(g, g1, me):
-            continue
-        d = review.describe(g0, g, me, lang)
-        if d["text"] in texts:                      # the same move in other words (fjord spaces)
-            continue
-        texts.add(d["text"])
-        chosen.append((g, d, float(vals[k])))
-        if len(chosen) >= alts:
-            break
+    chosen = alternatives(g0, g1, *candidates(model, g0), alts=alts, lang=lang)
     played = review.describe(g0, g1, me, lang)
     starts = [g1] + [g for g, _, _ in chosen]
-    res = play_out(starts, me, model, n, seed=hash(str(before.get("seed"))) % 100000 + g0.turn_no)
+    res = play_out(starts, me, model, n, seed=zlib.crc32(str(before.get("seed")).encode()) % 100000 + g0.turn_no)
     moves = []
     for i, (r, (g, d)) in enumerate(zip(res, [(g1, played)] + [(g, d) for g, d, _ in chosen])):
         diff = r[:, 0] - res[0][:, 0]                   # against the move played, playout by playout

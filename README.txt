@@ -220,6 +220,10 @@ THE COACH, THE DASHBOARDS AND THE 8-HOUR TRAINING
                   the average end score shows what the move really cost, with
                   a margin (server.py /ai-analyze; only the local game, it
                   needs the fast engine: a turn takes about 5-15 seconds)
+  tools\deep_check.py       how far the network's quick estimate (the chance
+                  to win on the page, the coach's points lost) is from the deep
+                  analysis, on 1000+ positions of real games
+                  (results\deep_check.json; about 25 minutes)
   endgame.py      a player's last 2 turns counted exactly instead of guessed
                   (the player uses it; the coach and the dashboard check with it)
   tools\selfplay_record.py   the network against itself, every game recorded
