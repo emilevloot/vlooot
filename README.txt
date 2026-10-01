@@ -16,6 +16,7 @@ PROJECT MAP
   together in this folder; the web page loads some of them too):
     looot.py        the rules, scoring and the greedy computer player
     review.py       the coach: every move judged like a chess trainer
+    analysis.py     the coach's deep analysis: a move played out many times
     endgame.py      the last 2 turns of a player, counted exactly
     server.py       the local web server (start\start_game.bat)
     nn_bot.py       the network player
@@ -208,8 +209,17 @@ GOOD PLACES TO START IN looot.py
 
 THE COACH, THE DASHBOARDS AND THE 8-HOUR TRAINING
   review.py       after every turn: how many points the move lost against
-                  the network's best move -> Brilliant ... Blunder, accuracy
+                  the network's best move -> Brilliant ... Blunder, accuracy,
+                  and why: what the better move does (fills a longship, gets
+                  an item your Altar needs, keeps a shield ...) or, for a good
+                  move, what it does better than the next best
                   (the game page's "Coach", server.py /ai-review)
+  analysis.py     "Play it out": the network plays the rest of the game from
+                  the move played and from the best few others, 32 or 96
+                  times each, every move the same futures (bag order, dice);
+                  the average end score shows what the move really cost, with
+                  a margin (server.py /ai-analyze; only the local game, it
+                  needs the fast engine: a turn takes about 5-15 seconds)
   endgame.py      a player's last 2 turns counted exactly instead of guessed
                   (the player uses it; the coach and the dashboard check with it)
   tools\selfplay_record.py   the network against itself, every game recorded

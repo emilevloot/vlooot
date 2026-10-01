@@ -375,7 +375,7 @@ def load_net(name):
     return _CACHE[path]
 
 
-def thoughts(net, g, me):
+def thoughts(net, g, me, only_values=False):
     """What the network thinks of game g for player `me`, for the web page.
     Everything is ASKED of the network, in points of final margin:
       values       one extra item of each kind on my fjord now (where the
@@ -384,7 +384,8 @@ def thoughts(net, g, me):
       ships        taking each longship in the ocean now: points better/worse
       best_spaces  the free spaces where a Viking of mine is worth most
     (The three-part network's own messages stay inside it: their numbers are
-    signals it learned to use, not points, so they are not shown.)"""
+    signals it learned to use, not points, so they are not shown.)
+    only_values: just `values` (what the coach needs; much quicker)."""
     helper = L.Bot(random.Random(0))
 
     def margins(games, who):
@@ -409,6 +410,8 @@ def thoughts(net, g, me):
         return m, w, {t: round(float(v - m[0]), 1) for t, v in zip(names, m[1:])}
 
     m, w, values = item_values(me)
+    if only_values:
+        return {"values": values}
     # the opponent to show: with more players the strongest one (highest score)
     rival = 1 - me if len(g.players) == 2 else net.E.strongest(g, me)
     out = {"player": me, "margin": round(float(m[0]), 1), "win": round(float(w[0]), 3),

@@ -12,7 +12,9 @@ back to the page. /ai-view answers what the network thinks of a game (win
 chance, and for the three-part network the value it gives every item and
 how well each longship fits) - the page shows that next to the board.
 /ai-review judges a finished turn like a chess trainer (review.py): the
-points lost against the network's best move, a label and the best move.
+points lost against the network's best move, a label, the best move and
+why. /ai-analyze plays a finished turn's move and the best others out many
+times with the network (analysis.py: needs numba, fast with a GPU).
 """
 
 import glob
@@ -87,6 +89,17 @@ def nn_review(req):
                                   search=bool(req.get("search", True)))
 
 
+def nn_analyze(req):
+    """Deep analysis of one finished turn: the move and the best others,
+    each played out many times by the network (analysis.py)."""
+    import analysis
+    n_players = len(req["before"]["players"])
+    with _nn_lock:
+        return analysis.analyse_turn(model(n_players), req["before"], req["after"],
+                                     n=max(4, min(256, int(req.get("n", 32)))),
+                                     alts=max(1, min(5, int(req.get("alts", 3)))))
+
+
 def nn_view(state):
     """What the network thinks of a saved game, seen from its own seat."""
     import nn_bot
@@ -127,7 +140,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/save-boards":
             self.save_boards()
-        elif self.path in ("/ai-turn", "/ai-view", "/ai-review"):
+        elif self.path in ("/ai-turn", "/ai-view", "/ai-review", "/ai-analyze"):
             self.ai_turn(view=self.path[4:])
         else:
             self.reply(404, {"error": "Unknown address."})
@@ -166,6 +179,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 return
             if view == "review":
                 self.reply(200, nn_review(json.loads(text)))
+                return
+            if view == "analyze":
+                self.reply(200, nn_analyze(json.loads(text)))
                 return
             state = nn_turn(json.loads(text))
         except (ValueError, KeyError, TypeError) as e:

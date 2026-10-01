@@ -306,6 +306,26 @@
                  color: var(--snow); font: inherit; font-size: 18px; }
   .field input.codein { letter-spacing: 5px; text-transform: uppercase; font-weight: 800; }
   @media (max-width: 640px) { .lobbyseat { grid-template-columns: 16px 1fr; } .lobbyseat .seg { grid-column: 1 / -1; justify-self: start; } }
+
+  /* ---------- the coach: reasons, the pop-up, playing moves out ---------- */
+  .why { margin-top: 6px; font-size: 14.5px; }
+  .why b { color: var(--snow); }
+  .why ul { margin: 3px 0 0; padding-left: 18px; }
+  .why li { margin: 2px 0; }
+  .why .rup { color: var(--mist); font-size: 13.5px; margin-top: 3px; }
+  .deep { margin-top: 8px; background: var(--slate-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 14px; }
+  .deep table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; margin-top: 4px; }
+  .deep td { padding: 2px 4px; border-bottom: 1px solid #ffffff10; vertical-align: top; }
+  .deep td.n { text-align: right; white-space: nowrap; }
+  .deep tr.me td { color: var(--gold); }
+  .deep .verdict { font-weight: 700; color: var(--snow); }
+  .toast { position: fixed; left: 50%; top: calc(12px + env(safe-area-inset-top)); z-index: 45; display: flex; align-items: center; gap: 12px;
+           background: #0f171ef2; border: 2px solid var(--tc, var(--line)); border-radius: 14px; padding: 10px 16px 10px 12px;
+           box-shadow: 0 12px 40px #000a; transform: translate(-50%, -16px); opacity: 0; pointer-events: none;
+           transition: opacity .25s, transform .25s; max-width: min(92vw, 520px); cursor: pointer; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  .toast .tt { font-weight: 800; font-size: 17px; }
+  .toast .ts { color: var(--mist); font-size: 14px; }
 </style>
 
 <div class="app">
@@ -375,6 +395,7 @@
   </div>
 </div>
 
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="overlay" id="overlay">
   <div class="card loading" id="loadingCard">
     <div class="spin"></div>
@@ -1033,8 +1054,8 @@
   const CLS_ORDER = Object.keys(CLS);
   const BAD = ['inaccuracy', 'mistake', 'blunder'];
   const MARKED = ['brilliant', 'great', ...BAD];            // shown on the graphs
-  const classOf = loss => loss <= 0.6 ? 'best' : loss <= 1.5 ? 'excellent' : loss <= 3 ? 'good'
-    : loss <= 5 ? 'inaccuracy' : loss <= 8 ? 'mistake' : 'blunder';   // as in review.py
+  const classOf = loss => loss <= 0.5 ? 'best' : loss <= 1.2 ? 'excellent' : loss <= 2 ? 'good'
+    : loss <= 4 ? 'inaccuracy' : loss <= 8 ? 'mistake' : 'blunder';   // as in review.py
   const clsIcon = (c, big) => CLS[c]
     ? `<span class="cls${big ? ' big' : ''}" style="background:${CLS[c].col}" title="${CLS[c].name}">${CLS[c].sym}</span>`
     : `<span class="cls none${big ? ' big' : ''}" title="The network's own move">·</span>`;
@@ -1077,6 +1098,7 @@
         try { rev = await reviewTurn(t); } catch (err) { rev = { error: errText(err) }; }
         t.rev = rev;
         netRev(t);
+        if (h === hist && !R && madeHere(t)) toast(t, h.turns.indexOf(t));
         if (h === hist && !R) { renderCoach(); renderEval(); }
         if (!coachOn) break;
       }
@@ -1170,15 +1192,17 @@
       // the last 2 turns: counted, not guessed (endgame.py)
       const r = rv.reach, last = r.turns_left === 1;
       const pts = x => Math.round(x) + ' points';
-      if (rv.loss <= 0.6)
+      if (rv.loss <= 0.5)
         return last ? `Best possible last turn: ${pts(r.played)} at the end, the most ${subj === 'You' ? 'you' : 'it'} could get.`
                     : `Best move: the highest final score is still within reach (${pts(r.best)}).`;
       return last ? `${subj} ended on <b>${pts(r.played)}</b>; <b>${pts(r.best)}</b> were possible in this last turn.`
                   : `After this move ${subj === 'You' ? 'you' : esc(name)} can reach at most <b>${pts(r.played)}</b> at the end; the best move kept <b>${pts(r.best)}</b> within reach.`;
     }
     switch (rv.cls) {
-      case 'brilliant': return `Brilliant! ${subj} found a move better than anything the network considered (+${rv.gain.toFixed(1)} points).`;
-      case 'great': return `Great move: the only good one here. The next best space was ${rv.gap.toFixed(1)} points worse.`;
+      case 'brilliant': return rv.gain >= 1
+        ? `Brilliant! ${subj} found a move better than anything the network considered (+${rv.gain.toFixed(1)} points).`
+        : `Brilliant! A sacrifice: fewer points now, for a much better game.`;
+      case 'great': return `Great move: the only good one here. The next best option was ${rv.gap.toFixed(1)} points worse.`;
       case 'best': return `Best move. That's what the network would play too.`;
       case 'excellent': return `Excellent: only ${lost} points from the best move.`;
       case 'good': return `Good, but ${lost} points short of the best move.`;
@@ -1212,9 +1236,12 @@
           <div class="ttl"><span style="color:${c.col}">${c.name}</span> <span class="tn">· turn ${k + 1} · ${esc(players[t.who].name)}${rv.exact ? ' · <span class="exact" title="The end of the game is counted exactly, not judged by the network">counted exactly</span>' : ''}</span></div>
           <div class="mvtext">${esc(rv.played.text)}</div>
           <div>${coachText(t, players)}</div>
-          ${rv.best && rv.loss > 0.6 ? `<div class="bestline">Best was: <b>${esc(rv.best.text)}</b></div>` : ''}
+          ${rv.best && rv.loss > 0.5 ? `<div class="bestline">Best was: <b>${esc(rv.best.text)}</b></div>` : ''}
+          ${whyHtml(rv)}
+          ${deepHtml(t, k)}
           <div class="row" style="margin-top:6px">
-            ${rv.best && rv.loss > 0.6 ? `<button class="btn sm${showing ? ' on' : ''}" data-coach="show" data-k="${k}">${showing ? 'Hide' : 'Show'} the best move</button>` : ''}
+            ${rv.best && rv.loss > 0.5 ? `<button class="btn sm${showing ? ' on' : ''}" data-coach="show" data-k="${k}">${showing ? 'Hide' : 'Show'} the best move</button>` : ''}
+            ${CAN_PLAY_OUT && t.before && !t.deepBusy && (!t.deep || t.deep.n < 96) ? `<button class="btn sm" data-coach="deep" data-k="${k}" title="The network plays the rest of the game out many times, after this move and after the best others">${t.deep ? 'Play out deeper (96×)' : 'Play it out (32×)'}</button>` : ''}
             ${S.game_over && api ? `<button class="btn sm" data-coach="replay" data-k="${k}">Review this turn</button>` : ''}
           </div></div></div>`;
       } else if (rv) {
@@ -1252,6 +1279,7 @@
         render();
       }
       if (b.dataset.coach === 'replay') openLiveReview(k + 1);
+      if (b.dataset.coach === 'deep') playOut(k, t.deep ? 96 : 32);
       if (b.dataset.coach === 'review') showReview();
       return;
     }
@@ -1268,6 +1296,102 @@
     render();
     if (coachOn) pumpReviews();
   };
+
+  // ---------- why: the coach's reasons ----------
+  function whyHtml(rv) {
+    if (rv.why && rv.why.length)
+      return `<div class="why"><b>Why the best move is better:</b><ul>${rv.why.map(w => `<li>${esc(w)}</li>`).join('')}</ul></div>`;
+    if (rv.good && rv.good.length)
+      return `<div class="why"><b>Why it's good:</b><ul>${rv.good.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` +
+        (rv.runner_up ? `<div class="rup">Next best: ${esc(rv.runner_up.text)} (${rv.runner_up.loss.toFixed(1)} points worse)</div>` : '') + `</div>`;
+    return '';
+  }
+
+  // ---------- the pop-up for a move worth mentioning ----------
+  const LOUD = ['brilliant', 'great', 'inaccuracy', 'mistake', 'blunder'];
+  let toastTimer = null;
+  function toast(t, k) {
+    const rv = t.rev;
+    if (!rv || !LOUD.includes(rv.cls) || !S) return;
+    const c = CLS[rv.cls], name = S.players[t.who].name;
+    // the reasons say "It ...": here it has to say whose move
+    const who = (text, subject) => text.replace(/^It /, subject + ' ');
+    const line = BAD.includes(rv.cls)
+      ? `${esc(name)} lost about ${(rv.loss || 0).toFixed(1)} points${rv.why && rv.why.length ? ' · ' + esc(who(rv.why[0], 'The best move')) : ''}`
+      : (rv.good && rv.good.length ? esc(who(rv.good[0], 'Your move')) : 'The only good move here!');
+    const el = $('toast');
+    el.style.setProperty('--tc', c.col);
+    el.innerHTML = `${clsIcon(rv.cls, true)}<div><div class="tt" style="color:${c.col}">${c.name}${BAD.includes(rv.cls) ? '' : '!'}</div><div class="ts">${line}</div></div>`;
+    el.onclick = () => { el.classList.remove('show'); coachSel = k; renderCoach(); $('coachBox').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 5000);
+  }
+  // pop up for the moves made at this screen
+  const madeHere = t => S && !S.players[t.who].ai && (!NET.role || NET.mine.includes(t.who));
+
+  // ---------- playing moves out (analysis.py via server.py /ai-analyze) ----------
+  const CAN_PLAY_OUT = !NN_IN_BROWSER;                // the local game only: it needs numba (and a GPU)
+  async function playOut(k, n) {
+    const t = hist && hist.turns[k];
+    if (!t || t.deepBusy) return;
+    t.deepBusy = true;
+    renderCoach();
+    try {
+      const r = await fetch('ai-analyze', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Looot': '1' },
+        body: `{"before":${t.before},"after":${t.after},"n":${n}}`,
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || ('error ' + r.status));
+      t.deep = d;
+    } catch (err) {
+      t.deep = { error: errText(err) };
+    }
+    t.deepBusy = false;
+    renderCoach();
+    if (!$('overlay').hidden && $('reviewCard')) showReview();
+  }
+  function deepVerdict(d) {
+    const pm = x => (x > 0 ? '+' : x < 0 ? '−' : '±') + Math.abs(x).toFixed(1);
+    const ci = 1.96 * d.loss_se;
+    if (d.loss <= 0.5 || d.loss < ci) return `No clear difference with the best move (${pm(-d.loss)} ±${ci.toFixed(1)} points).`;
+    return `This move cost about <b>${d.loss.toFixed(1)} points</b> (±${ci.toFixed(1)}) against the best.`;
+  }
+  function deepHtml(t, k) {
+    if (t.deepBusy) return `<div class="deep"><span class="spin sm"></span> The network is playing the game out from here…</div>`;
+    const d = t.deep;
+    if (!d) return '';
+    if (d.error) return `<div class="deep"><span class="err">Could not play it out: ${esc(d.error)}</span></div>`;
+    return `<div class="deep"><div class="verdict">Played out ${d.n}× each: ${deepVerdict(d)}</div>
+      <table>${d.moves.map(m => `<tr class="${m.played ? 'me' : ''}"><td>${m.played ? '▶' : ''}</td><td>${esc(m.text)}</td>
+        <td class="n">${m.mean > 0 ? '+' : ''}${m.mean.toFixed(1)}</td><td class="n">won ${pct(m.win)}</td></tr>`).join('')}</table>
+      <div class="rup" style="color:var(--mist);font-size:13px;margin-top:4px">Average final margin and share of the playouts won, after each move (▶ yours).</div></div>`;
+  }
+  // the whole game: every move made by a person, one after the other
+  async function playOutGame() {
+    const ks = hist.turns.map((t, k) => [t, k]).filter(([t]) => judged(t) && t.rev.cls && !t.deep).map(([, k]) => k);
+    hist.deepRun = { done: 0, total: ks.length };
+    for (const k of ks) {
+      if (!hist.deepRun) return;
+      await playOut(k, 32);
+      hist.deepRun.done++;
+      if (!$('overlay').hidden && $('reviewCard')) showReview();
+    }
+    hist.deepRun = null;
+    if (!$('overlay').hidden && $('reviewCard')) showReview();
+  }
+  function deepSummary(h) {
+    const ds = h.turns.map((t, k) => [t, k]).filter(([t]) => t.deep && !t.deep.error);
+    if (!ds.length) return '';
+    const real = ds.filter(([t]) => t.deep.loss > 0.5 && t.deep.loss >= 1.96 * t.deep.loss_se)
+                   .sort((a, b) => b[0].deep.loss - a[0].deep.loss);
+    return `<div class="deep" style="margin-top:12px"><div class="verdict">Played out (32× per move): ${ds.length} move${ds.length > 1 ? 's' : ''}</div>
+      ${real.length ? `<div style="margin-top:4px">Moves that really cost points:</div><table>${real.slice(0, 8).map(([t, k]) =>
+        `<tr><td>Turn ${k + 1}</td><td>${esc(S.players[t.who].name)}</td><td>${esc(t.rev.played.text)}</td><td class="n">−${t.deep.loss.toFixed(1)} ±${(1.96 * t.deep.loss_se).toFixed(1)}</td>
+         <td>${api ? `<button class="btn sm" data-rv-turn="${k + 1}">Review</button>` : ''}</td></tr>`).join('')}</table>`
+        : '<div style="margin-top:4px">None of these moves clearly cost points when played out.</div>'}</div>`;
+  }
 
   // ---------- game review: the summary after the game ----------
   function showReview() {
@@ -1291,7 +1415,11 @@
           `<td>${p.nn ? '' : `<span style="color:${cnt(i, c) ? CLS[c].col : 'var(--mist)'};font-weight:800">${cnt(i, c)}</span>`}</td>`).join('')}</tr>`).join('')}
       </table></div>
       ${pending ? `<p style="color:var(--mist)"><span class="spin sm"></span> The coach is still judging ${pending} turn${pending > 1 ? 's' : ''}…</p>` : ''}
+      ${deepSummary(h)}
+      ${h.deepRun ? `<p style="color:var(--mist)"><span class="spin sm"></span> Playing the moves out: ${h.deepRun.done} of ${h.deepRun.total}…</p>` : ''}
+      ${!CAN_PLAY_OUT ? `<p style="color:var(--mist);font-size:14px">Playing every move out with the network (the deep analysis) works in the local version of the game (start\\start_game.bat): it plays hundreds of games.</p>` : ''}
       <div class="row" style="justify-content:flex-end;margin-top:14px">
+        ${CAN_PLAY_OUT && !h.deepRun && h.turns.some(t => judged(t) && t.rev.cls && !t.deep) ? '<button class="btn" id="rvDeep" title="The network plays the rest of the game out 32 times after every move, and after the best others">Play every move out</button>' : ''}
         <button class="btn" id="rvScores">Scores</button>
         <button class="btn" id="rvClose">Look at the board</button>
         ${api ? `<button class="btn primary" id="rvStart">${firstBad >= 0 ? 'Review the first mistake' : 'Step through the game'}</button>` : ''}
@@ -1299,6 +1427,8 @@
     $('rvScores').onclick = showScores;
     $('rvClose').onclick = () => { ov.hidden = true; };
     if ($('rvStart')) $('rvStart').onclick = () => openLiveReview(firstBad >= 0 ? firstBad + 1 : 1);
+    if ($('rvDeep')) $('rvDeep').onclick = () => { playOutGame(); showReview(); };
+    ov.querySelectorAll('[data-rv-turn]').forEach(b => b.onclick = () => openLiveReview(+b.dataset.rvTurn));
     ov.querySelectorAll('.gm').forEach(g => g.addEventListener('click', () => openLiveReview(+g.dataset.turn)));
   }
 
@@ -1339,8 +1469,9 @@
 
   const turnCls = t => t.rev ? t.rev.cls : t.mistake ? classOf(t.mistake.loss) : null;
   function badInfo(t) {
-    if (t.rev && t.rev.best && t.rev.loss > 0.6)
-      return { cls: t.rev.cls, loss: t.rev.loss, better: t.rev.best.text, cells: t.rev.best.cells, exact: !!t.rev.exact };
+    if (t.rev && t.rev.best && t.rev.loss > 0.5)
+      return { cls: t.rev.cls, loss: t.rev.loss, better: t.rev.best.text, cells: t.rev.best.cells, exact: !!t.rev.exact,
+               why: (t.rev.why || [])[0] };
     if (t.mistake)
       return { cls: classOf(t.mistake.loss), loss: t.mistake.loss, better: t.mistake.better_en || t.mistake.better,
                cells: t.mistake.better_cells, exact: !!t.mistake.exact };
@@ -1437,7 +1568,7 @@
       h += `<span class="move">${c ? clsIcon(c) + ' ' : ''}<b>${esc(mover.name)}:</b> ${esc(t.text_en || t.text)}</span>`;
       if (ev && ev[i - 1] && ev[i]) h += `<span class="win">chance to win: ${pct(ev[i - 1][t.who])} → ${pct(ev[i][t.who])}</span>`;
       if (b) {
-        h += `<span class="bad" style="border-color:${CLS[b.cls].col};background:${CLS[b.cls].col}22"><b style="color:${CLS[b.cls].col}">${CLS[b.cls].name}</b>: ${b.exact ? 'exactly' : 'about'} ${b.exact ? Math.round(b.loss) : b.loss.toFixed(1)} points lost${b.exact ? ' (counted)' : ''}. Best: ${esc(b.better)}</span>`;
+        h += `<span class="bad" style="border-color:${CLS[b.cls].col};background:${CLS[b.cls].col}22"><b style="color:${CLS[b.cls].col}">${CLS[b.cls].name}</b>: ${b.exact ? 'exactly' : 'about'} ${b.exact ? Math.round(b.loss) : b.loss.toFixed(1)} points lost${b.exact ? ' (counted)' : ''}. Best: ${esc(b.better)}${b.why ? `<br><span style="color:var(--mist)">${esc(b.why)}</span>` : ''}</span>`;
         if (G.alts && G.alts[String(i - 1)])
           h += `<button class="btn${alt ? ' on' : ''}" data-go="alt">${alt ? 'Show the move played' : 'Show the best move'}</button>`;
       } else if (c) {
@@ -1922,6 +2053,7 @@
       if (!hist) hist = { key: '', state: null, who: 0, turns: [] };
       while (hist.turns.length <= m.k) hist.turns.push({ who: 0, nn: false, rev: null });
       hist.turns[m.k] = { who: m.who, nn: m.nn, rev: m.rev };
+      if (S && NET.mine.includes(m.who)) toast(hist.turns[m.k], m.k);
       if (S) { renderCoach(); renderEval(); }
     } else if (m.t === 'err') {
       lastError = m.text;
