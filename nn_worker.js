@@ -15,7 +15,8 @@ async function boot(models) {
   const base = new URL('py/', self.location.href).href;
   // the standard library ships as base64 text (see boot() in index.html)
   const b64 = await (await fetch(base + 'python_stdlib.b64.txt')).text();
-  const bin = Uint8Array.from(atob(b64.trim()), ch => ch.charCodeAt(0));
+  const raw = atob(b64.trim()), bin = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);     // (a plain loop: much quicker)
   const stdLibURL = base + 'python_stdlib_inline.zip';
   const realFetch = self.fetch.bind(self);
   self.fetch = (u, o) => String(u && u.url || u) === stdLibURL

@@ -882,7 +882,7 @@
       } catch (err) { fail(err); return null; }
       worker.onmessage = e => {
         const m = e.data;
-        if (m.ready !== undefined) { if (m.ready) workerOk = true; else fail(m.error); return; }
+        if (m.ready !== undefined) { if (m.ready) { workerOk = true; mark('worker'); } else fail(m.error); return; }
         const w = workerWaiting.get(m.id);
         if (!w) return;
         workerWaiting.delete(m.id);
@@ -2372,18 +2372,23 @@
   });
 
   // ---------- boot Python ----------
+  // the moments of starting up, to measure (performance.getEntriesByType('mark'))
+  const mark = n => { try { performance.mark('looot:' + n); } catch (e) { } };
   async function boot() {
     try {
+      mark('boot');
       const base = new URL('py/', location.href).href;
       await new Promise((ok, bad) => {
         const sc = document.createElement('script');
         sc.src = base + 'pyodide.js'; sc.onload = ok; sc.onerror = () => bad(new Error('Could not load Pyodide'));
         document.head.appendChild(sc);
       });
+      mark('pyodide.js');
       bootMsg('Starting Python…');
       // The standard library ships as base64 text; turn it back into a zip blob.
       const b64 = await (await fetch(base + 'python_stdlib.b64.txt')).text();
-      const bin = Uint8Array.from(atob(b64.trim()), ch => ch.charCodeAt(0));
+      const raw = atob(b64.trim()), bin = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);     // (a plain loop: much quicker)
       // Hand the bytes to Pyodide without a network request (the page may
       // not fetch blob: URLs), by answering its fetch for this one name.
       const stdLibURL = base + 'python_stdlib_inline.zip';
@@ -2391,8 +2396,10 @@
       window.fetch = (u, o) => String(u && u.url || u) === stdLibURL
         ? Promise.resolve(new Response(bin, { headers: { 'Content-Type': 'application/zip' } }))
         : realFetch(u, o);
+      mark('stdlib');
       const py = await loadPyodide({ indexURL: base, stdLibURL });
       window.fetch = realFetch;
+      mark('python');
       bootMsg('Loading the rules…');
       // looot.py next to this page (published copies may call it looot.py.txt),
       // written into Python's own files so nn_bot.py can import it too
@@ -2410,6 +2417,7 @@
       }
       const rp = new URLSearchParams(location.search);
       if (rp.has('replay')) await startReplay(rp.get('replay'), +(rp.get('turn') || 0));
+      mark('rules');
       bootMsg('');
     } catch (err) {
       engineFailed = "Python didn't start in this browser: " + (err && err.message || err);
@@ -2483,6 +2491,7 @@
     if (host) resumeHost(host);                                // our lobby, closed or put away
     else if (guest && myName()) { showJoin(guest.code); guestJoin(guest.code); }   // a friend's game we were in
   }
-  if (NN_IN_BROWSER && engine) engine.then(() => nnWorker()).catch(() => { });
+  // the network's own Python starts at once, next to the page's (phones have several cores)
+  if (NN_IN_BROWSER && engine) nnWorker();
 })();
 </script>
