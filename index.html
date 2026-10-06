@@ -118,15 +118,21 @@
   .label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--mist); font-weight: 700; }
   .section { display: grid; gap: 6px; margin-top: 10px; }
 
-  .shield {
-    display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px;
-    background: var(--night); border: 1px solid var(--line); border-radius: 999px; cursor: pointer; font-size: 14px;
-  }
-  .shield .ic { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 13px;
-    background: #5b6d7b; border: 2px solid #aab7bf; color: #fff; }
-  .shield.on { border-color: var(--gold); background: #e6ad2e1f; }
-  .shield.on .ic { background: var(--gold); color: #1a1a1a; border-color: #fff3; }
-  .shield.used { opacity: .35; cursor: default; text-decoration: line-through; }
+  /* your three shields: round Viking shields in your colour, the sign on the boss */
+  .shields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .shield { display: grid; justify-items: center; align-content: start; gap: 2px; padding: 8px 4px 7px; text-align: center;
+    background: var(--night); border: 1px solid var(--line); border-radius: 14px; cursor: pointer; color: inherit; font: inherit; }
+  .shield svg { width: 54px; height: 54px; margin-bottom: 2px; }
+  .shield b { font-size: 14px; line-height: 1.2; }
+  .shield small { font-size: 12px; line-height: 1.25; color: var(--mist); }
+  .shield.now { border-color: #e6ad2e8c; }
+  .shield.now:hover { background: #e6ad2e14; }
+  .shield.on { border-color: var(--gold); background: #e6ad2e24; box-shadow: 0 0 0 2px #e6ad2e4d; }
+  .shield.on small { color: var(--gold); }
+  .shield.later { opacity: .62; cursor: default; }
+  .shield.used { opacity: .45; cursor: default; }
+  .pchip .sh { display: inline-flex; gap: 2px; margin-left: 6px; vertical-align: -2px; }
+  .pchip .sh svg { width: 13px; height: 13px; }
 
   .tray { display: flex; gap: 6px; flex-wrap: wrap; }
   .tile { background: var(--night); border: 2px solid var(--line); border-radius: 10px; padding: 2px; cursor: pointer; width: 48px; height: 48px; }
@@ -620,7 +626,7 @@
       <div class="pchip${i === S.current && !S.game_over ? ' turn' : ''}${i === view ? ' viewing' : ''}" data-view="${i}" tabindex="0" role="button" aria-label="Show ${esc(p.name)}'s fjord">
         <span class="dot" style="background:${PCOL[p.color]}"></span>
         <span class="nm">${esc(p.name)}${p.ai ? ` <small style="color:var(--mist);font-weight:500">(${p.nn ? 'network' : 'computer'})</small>` : ''}${seatTag(i)}</span>
-        <span class="meta">${p.vikings_left} Vikings · ${p.score.total} pts · ${p.axes} axes</span>
+        <span class="meta">${p.vikings_left} Vikings · ${p.score.total} pts · ${p.axes} axes<span class="sh" title="Shields left">${SHIELDS.map(k => shieldSvg(k, p.color, !p.shields[k], true)).join('')}</span></span>
       </div>`).join('');
   }
 
@@ -659,12 +665,8 @@
     $('scoreMini').innerHTML = `<b>${sc.total}</b> pts · ${P.vikings_left} Vikings left`;
     let h = '';
     const human = myTurn() && view === S.current;
-    if (human && S.phase === 'place') {
-      h += `<div class="label">Shields for this Viking</div><div class="row">`;
-      h += shieldBtn('occupy', 'Stack on occupied space', p.shields.occupy, sel.occupy, '↧');
-      h += shieldBtn('double', 'Take 2 of the resource', p.shields.double, sel.double, '×2');
-      h += `</div>`;
-    }
+    const shieldRack = () => `<div class="label">Your shields</div><div class="shields">${SHIELDS.map(k => shieldCard(k, p)).join('')}</div>`;
+    if (human && S.phase === 'place') h += shieldRack();
     if (human && S.phase === 'tiles') {
       h += `<div class="label">Tiles to place</div><div class="tray">`;
       S.pending.forEach((t, i) => {
@@ -672,20 +674,16 @@
       });
       h += `</div>`;
     }
+    const undoBtn = canUndo() ? `<button class="btn" data-act="undo" title="Back to the start of your turn">↶ Undo turn</button>` : '';
     if (human && S.phase === 'actions') {
-      h += `<div class="row">`;
-      if (S.can_extra)
-        h += `<button class="btn" data-act="extra">Use shield: place a second Viking</button>`;
-      h += `<button class="btn primary" data-act="end">End turn</button></div>`;
+      h += `<div class="row"><button class="btn primary" data-act="end">End turn</button>${undoBtn}</div>`;
       if (!S.took_ship) h += `<div style="color:var(--mist);font-size:14px">Tip: click a longship in the ocean to take it.</div>`;
     }
     if (human && S.phase === 'ship') {
-      h += `<div class="row"><button class="btn" data-act="cancelship">Put the longship back</button></div>`;
+      h += `<div class="row"><button class="btn" data-act="cancelship">Put the longship back</button>${undoBtn}</div>`;
     }
-    if (human) {
-      const used = Object.entries(p.shields).filter(([k, v]) => !v).map(([k]) => k);
-      if (S.phase !== 'place') h += `<div style="color:var(--mist);font-size:14px">Shields left: ${3 - used.length} of 3</div>`;
-    }
+    if (human && (S.phase === 'tiles' || S.phase === 'place') && undoBtn) h += `<div class="row">${undoBtn}</div>`;
+    if (human && S.phase !== 'place') h += shieldRack();
     if (S.game_over) h += `<div class="row"><button class="btn primary" data-act="scores">Show final scores</button></div>`;
     $('actions').innerHTML = h;
 
@@ -703,8 +701,67 @@
     $('log').scrollTop = 1e6;
   }
 
-  function shieldBtn(k, label, avail, on, ic) {
-    return `<button class="shield${!avail ? ' used' : on ? ' on' : ''}" data-shield="${k}" ${avail ? '' : 'disabled'}><span class="ic">${ic}</span>${label}</button>`;
+  // ---------- the shields ----------
+  // Every player has 3, each once per game: a second Viking in a turn, a
+  // Viking on an occupied space, 2 of the resource instead of 1.
+  const SHIELDS = ['extra', 'occupy', 'double'];
+  const SHIELD_TEXT = {           // name, when it can be used now, when it can't
+    extra: ['Second Viking', 'Place one more Viking', 'After your Viking'],
+    occupy: ['Stack', 'On an occupied space', 'When you place'],
+    double: ['Double', '2 of the resource', 'When you place'],
+  };
+  // A round Viking shield in the player's colour (grey once used): painted
+  // planks, an iron rim with rivets, and the shield's sign on the boss.
+  function shieldSvg(k, color, used, tiny) {
+    const c = used ? '#7b858d' : PHEX[color], cream = used ? '#aab1b6' : '#efe6cf';
+    const pt = (r, a) => `${(r * Math.cos(a * Math.PI / 180)).toFixed(2)} ${(r * Math.sin(a * Math.PI / 180)).toFixed(2)}`;
+    let g = `<circle r="18" fill="#5c6770" stroke="#0d1115" stroke-width="1.5"/>`;
+    [-135, -45, 45, 135].forEach((a, i) =>
+      g += `<path d="M0 0 L${pt(15.5, a)} A15.5 15.5 0 0 1 ${pt(15.5, a + 90)} Z" fill="${i % 2 ? cream : c}"/>`);
+    if (tiny) return `<svg viewBox="-19 -19 38 38" aria-hidden="true">${g}<circle r="5" fill="#c9d1d6"/></svg>`;
+    [-135, -45, 45, 135].forEach(a => g += `<path d="M0 0 L${pt(15.5, a)}" stroke="#0d1115" stroke-width="0.9"/>`);   // the planks' seams
+    g += `<circle r="15.5" fill="none" stroke="#0d1115" stroke-width="0.9"/>`;
+    for (let i = 0; i < 8; i++) g += `<circle cx="${pt(16.8, 22.5 + 45 * i).split(' ')[0]}" cy="${pt(16.8, 22.5 + 45 * i).split(' ')[1]}" r="0.9" fill="#c9d1d6"/>`;
+    g += `<circle r="8.6" fill="#141d25" stroke="#c9d1d6" stroke-width="1.3"/>`;
+    const vc = used ? 'grey' : color;
+    if (k === 'extra') g += viking(-2.4, 1.8, vc, 0.43) + `<path d="M3.9 -4.6 v4.6 M1.6 -2.3 h4.6" stroke="#f1ecdc" stroke-width="1.6" stroke-linecap="round"/>`;
+    if (k === 'occupy') g += viking(2.1, -1.1, vc, 0.38) + viking(-1.9, 2.3, vc, 0.38);
+    if (k === 'double') g += `<text x="0" y="3.2" text-anchor="middle" font-size="8.6" font-weight="800" fill="#f1ecdc" font-family="Alegreya Sans, sans-serif">×2</text>`;
+    return `<svg viewBox="-19 -19 38 38" aria-hidden="true">${g}</svg>`;
+  }
+  // One of the current player's shields: used, on, usable now, or later.
+  function shieldCard(k, p) {
+    const [name, now, later] = SHIELD_TEXT[k];
+    let state, hint, attr = 'disabled';
+    const usable = k === 'extra' ? S.phase === 'actions' && S.can_extra : S.phase === 'place';
+    if (!p.shields[k]) [state, hint] = ['used', 'Used'];
+    else if (usable) {
+      [state, hint] = sel[k] ? ['on', 'On · tap to cancel'] : ['now', now];
+      attr = k === 'extra' ? 'data-act="extra"' : `data-shield="${k}"`;
+    } else if (k === 'extra' && S.phase === 'actions') [state, hint] = ['later', 'Not possible now'];
+    else [state, hint] = ['later', later];
+    return `<button class="shield ${state}" ${attr} aria-label="${name}: ${hint}">${shieldSvg(k, p.color, !p.shields[k])}<b>${name}</b><small>${hint}</small></button>`;
+  }
+
+  // ---------- undo: back to the start of your turn ----------
+  // Until "End turn". Online not after taking a longship: a new one has come
+  // out of the bag, and undoing would let you peek at it.
+  function undoAllowed() {
+    if (!S || S.game_over || S.players[S.current].ai) return false;
+    if (S.phase === 'place' && !S.extra_active) return false;          // nothing done yet
+    return !(NET.role && S.took_ship);
+  }
+  function canUndo() {
+    return myTurn() && undoAllowed() && (NET.role === 'guest' || !!(hist && hist.state && hist.who === S.current));
+  }
+  function undoTurn() {
+    if (NET.role === 'guest') { send(NET.host, { t: 'act', fn: 'undo', args: [] }); return; }
+    if (!undoAllowed() || !hist || !hist.state || hist.who !== S.current) return;
+    S = JSON.parse(api.load_state(hist.state));
+    lastError = '';
+    sel = { occupy: false, double: false, tile: 0 };
+    render();
+    refreshThoughts();
   }
 
   function render() {
@@ -1006,6 +1063,7 @@
     if (t.dataset.act === 'end') { call('end_turn'); return; }
     if (t.dataset.act === 'extra') { call('use_extra'); return; }
     if (t.dataset.act === 'cancelship') { call('cancel_ship'); return; }
+    if (t.dataset.act === 'undo') { undoTurn(); return; }
   }
 
   // ---------- setup & scores ----------
@@ -1681,7 +1739,7 @@
       <button class="mbtn${resume ? '' : ' primary'}" data-menu="play"><span class="ic">${smallViking('red')}</span><span><b>Play</b><small>Against the computer or the network, or with people at this screen</small></span></button>
       <button class="mbtn" data-menu="host"><span class="ic"><svg viewBox="0 0 34 30" width="34" height="30" aria-hidden="true">${viking(11, 16, 'red', 1.05)}${viking(23, 16, 'blue', 1.05)}</svg></span><span><b>Play with friends</b><small>Make a lobby and send your friends the link</small></span></button>
       <button class="mbtn" data-menu="join"><span class="ic">${smallViking('blue')}</span><span><b>Join a game</b><small>With the code a friend sent you</small></span></button>
-      <div class="engine" id="engineMsg">${engineFailed ? `<span class="err">${esc(engineFailed)}</span>` : api ? '' : 'Loading the game…'}</div>
+      <div class="engine" id="engineMsg">${engineFailed ? `<span class="err">${esc(engineFailed)}</span>` : resuming ? `<span class="spin sm"></span> Reopening your lobby ${esc(resuming)}…` : api ? '' : 'Loading the game…'}</div>
       <div class="mlinks">
         <button data-menu="rules">How to play</button>
         ${APP ? '' : '<a href="dashboard.html">AI dashboard</a><a href="history.html">History</a><a href="editor.html">Board editor</a>'}<a href="privacy.html">Privacy</a>
@@ -1729,7 +1787,9 @@
   // The friends' browsers only draw the board and send their moves to the
   // host; they need no Python, so joining is quick, also on a phone. The
   // browsers find each other through PeerJS (a free matchmaking service)
-  // and then talk directly (WebRTC). If the host closes the game, it ends.
+  // and then talk directly (WebRTC). The game ends when the host closes the
+  // lobby; when the host's app is only closed or put away, the lobby comes
+  // back (see "the lobby survives closing the app").
   const PEERJS = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
   // the app: Android's own share menu (Capacitor's Share plugin; the WebView has no navigator.share)
   const capShare = APP && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share;
@@ -1823,7 +1883,8 @@
       if (el) el.innerHTML = '<span class="spin sm"></span> Making a lobby…';
       try {
         await loadScript(PEERJS);
-        await openPeer(0);
+        const p = await openPeer(0);
+        NET.peer = p.peer; NET.code = p.code;
       } catch (err) {
         NET.role = null;
         if ($('engineMsg')) $('engineMsg').innerHTML = `<span class="err">No lobby: ${esc(err.message || err.type || err)}. Is there internet?</span>`;
@@ -1839,18 +1900,21 @@
     loadScript(QRJS).then(drawQr, () => { });
   }
 
-  function openPeer(tries) {
+  // A new lobby gets a new code; reopening one (keep) asks for the same code
+  // again, until the matchmaking service has let go of the old connection.
+  function openPeer(tries, keep) {
     return new Promise((ok, bad) => {
-      const code = newCode();
+      const code = keep || newCode();
       const peer = new Peer(peerId(code));
       let up = false;
-      peer.on('open', () => { up = true; NET.peer = peer; NET.code = code; ok(); });
+      peer.on('open', () => { up = true; ok({ peer, code }); });
       peer.on('connection', conn => hostAccept(conn));
       peer.on('disconnected', () => { if (NET.peer === peer) try { peer.reconnect(); } catch (e) { } });
       peer.on('error', err => {
         if (!up) {
           peer.destroy();
-          if (err.type === 'unavailable-id' && tries < 5) openPeer(tries + 1).then(ok, bad);
+          if (err.type === 'unavailable-id' && keep && tries < 40) setTimeout(() => openPeer(tries + 1, keep).then(ok, bad), 3000);
+          else if (err.type === 'unavailable-id' && !keep && tries < 5) openPeer(tries + 1).then(ok, bad);
           else bad(err);
         }
       });
@@ -1890,6 +1954,7 @@
     }
     if (m.t === 'act' && NET.started && S && !S.game_over) {
       if (NET.owners[S.current] !== conn.who || S.players[S.current].ai) return;
+      if (m.fn === 'undo') { undoTurn(); return; }
       if (!ACTS.has(m.fn) || !Array.isArray(m.args) || m.args.length > 4 ||
           !m.args.every(a => typeof a === 'number' || typeof a === 'boolean')) return;
       const err = call(m.fn, ...m.args);
@@ -1923,6 +1988,7 @@
   const send = (conn, m) => { try { if (conn && conn.open) conn.send(m); } catch (e) { } };
 
   function lobbyBroadcast() {
+    saveHost();
     for (const [id, c] of NET.conns)
       send(c, { t: 'lobby', code: NET.code, seats: NET.lobby.map(s => ({ name: s.name, kind: s.kind, you: s.owner === id })) });
   }
@@ -2033,6 +2099,7 @@
   function netBroadcast() {
     if (NET.role !== 'host' || !NET.started || NET.sent === S) return;
     NET.sent = S;
+    saveHost();
     for (const c of NET.conns.values()) sendState(c);
   }
   // the coach's judgement of a turn, without the big copy of the board
@@ -2082,7 +2149,7 @@
     NET.peer.on('open', () => guestConnect());
     NET.peer.on('disconnected', () => { try { NET.peer.reconnect(); } catch (e) { } });
     NET.peer.on('error', err => {
-      if (NET.role !== 'guest') return;
+      if (NET.role !== 'guest' || NET.retry) return;            // (while trying again: just keep trying)
       const text = err.type === 'peer-unavailable'
         ? `No game with code ${code}. Is the host's game still open?`
         : 'Connection trouble (' + err.type + ').';
@@ -2096,7 +2163,7 @@
     if (NET.peer.disconnected) { try { NET.peer.reconnect(); } catch (e) { } }
     const conn = NET.peer.connect(peerId(NET.code), { reliable: true });
     NET.host = conn;
-    conn.on('open', () => send(conn, { t: 'hello', id: NET.me, name: myName() }));
+    conn.on('open', () => { NET.heard = Date.now(); send(conn, { t: 'hello', id: NET.me, name: myName() }); });
     conn.on('data', m => { if (NET.host === conn) guestReceive(m); });
     conn.on('close', () => { if (NET.host === conn) guestLost(); });
     conn.on('error', () => { if (NET.host === conn) guestLost(); });
@@ -2104,6 +2171,17 @@
 
   function guestReceive(m) {
     if (!m || typeof m !== 'object') return;
+    NET.heard = Date.now();
+    if (m.t === 'ping') return;
+    if (m.t === 'away') { if (NET.host) { const c = NET.host; NET.host = null; try { c.close(); } catch (e) { } } guestLost(); return; }
+    if (m.t === 'lobby' || m.t === 'state') {
+      // connected (again): remember the game, stop trying
+      store(GUEST_KEY, JSON.stringify({ at: Date.now(), code: NET.code }));
+      if (NET.retry) {
+        clearInterval(NET.retry); NET.retry = null;
+        if (m.t === 'state') $('overlay').hidden = true;
+      }
+    }
     if (m.t === 'lobby') {
       NET.started = false;
       showGuestLobby(m);
@@ -2161,7 +2239,26 @@
   function guestLost(text) {
     if (NET.role !== 'guest') return;
     NET.host = null;
+    if (text) forget(GUEST_KEY);
     if (S && S.game_over) return;
+    if (!text) {
+      // the host's app is away (closed, put away, no signal): keep trying for
+      // a while; when it is back the game goes on in the same seat
+      if (!NET.retry) {
+        const since = Date.now();
+        NET.retry = setInterval(() => {
+          if (NET.role !== 'guest' || Date.now() - since > 20 * 60e3) { clearInterval(NET.retry); NET.retry = null; return; }
+          if (!NET.host || !NET.host.open) guestConnect();
+        }, 4000);
+      }
+      const ov = $('overlay');
+      ov.hidden = false;
+      ov.innerHTML = `<div class="card menu" role="dialog" aria-label="Waiting for the host">
+        <h2 style="font-size:40px">The host is away</h2>
+        <p><span class="spin sm"></span> Waiting for the host's game ${esc(NET.code || '')} to come back… You get your seat back when it does.</p>
+        <div class="row" style="justify-content:center;margin-top:10px"><button class="btn" data-online="close">Leave</button></div></div>`;
+      return;
+    }
     const ov = $('overlay');
     ov.hidden = false;
     ov.innerHTML = `<div class="card menu" role="dialog" aria-label="Connection lost">
@@ -2174,7 +2271,10 @@
 
   // leave the online game (the host ends it for everyone)
   function leaveOnline() {
+    resuming = null;                       // (also stops reopening a saved lobby)
     if (!NET.role) return;
+    forget(NET.role === 'host' ? HOST_KEY : GUEST_KEY);
+    if (NET.retry) { clearInterval(NET.retry); NET.retry = null; }
     if (NET.role === 'host') for (const c of NET.conns.values()) send(c, { t: 'bye' });
     if (NET.role === 'guest' && NET.host) send(NET.host, { t: 'bye' });
     const peer = NET.peer;
@@ -2182,7 +2282,95 @@
     NET.conns = new Map(); NET.started = false; NET.mine = []; NET.owners = []; NET.status = [];
     if (peer) setTimeout(() => { try { peer.destroy(); } catch (e) { } }, 300);
   }
-  addEventListener('pagehide', () => { if (NET.role === 'host') for (const c of NET.conns.values()) send(c, { t: 'bye' }); });
+  // ---------- the lobby survives closing the app ----------
+  // The host's lobby and game are saved on this device after every change.
+  // Closing or putting away the app is no goodbye: opening it again (within
+  // 6 hours) reopens the lobby with the same code and the game where it was,
+  // while the friends' games keep trying to reconnect. A friend's app that
+  // was closed joins again by itself too. Only "Close lobby" ends it.
+  const HOST_KEY = 'looot.host', GUEST_KEY = 'looot.guest', KEEP_MS = 6 * 3600e3;
+  function forget(key) { try { localStorage.removeItem(key); } catch (e) { } }
+  function saved(key) {
+    try { const d = JSON.parse(store(key) || 'null'); return d && Date.now() - d.at < KEEP_MS ? d : null; } catch (e) { return null; }
+  }
+  function saveHost() {
+    if (NET.role !== 'host' || !NET.code) return;
+    const game = NET.started && S && api;
+    store(HOST_KEY, JSON.stringify({
+      at: Date.now(), code: NET.code, lobby: NET.lobby, owners: NET.owners, takenOver: NET.takenOver,
+      names: NET.names, started: !!game, state: game ? api.save_state() : null, view,
+      // the coach's judgements, without the copies of the board (unjudged turns stay unjudged)
+      hist: game && hist ? { key: hist.key, state: hist.state, who: hist.who,
+        turns: hist.turns.map(t => ({ who: t.who, nn: t.nn, ai: t.ai, rev: t.rev || { error: 'not judged' } })) } : null,
+    }));
+  }
+  let resuming = null;                     // the code of the saved lobby being reopened
+  async function resumeHost(d) {
+    const msg = html => { const el = $('engineMsg'); if (el) el.innerHTML = html; };
+    let opened = null;
+    resuming = d.code;
+    msg(`<span class="spin sm"></span> Reopening your lobby ${esc(d.code)}…`);
+    try {
+      await ensureEngine();
+      await loadScript(PEERJS);
+      if (resuming !== d.code) return;
+      opened = await openPeer(0, d.code);
+    } catch (err) {
+      if (resuming === d.code) msg(`<span class="err">Could not reopen lobby ${esc(d.code)} (${esc(err.message || err.type || err)}). Is there internet?</span>`);
+      resuming = null;
+      return;
+    }
+    if (resuming !== d.code) {             // something else was started meanwhile
+      try { opened.peer.destroy(); } catch (e) { }
+      return;
+    }
+    resuming = null;
+    NET.peer = opened.peer; NET.code = opened.code;
+    NET.role = 'host';
+    NET.lobby = d.lobby || [];
+    NET.owners = d.owners || [];
+    NET.takenOver = d.takenOver || [];
+    NET.names = d.names || {};
+    NET.conns = new Map();
+    NET.started = false;
+    if (d.started && d.state) {
+      S = JSON.parse(api.load_state(d.state));
+      NET.started = true;
+      NET.sent = null;
+      NET.mine = NET.owners.map((o, i) => o === NET.me ? i : -1).filter(i => i >= 0);
+      hist = d.hist || { key: '', state: null, who: S.current, turns: [] };
+      render.shownEnd = !!S.game_over;
+      view = d.view !== undefined && d.view < S.players.length ? d.view : (NET.mine[0] || 0);
+      lastError = '';
+      thoughts = null;
+      $('overlay').hidden = true;
+      render(); maybeAI(); refreshThoughts();
+    } else {
+      showLobby(); lobbyBroadcast();
+      loadScript(QRJS).then(drawQr, () => { });
+    }
+  }
+  // the host says so when it goes, and beats every 5 s while it is there:
+  // a friend that hears nothing for 15 s waits for it (a phone can close an
+  // app without a word)
+  function hostAway() {
+    saveHost();
+    if (NET.role === 'host') for (const c of NET.conns.values()) send(c, { t: 'away' });
+  }
+  setInterval(() => {
+    if (NET.role === 'host') for (const c of NET.conns.values()) send(c, { t: 'ping' });
+    if (NET.role === 'guest' && NET.host && !NET.retry && NET.heard && Date.now() - NET.heard > 15000) {
+      const c = NET.host; NET.host = null; try { c.close(); } catch (e) { }
+      guestLost();
+    }
+  }, 5000);
+  addEventListener('pagehide', hostAway);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { saveHost(); return; }
+    // back: the matchmaking service may have let go of us meanwhile
+    if (NET.peer && NET.peer.disconnected) try { NET.peer.reconnect(); } catch (e) { }
+    if (NET.role === 'guest' && (!NET.host || !NET.host.open) && !NET.retry) guestLost();
+  });
 
   // ---------- boot Python ----------
   async function boot() {
@@ -2290,7 +2478,12 @@
     const code = startup.get('join').toUpperCase().slice(0, 8);
     showJoin(code);
     if (myName()) guestJoin(code);
-  } else { showMenu(); engine = boot(); }
+  } else {
+    showMenu(); engine = boot();
+    const host = saved(HOST_KEY), guest = !host && saved(GUEST_KEY);
+    if (host) resumeHost(host);                                // our lobby, closed or put away
+    else if (guest && myName()) { showJoin(guest.code); guestJoin(guest.code); }   // a friend's game we were in
+  }
   if (NN_IN_BROWSER && engine) engine.then(() => nnWorker()).catch(() => { });
 })();
 </script>
