@@ -745,7 +745,7 @@ class Game:
         need, cat, bonus = LONGSHIPS[sid]
         p.fjord[c] = {"kind": "ship", "id": sid, "need": list(need),
                       "cat": cat, "bonus": bonus, "filled": False}
-        self.ocean_ships[self.held_ship] = self.bag.pop() if self.bag else None
+        self.ocean_ships[self.held_ship] = None     # refilled when the turn ends (end_turn)
         self.held_ship = None
         self.took_ship = True
         self.phase = "actions"
@@ -777,6 +777,12 @@ class Game:
     def end_turn(self):
         if self.phase not in ("actions",):
             raise ValueError("Finish placing first.")
+        # The ocean is refilled from the bag when the turn ends, not when the
+        # longship is taken: nobody sees the next longship during the turn,
+        # so taking a turn back (undo) never shows it.
+        for i, sid in enumerate(self.ocean_ships):
+            if sid is None and self.bag:
+                self.ocean_ships[i] = self.bag.pop()
         n = len(self.players)
         for step in range(1, n + 1):
             nxt = (self.current + step) % n

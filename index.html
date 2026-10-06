@@ -744,12 +744,11 @@
   }
 
   // ---------- undo: back to the start of your turn ----------
-  // Until "End turn". Online not after taking a longship: a new one has come
-  // out of the bag, and undoing would let you peek at it.
+  // Until "End turn", for everyone (online too): the ocean is only refilled
+  // when the turn ends, so undoing never shows the next longship.
   function undoAllowed() {
     if (!S || S.game_over || S.players[S.current].ai) return false;
-    if (S.phase === 'place' && !S.extra_active) return false;          // nothing done yet
-    return !(NET.role && S.took_ship);
+    return !(S.phase === 'place' && !S.extra_active);                  // (nothing done yet)
   }
   function canUndo() {
     return myTurn() && undoAllowed() && (NET.role === 'guest' || !!(hist && hist.state && hist.who === S.current));

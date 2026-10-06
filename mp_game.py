@@ -334,6 +334,12 @@ def new_turn(s, gs):
 
 @njit(cache=True)
 def end_turn(s, gs):
+    # the ocean is refilled from the bag when the turn ends (as Game.end_turn)
+    for slot in range(5):
+        if s[S_OCEAN + slot] < 0 and s[S_BAGN] > 0:
+            s[S_BAGN] -= 1
+            s[S_OCEAN + slot] = s[S_BAG + s[S_BAGN]]
+            s[S_BAG + s[S_BAGN]] = 0      # keep the unused part of the bag clean
     cur = s[S_CUR]
     npl = gs[G_NP]
     for step in range(1, npl + 1):
@@ -620,18 +626,13 @@ def use_extra(s):
 
 @njit(cache=True)
 def take_ship(s, gs, slot, cell):
-    """Take the longship in ocean slot `slot`, put it on fjord space `cell`,
-    and refill the ocean from the top of the bag."""
+    """Take the longship in ocean slot `slot` and put it on fjord space
+    `cell`; the slot is refilled from the bag when the turn ends."""
     p = s[S_CUR]
     s[S_FJ + p * NF + cell] = FJ_SHIP
     s[S_FJSHIP + p * NF + cell] = s[S_OCEAN + slot]
     s[S_FJFLAG + p * NF + cell] = 0
-    if s[S_BAGN] > 0:
-        s[S_BAGN] -= 1
-        s[S_OCEAN + slot] = s[S_BAG + s[S_BAGN]]
-        s[S_BAG + s[S_BAGN]] = 0          # keep the unused part of the bag clean
-    else:
-        s[S_OCEAN + slot] = -1
+    s[S_OCEAN + slot] = -1                # refilled when the turn ends (end_turn)
     s[S_TOOK] = 1
     s[S_PHASE] = PH_ACTIONS
     update_fills(s, gs, p)
