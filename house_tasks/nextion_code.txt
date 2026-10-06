@@ -1,2144 +1,1267 @@
-ONZE HUISTAKEN - THE CODE FOR NEXTION EDITOR
-Made by make_screens.py from tasks.json: edit those, not this file.
-Copy every block between its ---- lines exactly as it is.
-
-PICTURES (add them all at once, in this order, so the numbers match)
-   0  screens\00_taken.png           taken: every task open
-   1  screens\01_taken_gedaan.png    taken: every task done
-   2  screens\02_taken_hoog.png      taken: every task a bit late (x1.5)
-   3  screens\03_taken_urgent.png    taken: every task very late (x2)
-   4  screens\04_wie.png             wie
-   5  screens\05_wie_in.png          wie, buttons pressed
-   6  screens\06_terug.png           terug
-   7  screens\07_terug_in.png        terug, buttons pressed
-   8  screens\08_terug_uit.png       terug, undo greyed out
-   9  screens\09_menu.png            menu
-  10  screens\10_menu_in.png         menu, buttons pressed
-  11  screens\11_menu_zeker.png      menu, 'Zeker?' button
-  12  screens\12_menu_vol.png        menu, full goal bar
-  13  screens\13_klok.png            klok
-  14  screens\14_klok_in.png         klok, buttons pressed
-
-FONTS (README.txt, step 3)
-   0  small: Atkinson Hyperlegible, height 16
-   1  big:   Bricolage Grotesque ExtraBold, height 32
+ONZE HUISTAKEN - ALL THE CODE IN Huistaken.HMI
+Made by make_screens.py from tasks.json, to read. Huistaken.HMI already holds
+all of it: you don't need to type or paste anything.
 
 ========================================================================
-PROGRAM.S  (the tab next to the pages: replace everything in it)
+PROGRAM.S
 ========================================================================
-----
-// Onze huistaken: the numbers every page uses
+// Onze huistaken: the numbers the code uses (made by make_screens.py)
 int sys0=0,sys1=0,sys2=0
-int gdag=0,gweek=0,gmaand=0,gtoon=0,gy=0,gm=0,gtmp=0,gprev=0
-int gtaak=0,gpts=0,gbonus=0,gwie=0,gopts=0,glast=0,gstaat=0,gdoel=0
-int gtx=0,gty=0,gknop=0,gzeker=0
-// the state of every task: 0 open, 1 done, 2 a bit late, 3 very late
-int gs0=0,gs1=0,gs2=0,gs3=0,gs4=0,gs5=0,gs6=0,gs7=0,gs8=0,gs9=0,gs10=0,gs11=0
-// the clock page
-int gkladen=0,gkd=1,gkm=1,gkj=2026,gku=12,gkmi=0,gmax=31
-dim=100
-recmod=0
+int gscherm=0,grender=1,gk=0,gtik=19,gtoon=0,gnul=0
+int gdag=0,gweek=0,gmaand=0,gy=0,gm=0,gtmp=0,gid=0
+int gi=0,gn=0,gtaak=0,gb=0,gbon=0,gl=0,ge=0,gp=0,gs=0,gq=0,gd=0,gst=0
+int gwie=0,gopts=0,gdoel=0,gprev=0,gpp=0,gsave=0
+int gx=0,gy2=0,gtx=0,gty=0,gnum=0,gdg=0,gsx=0,gc=0,gmin=1,gw=0
+int gdw=0,gdh=0,gsx0=0,gsy=0,gsp=0,gmore=0
+int gzeker=0,gkd=1,gkm=1,gkj=2026,gku=12,gkmi=0,gmax=31,gf=0,gdelta=0
 page 0
-----
 
 ========================================================================
-PAGE taken   (page 0)
+PAGE taken (the only page): sta = image, pic = 0
 ========================================================================
-  The page itself: sta = image, pic = 0
-  Add to this page (Toolbox, left):
-    va0  Variable: sta=String, txt_maxl=60, vscope=global
-    va1  Variable: sta=String, txt_maxl=60, vscope=global
-    va2  Variable: sta=String, txt_maxl=60, vscope=global
-    tm0  Timer: tim=60000, en=1
+  tm0  Timer, tim = 50 ms, en = 1
+  84 Variables (numbers), per task: vl0-vl11, vw0-vw11, vp0-vp11, vv0-vv11, vd0-vd11, ve0-ve11, vq0-vq11
 
----- Preinitialize Event (the page) --------------------
-gknop=0
-----
-
----- Postinitialize Event (the page) --------------------
-// the clock isn't set yet: set it first
-if(rtc0<2025)
+---- Postinitialize Event (the page) ----
+// the screen's memory: set up the first time (or after a fresh start)
+repo gtmp,0
+if(gtmp!=4271)
 {
-  page klok
-}else
-{
-  // today as a day number: gdag; this week's Monday: gweek; the 1st: gmaand
-  gy=rtc0-2000
-  gm=rtc1
-  if(gm<3)
-  {
-    gy=gy-1
-    gm=gm+12
-  }
-  gdag=gy*365
-  gtmp=gy/4
-  gdag=gdag+gtmp
-  gtmp=gm*153
-  gtmp=gtmp-457
-  gtmp=gtmp/5
-  gdag=gdag+gtmp
-  gdag=gdag+rtc2
-  gmaand=gdag-rtc2
-  gmaand=gmaand+1
-  if(rtc6==0)
-  {
-    gweek=gdag-6
-  }else
-  {
-    gweek=gdag-rtc6
-    gweek=gweek+1
-  }
-  gtoon=gdag
-  repo gtmp,0
-  if(gtmp!=4271)
-  {
-    // the first start (or a fresh start): everything at 0
-    gtmp=0
-    wepo gtmp,4
-    wepo gtmp,8
-    wepo gtmp,12
-    wepo gtmp,16
-    wepo gtmp,20
-    wepo gtmp,24
-    wepo gtmp,28
-    wepo gtmp,32
-    wepo gtmp,64
-    wepo gtmp,68
-    wepo gtmp,72
-    wepo gtmp,76
-    wepo gtmp,80
-    wepo gtmp,84
-    wepo gtmp,88
-    wepo gtmp,92
-    wepo gtmp,96
-    wepo gtmp,100
-    wepo gtmp,104
-    wepo gtmp,108
-    wepo gtmp,112
-    wepo gtmp,116
-    wepo gtmp,120
-    wepo gtmp,124
-    wepo gtmp,128
-    wepo gtmp,132
-    wepo gtmp,136
-    wepo gtmp,140
-    wepo gtmp,144
-    wepo gtmp,148
-    wepo gtmp,152
-    wepo gtmp,156
-    wepo gtmp,160
-    wepo gtmp,164
-    wepo gtmp,168
-    wepo gtmp,172
-    wepo gtmp,176
-    wepo gtmp,180
-    wepo gtmp,184
-    wepo gtmp,188
-    wepo gtmp,192
-    wepo gtmp,196
-    wepo gtmp,200
-    wepo gtmp,204
-    wepo gtmp,208
-    wepo gtmp,212
-    wepo gtmp,216
-    wepo gtmp,220
-    wepo gtmp,224
-    wepo gtmp,228
-    wepo gtmp,232
-    wepo gtmp,236
-    wepo gtmp,240
-    wepo gtmp,244
-    wepo gtmp,248
-    wepo gtmp,252
-    wepo gtmp,256
-    wepo gtmp,260
-    wepo gtmp,264
-    wepo gtmp,268
-    wepo gtmp,272
-    wepo gtmp,276
-    wepo gtmp,280
-    wepo gtmp,284
-    wepo gtmp,288
-    wepo gtmp,292
-    wepo gtmp,296
-    wepo gtmp,300
-    gtmp=4271
-    wepo gtmp,0
-  }
-  // a new week or month starts at 0
-  repo gtmp,20
-  if(gtmp!=gweek)
-  {
-    gtmp=0
-    wepo gtmp,4
-    wepo gtmp,8
-    wepo gweek,20
-  }
-  repo gtmp,24
-  if(gtmp!=gmaand)
-  {
-    gtmp=0
-    wepo gtmp,12
-    wepo gtmp,16
-    wepo gmaand,24
-  }
-  // the points
-  repo gtmp,4
-  covx gtmp,va0.txt,0,0
-  xstr 104,22,90,32,1,15129,0,2,1,0,va0.txt
-  repo gtmp,12
-  covx gtmp,va0.txt,0,0
-  va1.txt="maand "+va0.txt
-  xstr 18,34,90,18,0,23372,0,0,1,0,va1.txt
-  repo gtmp,8
-  covx gtmp,va0.txt,0,0
-  xstr 306,22,90,32,1,49775,0,2,1,0,va0.txt
-  repo gtmp,16
-  covx gtmp,va0.txt,0,0
-  va1.txt="maand "+va0.txt
-  xstr 220,34,90,18,0,23372,0,0,1,0,va1.txt
-  // the tasks
-  // 1. Afwassen: every 1 days, 3 points
-  repo glast,64
-  if(glast<=0)
-  {
-    gs0=0
-    xstr 69,96,82,18,0,35650,0,2,1,0,"nooit gedaan"
-  }else
-  {
-    gtmp=glast+1
-    gtmp=gtmp-gdag
-    if(gtmp>0)
-    {
-      gs0=1
-      picq 9,62,150,58,1
-      if(gtmp==1)
-      {
-        xstr 69,96,82,18,0,23372,1,2,1,0,"morgen"
-      }else
-      {
-        covx gtmp,va0.txt,0,0
-        va1.txt="over "+va0.txt+" d"
-        xstr 69,96,82,18,0,23372,1,2,1,0,va1.txt
-      }
-    }else if(gtmp==0)
-    {
-      gs0=0
-      xstr 69,96,82,18,0,35650,0,2,1,0,"vandaag"
-    }else
-    {
-      gtmp=0-gtmp
-      covx gtmp,va0.txt,0,0
-      va1.txt=va0.txt+" d te laat"
-      if(gtmp>=3)
-      {
-        gs0=3
-        picq 9,62,150,58,3
-        xstr 69,96,82,18,0,47621,3,2,1,0,va1.txt
-      }else if(gtmp>=2)
-      {
-        gs0=2
-        picq 9,62,150,58,2
-        xstr 69,96,82,18,0,47621,2,2,1,0,va1.txt
-      }else
-      {
-        gs0=0
-        xstr 69,96,82,18,0,47621,0,2,1,0,va1.txt
-      }
-    }
-  }
-  // 2. Koken: every 1 days, 8 points
-  repo glast,84
-  if(glast<=0)
-  {
-    gs1=0
-    xstr 225,96,82,18,0,35650,0,2,1,0,"nooit gedaan"
-  }else
-  {
-    gtmp=glast+1
-    gtmp=gtmp-gdag
-    if(gtmp>0)
-    {
-      gs1=1
-      picq 165,62,150,58,1
-      if(gtmp==1)
-      {
-        xstr 225,96,82,18,0,23372,1,2,1,0,"morgen"
-      }else
-      {
-        covx gtmp,va0.txt,0,0
-        va1.txt="over "+va0.txt+" d"
-        xstr 225,96,82,18,0,23372,1,2,1,0,va1.txt
-      }
-    }else if(gtmp==0)
-    {
-      gs1=0
-      xstr 225,96,82,18,0,35650,0,2,1,0,"vandaag"
-    }else
-    {
-      gtmp=0-gtmp
-      covx gtmp,va0.txt,0,0
-      va1.txt=va0.txt+" d te laat"
-      if(gtmp>=3)
-      {
-        gs1=3
-        picq 165,62,150,58,3
-        xstr 225,96,82,18,0,47621,3,2,1,0,va1.txt
-      }else if(gtmp>=2)
-      {
-        gs1=2
-        picq 165,62,150,58,2
-        xstr 225,96,82,18,0,47621,2,2,1,0,va1.txt
-      }else
-      {
-        gs1=0
-        xstr 225,96,82,18,0,47621,0,2,1,0,va1.txt
-      }
-    }
-  }
-  // 3. Vaatwasser leeg: every 1 days, 2 points
-  repo glast,104
-  if(glast<=0)
-  {
-    gs2=0
-    xstr 381,96,82,18,0,35650,0,2,1,0,"nooit gedaan"
-  }else
-  {
-    gtmp=glast+1
-    gtmp=gtmp-gdag
-    if(gtmp>0)
-    {
-      gs2=1
-      picq 321,62,150,58,1
-      if(gtmp==1)
-      {
-        xstr 381,96,82,18,0,23372,1,2,1,0,"morgen"
-      }else
-      {
-        covx gtmp,va0.txt,0,0
-        va1.txt="over "+va0.txt+" d"
-        xstr 381,96,82,18,0,23372,1,2,1,0,va1.txt
-      }
-    }else if(gtmp==0)
-    {
-      gs2=0
-      xstr 381,96,82,18,0,35650,0,2,1,0,"vandaag"
-    }else
-    {
-      gtmp=0-gtmp
-      covx gtmp,va0.txt,0,0
-      va1.txt=va0.txt+" d te laat"
-      if(gtmp>=3)
-      {
-        gs2=3
-        picq 321,62,150,58,3
-        xstr 381,96,82,18,0,47621,3,2,1,0,va1.txt
-      }else if(gtmp>=2)
-      {
-        gs2=2
-        picq 321,62,150,58,2
-        xstr 381,96,82,18,0,47621,2,2,1,0,va1.txt
-      }else
-      {
-        gs2=0
-        xstr 381,96,82,18,0,47621,0,2,1,0,va1.txt
-      }
-    }
-  }
-  // 4. Vuilnis weg: every 3 days, 2 points
-  repo glast,124
-  if(glast<=0)
-  {
-    gs3=0
-    xstr 69,160,82,18,0,35650,0,2,1,0,"nooit gedaan"
-  }else
-  {
-    gtmp=glast+3
-    gtmp=gtmp-gdag
-    if(gtmp>0)
-    {
-      gs3=1
-      picq 9,126,150,58,1
-      if(gtmp==1)
-      {
-        xstr 69,160,82,18,0,23372,1,2,1,0,"morgen"
-      }else
-      {
-        covx gtmp,va0.txt,0,0
-        va1.txt="over "+va0.txt+" d"
-        xstr 69,160,82,18,0,23372,1,2,1,0,va1.txt
-      }
-    }else if(gtmp==0)
-    {
-      gs3=0
-      xstr 69,160,82,18,0,35650,0,2,1,0,"vandaag"
-    }else
-    {
-      gtmp=0-gtmp
-      covx gtmp,va0.txt,0,0
-      va1.txt=va0.txt+" d te laat"
-      if(gtmp>=3)
-      {
-        gs3=3
-        picq 9,126,150,58,3
-        xstr 69,160,82,18,0,47621,3,2,1,0,va1.txt
-      }else if(gtmp>=2)
-      {
-        gs3=2
-        picq 9,126,150,58,2
-        xstr 69,160,82,18,0,47621,2,2,1,0,va1.txt
-      }else
-      {
-        gs3=0
-        xstr 69,160,82,18,0,47621,0,2,1,0,va1.txt
-      }
-    }
-  }
-  // 5. Was draaien: every 3 days, 4 points
-  repo glast,144
-  if(glast<=0)
-  {
-    gs4=0
-    xstr 225,160,82,18,0,35650,0,2,1,0,"nooit gedaan"
-  }else
-  {
-    gtmp=glast+3
-    gtmp=gtmp-gdag
-    if(gtmp>0)
-    {
-      gs4=1
-      picq 165,126,150,58,1
-      if(gtmp==1)
-      {
-        xstr 225,160,82,18,0,23372,1,2,1,0,"morgen"
-      }else
-      {
-        covx gtmp,va0.txt,0,0
-        va1.txt="over "+va0.txt+" d"
-        xstr 225,160,82,18,0,23372,1,2,1,0,va1.txt
-      }
-    }else if(gtmp==0)
-    {
-      gs4=0
-      xstr 225,160,82,18,0,35650,0,2,1,0,"vandaag"
-    }else
-    {
-      gtmp=0-gtmp
-      covx gtmp,va0.txt,0,0
-      va1.txt=va0.txt+" d te laat"
-      if(gtmp>=3)
-      {
-        gs4=3
-        picq 165,126,150,58,3
-        xstr 225,160,82,18,0,47621,3,2,1,0,va1.txt
-      }else if(gtmp>=2)
-      {
-        gs4=2
-        picq 165,126,150,58,2
-        xstr 225,160,82,18,0,47621,2,2,1,0,va1.txt
-      }else
-      {
-        gs4=0
-        xstr 225,160,82,18,0,47621,0,2,1,0,va1.txt
-      }
-    }
-  }
-  // 6. Boodschappen: every 4 days, 12 points
-  repo glast,164
-  if(glast<=0)
-  {
-    gs5=0
-    xstr 381,160,82,18,0,35650,0,2,1,0,"nooit gedaan"
-  }else
-  {
-    gtmp=glast+4
-    gtmp=gtmp-gdag
-    if(gtmp>0)
-    {
-      gs5=1
-      picq 321,126,150,58,1
-      if(gtmp==1)
-      {
-        xstr 381,160,82,18,0,23372,1,2,1,0,"morgen"
-      }else
-      {
-        covx gtmp,va0.txt,0,0
-        va1.txt="over "+va0.txt+" d"
-        xstr 381,160,82,18,0,23372,1,2,1,0,va1.txt
-      }
-    }else if(gtmp==0)
-    {
-      gs5=0
-      xstr 381,160,82,18,0,35650,0,2,1,0,"vandaag"
-    }else
-    {
-      gtmp=0-gtmp
-      covx gtmp,va0.txt,0,0
-      va1.txt=va0.txt+" d te laat"
-      if(gtmp>=4)
-      {
-        gs5=3
-        picq 321,126,150,58,3
-        xstr 381,160,82,18,0,47621,3,2,1,0,va1.txt
-      }else if(gtmp>=2)
-      {
-        gs5=2
-        picq 321,126,150,58,2
-        xstr 381,160,82,18,0,47621,2,2,1,0,va1.txt
-      }else
-      {
-        gs5=0
-        xstr 381,160,82,18,0,47621,0,2,1,0,va1.txt
-      }
-    }
-  }
-  // 7. Stofzuigen: every 7 days, 6 points
-  repo glast,184
-  if(glast<=0)
-  {
-    gs6=0
-    xstr 69,224,82,18,0,35650,0,2,1,0,"nooit gedaan"
-  }else
-  {
-    gtmp=glast+7
-    gtmp=gtmp-gdag
-    if(gtmp>0)
-    {
-      gs6=1
-      picq 9,190,150,58,1
-      if(gtmp==1)
-      {
-        xstr 69,224,82,18,0,23372,1,2,1,0,"morgen"
-      }else
-      {
-        covx gtmp,va0.txt,0,0
-        va1.txt="over "+va0.txt+" d"
-        xstr 69,224,82,18,0,23372,1,2,1,0,va1.txt
-      }
-    }else if(gtmp==0)
-    {
-      gs6=0
-      xstr 69,224,82,18,0,35650,0,2,1,0,"vandaag"
-    }else
-    {
-      gtmp=0-gtmp
-      covx gtmp,va0.txt,0,0
-      va1.txt=va0.txt+" d te laat"
-      if(gtmp>=7)
-      {
-        gs6=3
-        picq 9,190,150,58,3
-        xstr 69,224,82,18,0,47621,3,2,1,0,va1.txt
-      }else if(gtmp>=4)
-      {
-        gs6=2
-        picq 9,190,150,58,2
-        xstr 69,224,82,18,0,47621,2,2,1,0,va1.txt
-      }else
-      {
-        gs6=0
-        xstr 69,224,82,18,0,47621,0,2,1,0,va1.txt
-      }
-    }
-  }
-  // 8. Badkamer: every 7 days, 8 points
-  repo glast,204
-  if(glast<=0)
-  {
-    gs7=0
-    xstr 225,224,82,18,0,35650,0,2,1,0,"nooit gedaan"
-  }else
-  {
-    gtmp=glast+7
-    gtmp=gtmp-gdag
-    if(gtmp>0)
-    {
-      gs7=1
-      picq 165,190,150,58,1
-      if(gtmp==1)
-      {
-        xstr 225,224,82,18,0,23372,1,2,1,0,"morgen"
-      }else
-      {
-        covx gtmp,va0.txt,0,0
-        va1.txt="over "+va0.txt+" d"
-        xstr 225,224,82,18,0,23372,1,2,1,0,va1.txt
-      }
-    }else if(gtmp==0)
-    {
-      gs7=0
-      xstr 225,224,82,18,0,35650,0,2,1,0,"vandaag"
-    }else
-    {
-      gtmp=0-gtmp
-      covx gtmp,va0.txt,0,0
-      va1.txt=va0.txt+" d te laat"
-      if(gtmp>=7)
-      {
-        gs7=3
-        picq 165,190,150,58,3
-        xstr 225,224,82,18,0,47621,3,2,1,0,va1.txt
-      }else if(gtmp>=4)
-      {
-        gs7=2
-        picq 165,190,150,58,2
-        xstr 225,224,82,18,0,47621,2,2,1,0,va1.txt
-      }else
-      {
-        gs7=0
-        xstr 225,224,82,18,0,47621,0,2,1,0,va1.txt
-      }
-    }
-  }
-  // 9. Wc schoonmaken: every 7 days, 3 points
-  repo glast,224
-  if(glast<=0)
-  {
-    gs8=0
-    xstr 381,224,82,18,0,35650,0,2,1,0,"nooit gedaan"
-  }else
-  {
-    gtmp=glast+7
-    gtmp=gtmp-gdag
-    if(gtmp>0)
-    {
-      gs8=1
-      picq 321,190,150,58,1
-      if(gtmp==1)
-      {
-        xstr 381,224,82,18,0,23372,1,2,1,0,"morgen"
-      }else
-      {
-        covx gtmp,va0.txt,0,0
-        va1.txt="over "+va0.txt+" d"
-        xstr 381,224,82,18,0,23372,1,2,1,0,va1.txt
-      }
-    }else if(gtmp==0)
-    {
-      gs8=0
-      xstr 381,224,82,18,0,35650,0,2,1,0,"vandaag"
-    }else
-    {
-      gtmp=0-gtmp
-      covx gtmp,va0.txt,0,0
-      va1.txt=va0.txt+" d te laat"
-      if(gtmp>=7)
-      {
-        gs8=3
-        picq 321,190,150,58,3
-        xstr 381,224,82,18,0,47621,3,2,1,0,va1.txt
-      }else if(gtmp>=4)
-      {
-        gs8=2
-        picq 321,190,150,58,2
-        xstr 381,224,82,18,0,47621,2,2,1,0,va1.txt
-      }else
-      {
-        gs8=0
-        xstr 381,224,82,18,0,47621,0,2,1,0,va1.txt
-      }
-    }
-  }
-  // 10. Planten water: every 7 days, 2 points
-  repo glast,244
-  if(glast<=0)
-  {
-    gs9=0
-    xstr 69,288,82,18,0,35650,0,2,1,0,"nooit gedaan"
-  }else
-  {
-    gtmp=glast+7
-    gtmp=gtmp-gdag
-    if(gtmp>0)
-    {
-      gs9=1
-      picq 9,254,150,58,1
-      if(gtmp==1)
-      {
-        xstr 69,288,82,18,0,23372,1,2,1,0,"morgen"
-      }else
-      {
-        covx gtmp,va0.txt,0,0
-        va1.txt="over "+va0.txt+" d"
-        xstr 69,288,82,18,0,23372,1,2,1,0,va1.txt
-      }
-    }else if(gtmp==0)
-    {
-      gs9=0
-      xstr 69,288,82,18,0,35650,0,2,1,0,"vandaag"
-    }else
-    {
-      gtmp=0-gtmp
-      covx gtmp,va0.txt,0,0
-      va1.txt=va0.txt+" d te laat"
-      if(gtmp>=7)
-      {
-        gs9=3
-        picq 9,254,150,58,3
-        xstr 69,288,82,18,0,47621,3,2,1,0,va1.txt
-      }else if(gtmp>=4)
-      {
-        gs9=2
-        picq 9,254,150,58,2
-        xstr 69,288,82,18,0,47621,2,2,1,0,va1.txt
-      }else
-      {
-        gs9=0
-        xstr 69,288,82,18,0,47621,0,2,1,0,va1.txt
-      }
-    }
-  }
-  // 11. Dweilen: every 14 days, 6 points
-  repo glast,264
-  if(glast<=0)
-  {
-    gs10=0
-    xstr 225,288,82,18,0,35650,0,2,1,0,"nooit gedaan"
-  }else
-  {
-    gtmp=glast+14
-    gtmp=gtmp-gdag
-    if(gtmp>0)
-    {
-      gs10=1
-      picq 165,254,150,58,1
-      if(gtmp==1)
-      {
-        xstr 225,288,82,18,0,23372,1,2,1,0,"morgen"
-      }else
-      {
-        covx gtmp,va0.txt,0,0
-        va1.txt="over "+va0.txt+" d"
-        xstr 225,288,82,18,0,23372,1,2,1,0,va1.txt
-      }
-    }else if(gtmp==0)
-    {
-      gs10=0
-      xstr 225,288,82,18,0,35650,0,2,1,0,"vandaag"
-    }else
-    {
-      gtmp=0-gtmp
-      covx gtmp,va0.txt,0,0
-      va1.txt=va0.txt+" d te laat"
-      if(gtmp>=14)
-      {
-        gs10=3
-        picq 165,254,150,58,3
-        xstr 225,288,82,18,0,47621,3,2,1,0,va1.txt
-      }else if(gtmp>=7)
-      {
-        gs10=2
-        picq 165,254,150,58,2
-        xstr 225,288,82,18,0,47621,2,2,1,0,va1.txt
-      }else
-      {
-        gs10=0
-        xstr 225,288,82,18,0,47621,0,2,1,0,va1.txt
-      }
-    }
-  }
-  // 12. Bed verschonen: every 14 days, 4 points
-  repo glast,284
-  if(glast<=0)
-  {
-    gs11=0
-    xstr 381,288,82,18,0,35650,0,2,1,0,"nooit gedaan"
-  }else
-  {
-    gtmp=glast+14
-    gtmp=gtmp-gdag
-    if(gtmp>0)
-    {
-      gs11=1
-      picq 321,254,150,58,1
-      if(gtmp==1)
-      {
-        xstr 381,288,82,18,0,23372,1,2,1,0,"morgen"
-      }else
-      {
-        covx gtmp,va0.txt,0,0
-        va1.txt="over "+va0.txt+" d"
-        xstr 381,288,82,18,0,23372,1,2,1,0,va1.txt
-      }
-    }else if(gtmp==0)
-    {
-      gs11=0
-      xstr 381,288,82,18,0,35650,0,2,1,0,"vandaag"
-    }else
-    {
-      gtmp=0-gtmp
-      covx gtmp,va0.txt,0,0
-      va1.txt=va0.txt+" d te laat"
-      if(gtmp>=14)
-      {
-        gs11=3
-        picq 321,254,150,58,3
-        xstr 381,288,82,18,0,47621,3,2,1,0,va1.txt
-      }else if(gtmp>=7)
-      {
-        gs11=2
-        picq 321,254,150,58,2
-        xstr 381,288,82,18,0,47621,2,2,1,0,va1.txt
-      }else
-      {
-        gs11=0
-        xstr 381,288,82,18,0,47621,0,2,1,0,va1.txt
-      }
-    }
-  }
+  wepo gnul,4
+  wepo gnul,8
+  wepo gnul,12
+  wepo gnul,16
+  wepo gnul,20
+  wepo gnul,24
+  wepo gnul,28
+  wepo gnul,32
+  wepo gnul,64
+  wepo gnul,68
+  wepo gnul,72
+  wepo gnul,76
+  wepo gnul,80
+  wepo gnul,84
+  wepo gnul,88
+  wepo gnul,92
+  wepo gnul,96
+  wepo gnul,100
+  wepo gnul,104
+  wepo gnul,108
+  gtmp=4271
+  wepo gtmp,0
 }
-----
+// the day every task was last done
+repo vl0.val,64
+repo vl1.val,68
+repo vl2.val,72
+repo vl3.val,76
+repo vl4.val,80
+repo vl5.val,84
+repo vl6.val,88
+repo vl7.val,92
+repo vl8.val,96
+repo vl9.val,100
+repo vl10.val,104
+repo vl11.val,108
+// the timer looks at the clock and draws, right away
+gtik=19
+grender=1
 
----- Touch Press Event (the page) --------------------
-gknop=0
-if(tch0>=412&&tch0<472&&tch1>=6&&tch1<56)
+---- Touch Press Event (the page) ----
+if(gscherm==0)
 {
-  gknop=99
-}else if(tch0>=6&&tch0<162&&tch1>=59&&tch1<123)
-{
-  gknop=1
-}else if(tch0>=162&&tch0<318&&tch1>=59&&tch1<123)
-{
-  gknop=2
-}else if(tch0>=318&&tch0<474&&tch1>=59&&tch1<123)
-{
-  gknop=3
-}else if(tch0>=6&&tch0<162&&tch1>=123&&tch1<187)
-{
-  gknop=4
-}else if(tch0>=162&&tch0<318&&tch1>=123&&tch1<187)
-{
-  gknop=5
-}else if(tch0>=318&&tch0<474&&tch1>=123&&tch1<187)
-{
-  gknop=6
-}else if(tch0>=6&&tch0<162&&tch1>=187&&tch1<251)
-{
-  gknop=7
-}else if(tch0>=162&&tch0<318&&tch1>=187&&tch1<251)
-{
-  gknop=8
-}else if(tch0>=318&&tch0<474&&tch1>=187&&tch1<251)
-{
-  gknop=9
-}else if(tch0>=6&&tch0<162&&tch1>=251&&tch1<315)
-{
-  gknop=10
-}else if(tch0>=162&&tch0<318&&tch1>=251&&tch1<315)
-{
-  gknop=11
-}else if(tch0>=318&&tch0<474&&tch1>=251&&tch1<315)
-{
-  gknop=12
-}
-----
-
----- Touch Release Event (the page) --------------------
-if(gknop==99)
-{
-  page menu
-}else if(gknop==1)
-{
-  gtaak=0
-  gtx=9
-  gty=62
-  gpts=3
-  gbonus=0
-  if(gs0==1)
+  if(tch1<58)
   {
-    gstaat=1
-    page terug
+    if(tch0>=412)
+    {
+      gscherm=3
+      gzeker=0
+      grender=1
+    }
   }else
   {
-    gstaat=gs0
-    if(gs0==3)
-    {
-      gpts=6
-      gbonus=3
-    }else if(gs0==2)
-    {
-      gpts=5
-      gbonus=2
-    }
-    page wie
-  }
-}else if(gknop==2)
-{
-  gtaak=1
-  gtx=165
-  gty=62
-  gpts=8
-  gbonus=0
-  if(gs1==1)
-  {
-    gstaat=1
-    page terug
-  }else
-  {
-    gstaat=gs1
-    if(gs1==3)
-    {
-      gpts=16
-      gbonus=8
-    }else if(gs1==2)
-    {
-      gpts=12
-      gbonus=4
-    }
-    page wie
-  }
-}else if(gknop==3)
-{
-  gtaak=2
-  gtx=321
-  gty=62
-  gpts=2
-  gbonus=0
-  if(gs2==1)
-  {
-    gstaat=1
-    page terug
-  }else
-  {
-    gstaat=gs2
-    if(gs2==3)
-    {
-      gpts=4
-      gbonus=2
-    }else if(gs2==2)
-    {
-      gpts=3
-      gbonus=1
-    }
-    page wie
-  }
-}else if(gknop==4)
-{
-  gtaak=3
-  gtx=9
-  gty=126
-  gpts=2
-  gbonus=0
-  if(gs3==1)
-  {
-    gstaat=1
-    page terug
-  }else
-  {
-    gstaat=gs3
-    if(gs3==3)
-    {
-      gpts=4
-      gbonus=2
-    }else if(gs3==2)
-    {
-      gpts=3
-      gbonus=1
-    }
-    page wie
-  }
-}else if(gknop==5)
-{
-  gtaak=4
-  gtx=165
-  gty=126
-  gpts=4
-  gbonus=0
-  if(gs4==1)
-  {
-    gstaat=1
-    page terug
-  }else
-  {
-    gstaat=gs4
-    if(gs4==3)
-    {
-      gpts=8
-      gbonus=4
-    }else if(gs4==2)
-    {
-      gpts=6
-      gbonus=2
-    }
-    page wie
-  }
-}else if(gknop==6)
-{
-  gtaak=5
-  gtx=321
-  gty=126
-  gpts=12
-  gbonus=0
-  if(gs5==1)
-  {
-    gstaat=1
-    page terug
-  }else
-  {
-    gstaat=gs5
-    if(gs5==3)
-    {
-      gpts=24
-      gbonus=12
-    }else if(gs5==2)
-    {
-      gpts=18
-      gbonus=6
-    }
-    page wie
-  }
-}else if(gknop==7)
-{
-  gtaak=6
-  gtx=9
-  gty=190
-  gpts=6
-  gbonus=0
-  if(gs6==1)
-  {
-    gstaat=1
-    page terug
-  }else
-  {
-    gstaat=gs6
-    if(gs6==3)
-    {
-      gpts=12
-      gbonus=6
-    }else if(gs6==2)
-    {
-      gpts=9
-      gbonus=3
-    }
-    page wie
-  }
-}else if(gknop==8)
-{
-  gtaak=7
-  gtx=165
-  gty=190
-  gpts=8
-  gbonus=0
-  if(gs7==1)
-  {
-    gstaat=1
-    page terug
-  }else
-  {
-    gstaat=gs7
-    if(gs7==3)
-    {
-      gpts=16
-      gbonus=8
-    }else if(gs7==2)
-    {
-      gpts=12
-      gbonus=4
-    }
-    page wie
-  }
-}else if(gknop==9)
-{
-  gtaak=8
-  gtx=321
-  gty=190
-  gpts=3
-  gbonus=0
-  if(gs8==1)
-  {
-    gstaat=1
-    page terug
-  }else
-  {
-    gstaat=gs8
-    if(gs8==3)
-    {
-      gpts=6
-      gbonus=3
-    }else if(gs8==2)
-    {
-      gpts=5
-      gbonus=2
-    }
-    page wie
-  }
-}else if(gknop==10)
-{
-  gtaak=9
-  gtx=9
-  gty=254
-  gpts=2
-  gbonus=0
-  if(gs9==1)
-  {
-    gstaat=1
-    page terug
-  }else
-  {
-    gstaat=gs9
-    if(gs9==3)
-    {
-      gpts=4
-      gbonus=2
-    }else if(gs9==2)
-    {
-      gpts=3
-      gbonus=1
-    }
-    page wie
-  }
-}else if(gknop==11)
-{
-  gtaak=10
-  gtx=165
-  gty=254
-  gpts=6
-  gbonus=0
-  if(gs10==1)
-  {
-    gstaat=1
-    page terug
-  }else
-  {
-    gstaat=gs10
-    if(gs10==3)
-    {
-      gpts=12
-      gbonus=6
-    }else if(gs10==2)
-    {
-      gpts=9
-      gbonus=3
-    }
-    page wie
-  }
-}else if(gknop==12)
-{
-  gtaak=11
-  gtx=321
-  gty=254
-  gpts=4
-  gbonus=0
-  if(gs11==1)
-  {
-    gstaat=1
-    page terug
-  }else
-  {
-    gstaat=gs11
-    if(gs11==3)
-    {
-      gpts=8
-      gbonus=4
-    }else if(gs11==2)
-    {
-      gpts=6
-      gbonus=2
-    }
-    page wie
-  }
-}
-----
-
----- Timer Event (the timer tm0) --------------------
-// once a minute: a new day draws the page again
-// today as a day number: gdag; this week's Monday: gweek; the 1st: gmaand
-gy=rtc0-2000
-gm=rtc1
-if(gm<3)
-{
-  gy=gy-1
-  gm=gm+12
-}
-gdag=gy*365
-gtmp=gy/4
-gdag=gdag+gtmp
-gtmp=gm*153
-gtmp=gtmp-457
-gtmp=gtmp/5
-gdag=gdag+gtmp
-gdag=gdag+rtc2
-gmaand=gdag-rtc2
-gmaand=gmaand+1
-if(rtc6==0)
-{
-  gweek=gdag-6
-}else
-{
-  gweek=gdag-rtc6
-  gweek=gweek+1
-}
-if(gdag!=gtoon)
-{
-  page taken
-}
-----
-
-========================================================================
-PAGE wie   (page 1)
-========================================================================
-  The page itself: sta = image, pic = 4
-
----- Preinitialize Event (the page) --------------------
-gknop=0
-----
-
----- Postinitialize Event (the page) --------------------
-xpic 165,50,150,58,gtx,gty,gstaat
-covx gpts,taken.va0.txt,0,0
-if(gbonus>0)
-{
-  covx gbonus,taken.va1.txt,0,0
-  taken.va2.txt="+"+taken.va0.txt+" punten, met "+taken.va1.txt+" bonus"
-}else
-{
-  taken.va2.txt="+"+taken.va0.txt+" punten"
-}
-xstr 16,114,448,20,0,6436,4,1,1,0,taken.va2.txt
-----
-
----- Touch Press Event (the page) --------------------
-gknop=0
-if(tch0>=16&&tch0<160&&tch1>=144&&tch1<228)
-{
-  gknop=1
-  picq 16,144,144,84,5
-}else if(tch0>=168&&tch0<312&&tch1>=144&&tch1<228)
-{
-  gknop=2
-  picq 168,144,144,84,5
-}else if(tch0>=320&&tch0<464&&tch1>=144&&tch1<228)
-{
-  gknop=3
-  picq 320,144,144,84,5
-}else if(tch0>=16&&tch0<464&&tch1>=240&&tch1<304)
-{
-  gknop=9
-  picq 16,240,448,64,5
-}
-----
-
----- Touch Release Event (the page) --------------------
-if(gknop==9)
-{
-  page taken
-}else if(gknop>=1&&gknop<=3)
-{
-  gwie=gknop
-  // remember it with the task
-  repo gdoel,32
-  if(gtaak==0)
-  {
-    repo gprev,64
-    wepo gprev,76
-    wepo gdag,64
-    wepo gwie,68
-    wepo gpts,72
-    wepo gdoel,80
-  }else if(gtaak==1)
-  {
-    repo gprev,84
-    wepo gprev,96
-    wepo gdag,84
-    wepo gwie,88
-    wepo gpts,92
-    wepo gdoel,100
-  }else if(gtaak==2)
-  {
-    repo gprev,104
-    wepo gprev,116
-    wepo gdag,104
-    wepo gwie,108
-    wepo gpts,112
-    wepo gdoel,120
-  }else if(gtaak==3)
-  {
-    repo gprev,124
-    wepo gprev,136
-    wepo gdag,124
-    wepo gwie,128
-    wepo gpts,132
-    wepo gdoel,140
-  }else if(gtaak==4)
-  {
-    repo gprev,144
-    wepo gprev,156
-    wepo gdag,144
-    wepo gwie,148
-    wepo gpts,152
-    wepo gdoel,160
-  }else if(gtaak==5)
-  {
-    repo gprev,164
-    wepo gprev,176
-    wepo gdag,164
-    wepo gwie,168
-    wepo gpts,172
-    wepo gdoel,180
-  }else if(gtaak==6)
-  {
-    repo gprev,184
-    wepo gprev,196
-    wepo gdag,184
-    wepo gwie,188
-    wepo gpts,192
-    wepo gdoel,200
-  }else if(gtaak==7)
-  {
-    repo gprev,204
-    wepo gprev,216
-    wepo gdag,204
-    wepo gwie,208
-    wepo gpts,212
-    wepo gdoel,220
-  }else if(gtaak==8)
-  {
-    repo gprev,224
-    wepo gprev,236
-    wepo gdag,224
-    wepo gwie,228
-    wepo gpts,232
-    wepo gdoel,240
-  }else if(gtaak==9)
-  {
-    repo gprev,244
-    wepo gprev,256
-    wepo gdag,244
-    wepo gwie,248
-    wepo gpts,252
-    wepo gdoel,260
-  }else if(gtaak==10)
-  {
-    repo gprev,264
-    wepo gprev,276
-    wepo gdag,264
-    wepo gwie,268
-    wepo gpts,272
-    wepo gdoel,280
-  }else if(gtaak==11)
-  {
-    repo gprev,284
-    wepo gprev,296
-    wepo gdag,284
-    wepo gwie,288
-    wepo gpts,292
-    wepo gdoel,300
-  }
-  if(gwie!=2)
-  {
-    repo gtmp,4
-    gtmp=gtmp+gpts
-    wepo gtmp,4
-    repo gtmp,12
-    gtmp=gtmp+gpts
-    wepo gtmp,12
-  }
-  if(gwie!=1)
-  {
-    repo gtmp,8
-    gtmp=gtmp+gpts
-    wepo gtmp,8
-    repo gtmp,16
-    gtmp=gtmp+gpts
-    wepo gtmp,16
-  }
-  // the goal: together counts for both, as in the app
-  repo gtmp,28
-  gtmp=gtmp+gpts
-  if(gwie==3)
-  {
-    gtmp=gtmp+gpts
-  }
-  wepo gtmp,28
-  page taken
-}
-----
-
-========================================================================
-PAGE terug   (page 2)
-========================================================================
-  The page itself: sta = image, pic = 6
-
----- Preinitialize Event (the page) --------------------
-gknop=0
-// who did it last, with how many points
-if(gtaak==0)
-{
-  repo gwie,68
-  repo gopts,72
-  repo glast,64
-  repo gdoel,80
-}else if(gtaak==1)
-{
-  repo gwie,88
-  repo gopts,92
-  repo glast,84
-  repo gdoel,100
-}else if(gtaak==2)
-{
-  repo gwie,108
-  repo gopts,112
-  repo glast,104
-  repo gdoel,120
-}else if(gtaak==3)
-{
-  repo gwie,128
-  repo gopts,132
-  repo glast,124
-  repo gdoel,140
-}else if(gtaak==4)
-{
-  repo gwie,148
-  repo gopts,152
-  repo glast,144
-  repo gdoel,160
-}else if(gtaak==5)
-{
-  repo gwie,168
-  repo gopts,172
-  repo glast,164
-  repo gdoel,180
-}else if(gtaak==6)
-{
-  repo gwie,188
-  repo gopts,192
-  repo glast,184
-  repo gdoel,200
-}else if(gtaak==7)
-{
-  repo gwie,208
-  repo gopts,212
-  repo glast,204
-  repo gdoel,220
-}else if(gtaak==8)
-{
-  repo gwie,228
-  repo gopts,232
-  repo glast,224
-  repo gdoel,240
-}else if(gtaak==9)
-{
-  repo gwie,248
-  repo gopts,252
-  repo glast,244
-  repo gdoel,260
-}else if(gtaak==10)
-{
-  repo gwie,268
-  repo gopts,272
-  repo glast,264
-  repo gdoel,280
-}else if(gtaak==11)
-{
-  repo gwie,288
-  repo gopts,292
-  repo glast,284
-  repo gdoel,300
-}
-----
-
----- Postinitialize Event (the page) --------------------
-xpic 165,50,150,58,gtx,gty,1
-if(gwie==0)
-{
-  picq 16,142,448,50,8
-  xstr 16,114,448,20,0,23372,6,1,1,0,"Nog een keer gedaan? Dat mag altijd."
-}else
-{
-  covx gopts,taken.va0.txt,0,0
-  if(gwie==1)
-  {
-    taken.va2.txt="Gedaan door Nadia, +"+taken.va0.txt+" punten"
-  }else if(gwie==2)
-  {
-    taken.va2.txt="Gedaan door Vriend, +"+taken.va0.txt+" punten"
-  }else
-  {
-    taken.va2.txt="Samen gedaan, allebei +"+taken.va0.txt+" punten"
-  }
-  xstr 16,114,448,20,0,6436,6,1,1,0,taken.va2.txt
-}
-----
-
----- Touch Press Event (the page) --------------------
-gknop=0
-if(tch0>=16&&tch0<464&&tch1>=142&&tch1<192)
-{
-  if(gwie>0)
-  {
-    gknop=1
-    picq 16,142,448,50,7
-  }
-}else if(tch0>=16&&tch0<464&&tch1>=198&&tch1<248)
-{
-  gknop=2
-  picq 16,198,448,50,7
-}else if(tch0>=16&&tch0<464&&tch1>=254&&tch1<304)
-{
-  gknop=9
-  picq 16,254,448,50,7
-}
-----
-
----- Touch Release Event (the page) --------------------
-if(gknop==9)
-{
-  page taken
-}else if(gknop==2)
-{
-  gstaat=1
-  gbonus=0
-  page wie
-}else if(gknop==1)
-{
-  // undo: the task gets its day before back
-  if(gtaak==0)
-  {
-    repo gprev,76
-    wepo gprev,64
-    gtmp=0
-    wepo gtmp,68
-  }else if(gtaak==1)
-  {
-    repo gprev,96
-    wepo gprev,84
-    gtmp=0
-    wepo gtmp,88
-  }else if(gtaak==2)
-  {
-    repo gprev,116
-    wepo gprev,104
-    gtmp=0
-    wepo gtmp,108
-  }else if(gtaak==3)
-  {
-    repo gprev,136
-    wepo gprev,124
-    gtmp=0
-    wepo gtmp,128
-  }else if(gtaak==4)
-  {
-    repo gprev,156
-    wepo gprev,144
-    gtmp=0
-    wepo gtmp,148
-  }else if(gtaak==5)
-  {
-    repo gprev,176
-    wepo gprev,164
-    gtmp=0
-    wepo gtmp,168
-  }else if(gtaak==6)
-  {
-    repo gprev,196
-    wepo gprev,184
-    gtmp=0
-    wepo gtmp,188
-  }else if(gtaak==7)
-  {
-    repo gprev,216
-    wepo gprev,204
-    gtmp=0
-    wepo gtmp,208
-  }else if(gtaak==8)
-  {
-    repo gprev,236
-    wepo gprev,224
-    gtmp=0
-    wepo gtmp,228
-  }else if(gtaak==9)
-  {
-    repo gprev,256
-    wepo gprev,244
-    gtmp=0
-    wepo gtmp,248
-  }else if(gtaak==10)
-  {
-    repo gprev,276
-    wepo gprev,264
-    gtmp=0
-    wepo gtmp,268
-  }else if(gtaak==11)
-  {
-    repo gprev,296
-    wepo gprev,284
-    gtmp=0
-    wepo gtmp,288
-  }
-  if(glast>=gweek)
-  {
-    if(gwie!=2)
-    {
-      repo gtmp,4
-      gtmp=gtmp-gopts
-      if(gtmp<0)
-      {
-        gtmp=0
-      }
-      wepo gtmp,4
-    }
-    if(gwie!=1)
-    {
-      repo gtmp,8
-      gtmp=gtmp-gopts
-      if(gtmp<0)
-      {
-        gtmp=0
-      }
-      wepo gtmp,8
-    }
-  }
-  if(glast>=gmaand)
-  {
-    if(gwie!=2)
-    {
-      repo gtmp,12
-      gtmp=gtmp-gopts
-      if(gtmp<0)
-      {
-        gtmp=0
-      }
-      wepo gtmp,12
-    }
-    if(gwie!=1)
-    {
-      repo gtmp,16
-      gtmp=gtmp-gopts
-      if(gtmp<0)
-      {
-        gtmp=0
-      }
-      wepo gtmp,16
-    }
-  }
-  repo gtmp,32
-  if(gdoel==gtmp)
-  {
-    repo gtmp,28
-    gtmp=gtmp-gopts
-    if(gwie==3)
-    {
-      gtmp=gtmp-gopts
-    }
+    // which tile
+    gtmp=tch0-9
     if(gtmp<0)
     {
       gtmp=0
     }
-    wepo gtmp,28
+    gc=gtmp/156
+    if(gc>2)
+    {
+      gc=2
+    }
+    gtmp=tch1-62
+    if(gtmp<0)
+    {
+      gtmp=0
+    }
+    gtmp=gtmp/64
+    if(gtmp>3)
+    {
+      gtmp=3
+    }
+    gtmp=gtmp*3
+    gtmp=gtmp+gc
+    if(gtmp<12)
+    {
+      gtaak=gtmp
+      gscherm=6
+      grender=1
+    }
   }
-  page taken
-}
-----
-
-========================================================================
-PAGE menu   (page 3)
-========================================================================
-  The page itself: sta = image, pic = 9
-
----- Preinitialize Event (the page) --------------------
-gknop=0
-gzeker=0
-----
-
----- Postinitialize Event (the page) --------------------
-// the date and time
-if(rtc6==0)
+}else if(gscherm==1)
 {
-  taken.va0.txt="zondag"
-}else if(rtc6==1)
-{
-  taken.va0.txt="maandag"
-}else if(rtc6==2)
-{
-  taken.va0.txt="dinsdag"
-}else if(rtc6==3)
-{
-  taken.va0.txt="woensdag"
-}else if(rtc6==4)
-{
-  taken.va0.txt="donderdag"
-}else if(rtc6==5)
-{
-  taken.va0.txt="vrijdag"
-}else if(rtc6==6)
-{
-  taken.va0.txt="zaterdag"
-}
-covx rtc2,taken.va1.txt,0,0
-taken.va2.txt=taken.va0.txt+" "+taken.va1.txt
-if(rtc1==1)
-{
-  taken.va0.txt=taken.va2.txt+" januari"
-}else if(rtc1==2)
-{
-  taken.va0.txt=taken.va2.txt+" februari"
-}else if(rtc1==3)
-{
-  taken.va0.txt=taken.va2.txt+" maart"
-}else if(rtc1==4)
-{
-  taken.va0.txt=taken.va2.txt+" april"
-}else if(rtc1==5)
-{
-  taken.va0.txt=taken.va2.txt+" mei"
-}else if(rtc1==6)
-{
-  taken.va0.txt=taken.va2.txt+" juni"
-}else if(rtc1==7)
-{
-  taken.va0.txt=taken.va2.txt+" juli"
-}else if(rtc1==8)
-{
-  taken.va0.txt=taken.va2.txt+" augustus"
-}else if(rtc1==9)
-{
-  taken.va0.txt=taken.va2.txt+" september"
-}else if(rtc1==10)
-{
-  taken.va0.txt=taken.va2.txt+" oktober"
-}else if(rtc1==11)
-{
-  taken.va0.txt=taken.va2.txt+" november"
-}else if(rtc1==12)
-{
-  taken.va0.txt=taken.va2.txt+" december"
-}
-covx rtc3,taken.va1.txt,0,0
-taken.va2.txt=taken.va0.txt+", "+taken.va1.txt
-if(rtc4<10)
-{
-  taken.va0.txt=taken.va2.txt+":0"
-}else
-{
-  taken.va0.txt=taken.va2.txt+":"
-}
-covx rtc4,taken.va1.txt,0,0
-taken.va2.txt=taken.va0.txt+taken.va1.txt
-xstr 180,18,284,20,0,23372,9,2,1,0,taken.va2.txt
-// the goal
-repo gtmp,28
-if(gtmp>0)
-{
-  gprev=gtmp*416
-  gprev=gprev/300
-  if(gprev>416)
+  gb=0
+  if(tch1>=144&&tch1<228)
   {
-    gprev=416
+    gb=3
+    if(tch0<164)
+    {
+      gb=1
+    }else if(tch0<316)
+    {
+      gb=2
+    }
+  }else if(tch1>=240)
+  {
+    gscherm=0
+    grender=1
   }
-  if(gprev>0)
+  if(gb>0)
   {
-    picq 32,106,gprev,14,12
-  }
-}
-covx gtmp,taken.va0.txt,0,0
-taken.va2.txt=taken.va0.txt+" / 300 punten"
-xstr 232,78,216,20,0,6436,9,2,1,0,taken.va2.txt
-if(gtmp>=300)
-{
-  xstr 32,126,416,18,0,11081,9,0,1,0,"Gehaald! Tijd voor de beloning."
-}else
-{
-  gprev=300-gtmp
-  covx gprev,taken.va0.txt,0,0
-  taken.va2.txt="Nog "+taken.va0.txt+" punten te gaan"
-  xstr 32,126,416,18,0,23372,9,0,1,0,taken.va2.txt
-}
-----
-
----- Touch Press Event (the page) --------------------
-gknop=0
-if(tch0>=16&&tch0<464&&tch1>=160&&tch1<204)
-{
-  gknop=1
-  if(gzeker==0)
-  {
-    picq 16,160,448,44,10
-  }
-}else if(tch0>=16&&tch0<464&&tch1>=212&&tch1<256)
-{
-  gknop=2
-  picq 16,212,448,44,10
-}else if(tch0>=16&&tch0<464&&tch1>=264&&tch1<308)
-{
-  gknop=9
-  picq 16,264,448,44,10
-}
-----
-
----- Touch Release Event (the page) --------------------
-if(gknop==9)
-{
-  page taken
-}else if(gknop==2)
-{
-  page klok
-}else if(gknop==1)
-{
-  if(gzeker==0)
-  {
-    gzeker=1
-    picq 16,160,448,44,11
-  }else
-  {
-    // a new goal: count from 0, with the next number
-    gtmp=0
-    wepo gtmp,28
+    gid=gtaak+2
+    gprev=b[gid].val
+    b[gid].val=gdag
+    gid=gtaak+14
+    b[gid].val=gb
+    gid=gtaak+26
+    b[gid].val=gq
+    gid=gtaak+38
+    b[gid].val=gprev
+    gid=gtaak+50
     repo gtmp,32
-    gtmp=gtmp+1
-    wepo gtmp,32
-    page menu
+    b[gid].val=gtmp
+    gsave=1
+    // the points (together: both, as in the app)
+    if(gb!=2)
+    {
+      repo gtmp,4
+      gtmp=gtmp+gq
+      wepo gtmp,4
+      repo gtmp,12
+      gtmp=gtmp+gq
+      wepo gtmp,12
+    }
+    if(gb!=1)
+    {
+      repo gtmp,8
+      gtmp=gtmp+gq
+      wepo gtmp,8
+      repo gtmp,16
+      gtmp=gtmp+gq
+      wepo gtmp,16
+    }
+    repo gtmp,28
+    gtmp=gtmp+gq
+    if(gb==3)
+    {
+      gtmp=gtmp+gq
+    }
+    wepo gtmp,28
+    gscherm=0
+    grender=1
+  }
+}else if(gscherm==2)
+{
+  if(tch1>=142&&tch1<192)
+  {
+    if(gwie>0)
+    {
+      gid=gtaak+38
+      gprev=b[gid].val
+      gid=gtaak+2
+      gl=b[gid].val
+      b[gid].val=gprev
+      gid=gtaak+14
+      gwie=b[gid].val
+      b[gid].val=0
+      gid=gtaak+26
+      gopts=b[gid].val
+      gid=gtaak+50
+      gdoel=b[gid].val
+      gsave=1
+      if(gl>=gweek)
+      {
+        if(gwie!=2)
+        {
+          repo gtmp,4
+          gtmp=gtmp-gopts
+          if(gtmp<0)
+          {
+            gtmp=0
+          }
+          wepo gtmp,4
+        }
+        if(gwie!=1)
+        {
+          repo gtmp,8
+          gtmp=gtmp-gopts
+          if(gtmp<0)
+          {
+            gtmp=0
+          }
+          wepo gtmp,8
+        }
+      }
+      if(gl>=gmaand)
+      {
+        if(gwie!=2)
+        {
+          repo gtmp,12
+          gtmp=gtmp-gopts
+          if(gtmp<0)
+          {
+            gtmp=0
+          }
+          wepo gtmp,12
+        }
+        if(gwie!=1)
+        {
+          repo gtmp,16
+          gtmp=gtmp-gopts
+          if(gtmp<0)
+          {
+            gtmp=0
+          }
+          wepo gtmp,16
+        }
+      }
+      repo gtmp,32
+      if(gdoel==gtmp)
+      {
+        repo gtmp,28
+        gtmp=gtmp-gopts
+        if(gwie==3)
+        {
+          gtmp=gtmp-gopts
+        }
+        if(gtmp<0)
+        {
+          gtmp=0
+        }
+        wepo gtmp,28
+      }
+      gscherm=0
+      grender=1
+    }
+  }else if(tch1>=198&&tch1<248)
+  {
+    gscherm=1
+    grender=1
+  }else if(tch1>=254)
+  {
+    gscherm=0
+    grender=1
+  }
+}else if(gscherm==3)
+{
+  if(tch1>=160&&tch1<204)
+  {
+    if(gzeker==0)
+    {
+      gzeker=1
+      grender=2
+    }else
+    {
+      // a new goal: count from 0, with the next number
+      wepo gnul,28
+      repo gtmp,32
+      gtmp=gtmp+1
+      wepo gtmp,32
+      gzeker=0
+      grender=1
+    }
+  }else if(tch1>=212&&tch1<256)
+  {
+    if(rtc0<2025)
+    {
+      gkj=2026
+      gkm=1
+      gkd=1
+      gku=12
+      gkmi=0
+    }else
+    {
+      gkj=rtc0
+      gkm=rtc1
+      gkd=rtc2
+      gku=rtc3
+      gkmi=rtc4
+    }
+    gscherm=4
+    grender=1
+  }else if(tch1>=264)
+  {
+    gscherm=0
+    grender=1
+  }
+}else if(gscherm==4)
+{
+  if(tch1>=266)
+  {
+    if(tch0>=248)
+    {
+      // save: the day goes to 1 first, so every date in between exists
+      rtc2=1
+      rtc0=gkj
+      rtc1=gkm
+      rtc2=gkd
+      rtc3=gku
+      rtc4=gkmi
+      rtc5=0
+      gtoon=0
+      gtik=19
+      gscherm=0
+      grender=1
+    }else if(tch0<232)
+    {
+      gscherm=0
+      grender=1
+    }
+  }else if(tch1>=50&&tch1<260)
+  {
+    gdelta=0
+    if(tch0>=200&&tch0<260)
+    {
+      gdelta=-1
+    }else if(tch0>=392&&tch0<452)
+    {
+      gdelta=1
+    }
+    if(gdelta!=0)
+    {
+      gf=tch1-50
+      gf=gf/42
+      if(gf==1)
+      {
+        gkm=gkm+gdelta
+        if(gkm<1)
+        {
+          gkm=12
+        }
+        if(gkm>12)
+        {
+          gkm=1
+        }
+      }else if(gf==2)
+      {
+        gkj=gkj+gdelta
+        if(gkj<2025)
+        {
+          gkj=2025
+        }
+        if(gkj>2099)
+        {
+          gkj=2099
+        }
+      }else if(gf==3)
+      {
+        gku=gku+gdelta
+        if(gku<0)
+        {
+          gku=23
+        }
+        if(gku>23)
+        {
+          gku=0
+        }
+      }else if(gf==4)
+      {
+        gkmi=gkmi+gdelta
+        if(gkmi<0)
+        {
+          gkmi=59
+        }
+        if(gkmi>59)
+        {
+          gkmi=0
+        }
+      }
+      gmax=31
+      if(gkm==4||gkm==6||gkm==9||gkm==11)
+      {
+        gmax=30
+      }else if(gkm==2)
+      {
+        gmax=28
+        gtmp=gkj/4
+        gtmp=gtmp*4
+        if(gtmp==gkj)
+        {
+          gmax=29
+        }
+      }
+      if(gkd>gmax)
+      {
+        gkd=gmax
+      }
+      if(gf==0)
+      {
+        gkd=gkd+gdelta
+        if(gkd<1)
+        {
+          gkd=gmax
+        }
+        if(gkd>gmax)
+        {
+          gkd=1
+        }
+      }
+      grender=2
+    }
   }
 }
-----
-
-========================================================================
-PAGE klok   (page 4)
-========================================================================
-  The page itself: sta = image, pic = 13
-
----- Preinitialize Event (the page) --------------------
-gknop=0
-if(gkladen==0)
+if(gsave==1)
 {
-  gkladen=1
+  gsave=0
+  // the day it was done, also in the memory
+  if(gtaak==0)
+  {
+    wepo vl0.val,64
+  }else if(gtaak==1)
+  {
+    wepo vl1.val,68
+  }else if(gtaak==2)
+  {
+    wepo vl2.val,72
+  }else if(gtaak==3)
+  {
+    wepo vl3.val,76
+  }else if(gtaak==4)
+  {
+    wepo vl4.val,80
+  }else if(gtaak==5)
+  {
+    wepo vl5.val,84
+  }else if(gtaak==6)
+  {
+    wepo vl6.val,88
+  }else if(gtaak==7)
+  {
+    wepo vl7.val,92
+  }else if(gtaak==8)
+  {
+    wepo vl8.val,96
+  }else if(gtaak==9)
+  {
+    wepo vl9.val,100
+  }else if(gtaak==10)
+  {
+    wepo vl10.val,104
+  }else if(gtaak==11)
+  {
+    wepo vl11.val,108
+  }
+}
+
+---- Timer Event (tm0) ----
+gtik=gtik+1
+if(gtik>=20)
+{
+  gtik=0
   if(rtc0<2025)
   {
-    gkj=2026
-    gkm=1
-    gkd=1
-    gku=12
-    gkmi=0
+    if(gscherm!=4)
+    {
+      // the clock isn't set: set it first
+      gkj=2026
+      gkm=1
+      gkd=1
+      gku=12
+      gkmi=0
+      gscherm=4
+      grender=1
+    }
   }else
   {
-    gkj=rtc0
-    gkm=rtc1
-    gkd=rtc2
-    gku=rtc3
-    gkmi=rtc4
+    // today as a day number, this week's Monday, the 1st of the month
+    gy=rtc0-2000
+    gm=rtc1
+    if(gm<3)
+    {
+      gy=gy-1
+      gm=gm+12
+    }
+    gdag=gy*365
+    gtmp=gy/4
+    gdag=gdag+gtmp
+    gtmp=gm*153
+    gtmp=gtmp-457
+    gtmp=gtmp/5
+    gdag=gdag+gtmp
+    gdag=gdag+rtc2
+    gmaand=gdag-rtc2
+    gmaand=gmaand+1
+    if(rtc6==0)
+    {
+      gweek=gdag-6
+    }else
+    {
+      gweek=gdag-rtc6
+      gweek=gweek+1
+    }
+    if(gdag!=gtoon)
+    {
+      gtoon=gdag
+      // a new week or month starts at 0
+      repo gtmp,20
+      if(gtmp!=gweek)
+      {
+        wepo gnul,4
+        wepo gnul,8
+        wepo gweek,20
+      }
+      repo gtmp,24
+      if(gtmp!=gmaand)
+      {
+        wepo gnul,12
+        wepo gnul,16
+        wepo gmaand,24
+      }
+      if(gscherm==0)
+      {
+        grender=1
+      }
+    }
   }
 }
-----
-
----- Postinitialize Event (the page) --------------------
-covx gkd,taken.va0.txt,0,0
-xstr 266,50,120,38,1,6436,13,1,1,0,taken.va0.txt
-covx gkm,taken.va0.txt,0,0
-xstr 266,92,120,38,1,6436,13,1,1,0,taken.va0.txt
-covx gkj,taken.va0.txt,0,0
-xstr 266,134,120,38,1,6436,13,1,1,0,taken.va0.txt
-covx gku,taken.va0.txt,0,0
-xstr 266,176,120,38,1,6436,13,1,1,0,taken.va0.txt
-covx gkmi,taken.va0.txt,0,0
-if(gkmi<10)
+if(grender>0)
 {
-  taken.va1.txt="0"+taken.va0.txt
-  xstr 266,218,120,38,1,6436,13,1,1,0,taken.va1.txt
-}else
-{
-  xstr 266,218,120,38,1,6436,13,1,1,0,taken.va0.txt
+  gk=grender
+  grender=0
+  // the tasks: all of them (the list) or the one that was tapped
+  if(gscherm<=2||gscherm==6)
+  {
+    if(gscherm==0)
+    {
+      pic 0,0,0
+      gi=0
+      gn=12
+    }else
+    {
+      gi=gtaak
+      gn=gtaak+1
+    }
+    while(gi<gn)
+    {
+      gid=gi+2
+      gl=b[gid].val
+      gid=gi+62
+      ge=b[gid].val
+      gid=gi+74
+      gp=b[gid].val
+      gq=gp
+      gs=0
+      gst=0
+      gd=0
+      if(gl>0)
+      {
+        gd=gl+ge
+        gd=gd-gdag
+        // days until it comes back
+        if(gd>0)
+        {
+          gs=1
+          gst=3
+          if(gd==1)
+          {
+            gst=2
+          }
+        }else if(gd==0)
+        {
+          gst=1
+        }else
+        {
+          gd=0-gd
+          gst=4
+          // very late: a whole round, at least 3 days
+          gtmp=ge
+          if(gtmp<3)
+          {
+            gtmp=3
+          }
+          if(gd>=gtmp)
+          {
+            gs=3
+            gq=gp*2
+          }else
+          {
+            // a bit late: half a round, at least 2 days
+            gtmp=ge+1
+            gtmp=gtmp/2
+            if(gtmp<2)
+            {
+              gtmp=2
+            }
+            if(gd>=gtmp)
+            {
+              gs=2
+              gtmp=gp+1
+              gtmp=gtmp/2
+              gq=gp+gtmp
+            }
+          }
+        }
+      }
+      // where its tile is
+      gtmp=gi/3
+      gty=gtmp*64
+      gty=gty+62
+      gtmp=gtmp*3
+      gtx=gi-gtmp
+      gtx=gtx*156
+      gtx=gtx+9
+      if(gscherm==0)
+      {
+        if(gs>0)
+        {
+          picq gtx,gty,150,58,gs
+        }
+        gx=gtx+142
+        gy2=gty+35
+        if(gst==0)
+        {
+          gx=gx-76
+          xpic gx,gy2,76,16,350,210,8
+        }else if(gst==1)
+        {
+          gx=gx-48
+          xpic gx,gy2,48,16,51,226,8
+        }else if(gst==2)
+        {
+          gx=gx-44
+          xpic gx,gy2,44,16,99,226,8
+        }else
+        {
+          if(gd>999)
+          {
+            gd=999
+          }
+          if(gst==3)
+          {
+            gx=gx-11
+            xpic gx,gy2,11,16,199,226,8
+            gdw=9
+            gdh=16
+            gsx0=269
+            gsy=194
+            gsp=8
+          }else if(gs==3)
+          {
+            gx=gx-51
+            xpic gx,gy2,51,16,0,226,8
+            gdw=9
+            gdh=16
+            gsx0=0
+            gsy=210
+            gsp=8
+          }else
+          {
+            gx=gx-51
+            xpic gx,gy2,51,16,426,210,8
+            gdw=9
+            gdh=16
+            gsx0=359
+            gsy=194
+            gsp=8
+          }
+          gnum=gd
+          gmin=1
+          gc=0
+          gmore=1
+          while(gmore==1)
+          {
+            gtmp=gnum/10
+            gtmp=gtmp*10
+            gdg=gnum-gtmp
+            gnum=gnum/10
+            gx=gx-gdw
+            gsx=gdg*gdw
+            gsx=gsx+gsx0
+            xpic gx,gy2,gdw,gdh,gsx,gsy,gsp
+            gc=gc+1
+            gmore=0
+            if(gnum>0)
+            {
+              gmore=1
+            }
+            if(gc<gmin)
+            {
+              gmore=1
+            }
+          }
+          if(gst==3)
+          {
+            gx=gx-28
+            xpic gx,gy2,28,16,143,226,8
+          }
+        }
+      }
+      gi=gi+1
+    }
+    if(gscherm==6)
+    {
+      // a done task: undo or again
+      if(gs==1)
+      {
+        gscherm=2
+      }else
+      {
+        gscherm=1
+      }
+    }
+  }
+  if(gscherm==0)
+  {
+    // the points of both people: this week (big), this month
+    gpp=0
+    while(gpp<2)
+    {
+      if(gpp==0)
+      {
+        repo gnum,4
+        gx=194
+        gdw=17
+        gdh=30
+        gsx0=0
+        gsy=94
+        gsp=8
+      }else
+      {
+        repo gnum,8
+        gx=396
+        gdw=17
+        gdh=30
+        gsx0=170
+        gsy=94
+        gsp=8
+      }
+      gy2=23
+      gmin=1
+      gc=0
+      gmore=1
+      while(gmore==1)
+      {
+        gtmp=gnum/10
+        gtmp=gtmp*10
+        gdg=gnum-gtmp
+        gnum=gnum/10
+        gx=gx-gdw
+        gsx=gdg*gdw
+        gsx=gsx+gsx0
+        xpic gx,gy2,gdw,gdh,gsx,gsy,gsp
+        gc=gc+1
+        gmore=0
+        if(gnum>0)
+        {
+          gmore=1
+        }
+        if(gc<gmin)
+        {
+          gmore=1
+        }
+      }
+      // this month, after the word maand
+      if(gpp==0)
+      {
+        repo gnum,12
+        gx=58
+      }else
+      {
+        repo gnum,16
+        gx=260
+      }
+      gc=1
+      gtmp=gnum/10
+      while(gtmp>0)
+      {
+        gc=gc+1
+        gtmp=gtmp/10
+      }
+      gtmp=gc*8
+      gx=gx+gtmp
+      gy2=36
+      gdw=8
+      gdh=16
+      gsx0=270
+      gsy=210
+      gsp=8
+      gc=0
+      gmore=1
+      while(gmore==1)
+      {
+        gtmp=gnum/10
+        gtmp=gtmp*10
+        gdg=gnum-gtmp
+        gnum=gnum/10
+        gx=gx-gdw
+        gsx=gdg*gdw
+        gsx=gsx+gsx0
+        xpic gx,gy2,gdw,gdh,gsx,gsy,gsp
+        gc=gc+1
+        gmore=0
+        if(gnum>0)
+        {
+          gmore=1
+        }
+        if(gc<gmin)
+        {
+          gmore=1
+        }
+      }
+      gpp=gpp+1
+    }
+  }else if(gscherm==1)
+  {
+    pic 0,0,4
+    xpic 165,50,150,58,gtx,gty,gs
+    // +6 punten (, met 3 bonus): in the middle
+    gbon=gq-gp
+    gw=0
+    gw=gw+60
+    gc=1
+    gtmp=gq/10
+    while(gtmp>0)
+    {
+      gc=gc+1
+      gtmp=gtmp/10
+    }
+    gtmp=gc*10
+    gw=gw+gtmp
+    gx=gw/2
+    gx=gx+240
+    if(gbon>0)
+    {
+      gw=gw+82
+      gc=1
+      gtmp=gbon/10
+      while(gtmp>0)
+      {
+        gc=gc+1
+        gtmp=gtmp/10
+      }
+      gtmp=gc*10
+      gw=gw+gtmp
+      gx=gw/2
+      gx=gx+240
+    }
+    if(gbon>0)
+    {
+      gx=gx-45
+      xpic gx,116,45,20,250,174,8
+      gnum=gbon
+      gy2=116
+      gdw=10
+      gdh=20
+      gsx0=0
+      gsy=174
+      gsp=8
+      gmin=1
+      gc=0
+      gmore=1
+      while(gmore==1)
+      {
+        gtmp=gnum/10
+        gtmp=gtmp*10
+        gdg=gnum-gtmp
+        gnum=gnum/10
+        gx=gx-gdw
+        gsx=gdg*gdw
+        gsx=gsx+gsx0
+        xpic gx,gy2,gdw,gdh,gsx,gsy,gsp
+        gc=gc+1
+        gmore=0
+        if(gnum>0)
+        {
+          gmore=1
+        }
+        if(gc<gmin)
+        {
+          gmore=1
+        }
+      }
+      gx=gx-37
+      xpic gx,116,37,20,295,174,8
+    }
+    gx=gx-50
+    xpic gx,116,50,20,200,174,8
+    gnum=gq
+    gy2=116
+    gdw=10
+    gdh=20
+    gsx0=0
+    gsy=174
+    gsp=8
+    gmin=1
+    gc=0
+    gmore=1
+    while(gmore==1)
+    {
+      gtmp=gnum/10
+      gtmp=gtmp*10
+      gdg=gnum-gtmp
+      gnum=gnum/10
+      gx=gx-gdw
+      gsx=gdg*gdw
+      gsx=gsx+gsx0
+      xpic gx,gy2,gdw,gdh,gsx,gsy,gsp
+      gc=gc+1
+      gmore=0
+      if(gnum>0)
+      {
+        gmore=1
+      }
+      if(gc<gmin)
+      {
+        gmore=1
+      }
+    }
+    gx=gx-10
+    xpic gx,116,10,20,332,174,8
+  }else if(gscherm==2)
+  {
+    pic 0,0,5
+    xpic 165,50,150,58,gtx,gty,1
+    // who did it last (gone after a power cut: then no undo)
+    gid=gtaak+14
+    gwie=b[gid].val
+    gid=gtaak+26
+    gopts=b[gid].val
+    if(gwie==0)
+    {
+      xpic 16,142,448,50,0,0,8
+      xpic 115,116,249,20,170,124,8
+    }else
+    {
+      if(gwie==1)
+      {
+        gw=145
+      }else if(gwie==2)
+      {
+        gw=149
+      }else
+      {
+        gw=164
+      }
+      gw=gw+50
+      gc=1
+      gtmp=gopts/10
+      while(gtmp>0)
+      {
+        gc=gc+1
+        gtmp=gtmp/10
+      }
+      gtmp=gc*10
+      gw=gw+gtmp
+      gx=gw/2
+      gx=gx+240
+      gx=gx-50
+      xpic gx,116,50,20,200,174,8
+      gnum=gopts
+      gy2=116
+      gdw=10
+      gdh=20
+      gsx0=0
+      gsy=174
+      gsp=8
+      gmin=1
+      gc=0
+      gmore=1
+      while(gmore==1)
+      {
+        gtmp=gnum/10
+        gtmp=gtmp*10
+        gdg=gnum-gtmp
+        gnum=gnum/10
+        gx=gx-gdw
+        gsx=gdg*gdw
+        gsx=gsx+gsx0
+        xpic gx,gy2,gdw,gdh,gsx,gsy,gsp
+        gc=gc+1
+        gmore=0
+        if(gnum>0)
+        {
+          gmore=1
+        }
+        if(gc<gmin)
+        {
+          gmore=1
+        }
+      }
+      if(gwie==1)
+      {
+        gx=gx-145
+        xpic gx,116,145,20,313,154,8
+      }else if(gwie==2)
+      {
+        gx=gx-149
+        xpic gx,116,149,20,164,154,8
+      }else
+      {
+        gx=gx-164
+        xpic gx,116,164,20,0,154,8
+      }
+    }
+  }else if(gscherm==3)
+  {
+    if(gk==1)
+    {
+      pic 0,0,6
+      // the date and time: 6-10-2026  9:05
+      gx=464
+      gf=0
+      while(gf<5)
+      {
+        gmin=1
+        if(gf==0)
+        {
+          gnum=rtc4
+          gmin=2
+        }else if(gf==1)
+        {
+          gnum=rtc3
+        }else if(gf==2)
+        {
+          gnum=rtc0
+        }else if(gf==3)
+        {
+          gnum=rtc1
+        }else
+        {
+          gnum=rtc2
+        }
+        gy2=20
+        gdw=9
+        gdh=16
+        gsx0=90
+        gsy=210
+        gsp=8
+        gc=0
+        gmore=1
+        while(gmore==1)
+        {
+          gtmp=gnum/10
+          gtmp=gtmp*10
+          gdg=gnum-gtmp
+          gnum=gnum/10
+          gx=gx-gdw
+          gsx=gdg*gdw
+          gsx=gsx+gsx0
+          xpic gx,gy2,gdw,gdh,gsx,gsy,gsp
+          gc=gc+1
+          gmore=0
+          if(gnum>0)
+          {
+            gmore=1
+          }
+          if(gc<gmin)
+          {
+            gmore=1
+          }
+        }
+        if(gf==0)
+        {
+          gx=gx-3
+          xpic gx,20,3,16,215,226,8
+        }else if(gf==1)
+        {
+          gx=gx-12
+        }else if(gf<4)
+        {
+          gx=gx-5
+          xpic gx,20,5,16,210,226,8
+        }
+        gf=gf+1
+      }
+      // the goal: the points so far, the bar, how many to go
+      repo gd,28
+      gnum=gd
+      gx=349
+      gy2=78
+      gdw=10
+      gdh=20
+      gsx0=100
+      gsy=174
+      gsp=8
+      gmin=1
+      gc=0
+      gmore=1
+      while(gmore==1)
+      {
+        gtmp=gnum/10
+        gtmp=gtmp*10
+        gdg=gnum-gtmp
+        gnum=gnum/10
+        gx=gx-gdw
+        gsx=gdg*gdw
+        gsx=gsx+gsx0
+        xpic gx,gy2,gdw,gdh,gsx,gsy,gsp
+        gc=gc+1
+        gmore=0
+        if(gnum>0)
+        {
+          gmore=1
+        }
+        if(gc<gmin)
+        {
+          gmore=1
+        }
+      }
+      if(gd>0)
+      {
+        gtmp=gd*416
+        gtmp=gtmp/300
+        if(gtmp>416)
+        {
+          gtmp=416
+        }
+        if(gtmp>0)
+        {
+          xpic 32,106,gtmp,14,0,242,8
+        }
+      }
+      if(gd>=300)
+      {
+        xpic 32,128,179,16,0,194,8
+      }else
+      {
+        gnum=300-gd
+        gtmp=gnum
+        gc=1
+        gtmp=gtmp/10
+        while(gtmp>0)
+        {
+          gc=gc+1
+          gtmp=gtmp/10
+        }
+        gtmp=gc*9
+        gx=gtmp+150
+        gx=gx-90
+        xpic gx,128,90,16,179,194,8
+        gy2=128
+        gdw=9
+        gdh=16
+        gsx0=180
+        gsy=210
+        gsp=8
+        gmin=1
+        gc=0
+        gmore=1
+        while(gmore==1)
+        {
+          gtmp=gnum/10
+          gtmp=gtmp*10
+          gdg=gnum-gtmp
+          gnum=gnum/10
+          gx=gx-gdw
+          gsx=gdg*gdw
+          gsx=gsx+gsx0
+          xpic gx,gy2,gdw,gdh,gsx,gsy,gsp
+          gc=gc+1
+          gmore=0
+          if(gnum>0)
+          {
+            gmore=1
+          }
+          if(gc<gmin)
+          {
+            gmore=1
+          }
+        }
+        gx=gx-28
+        xpic gx,128,28,16,171,226,8
+      }
+    }
+    if(gzeker==1)
+    {
+      xpic 16,160,448,44,0,50,8
+    }
+  }else if(gscherm==4)
+  {
+    if(gk==1)
+    {
+      pic 0,0,7
+    }
+    // the five values
+    gf=0
+    while(gf<5)
+    {
+      gmin=1
+      if(gf==0)
+      {
+        gnum=gkd
+      }else if(gf==1)
+      {
+        gnum=gkm
+      }else if(gf==2)
+      {
+        gnum=gkj
+      }else if(gf==3)
+      {
+        gnum=gku
+      }else
+      {
+        gnum=gkmi
+        gmin=2
+      }
+      gy2=gf*42
+      gy2=gy2+50
+      picq 266,gy2,120,38,7
+      gy2=gy2+4
+      gc=1
+      gtmp=gnum/10
+      while(gtmp>0)
+      {
+        gc=gc+1
+        gtmp=gtmp/10
+      }
+      if(gc<gmin)
+      {
+        gc=gmin
+      }
+      gtmp=gc*17
+      gtmp=gtmp/2
+      gx=gtmp+326
+      gdw=17
+      gdh=30
+      gsx0=0
+      gsy=124
+      gsp=8
+      gc=0
+      gmore=1
+      while(gmore==1)
+      {
+        gtmp=gnum/10
+        gtmp=gtmp*10
+        gdg=gnum-gtmp
+        gnum=gnum/10
+        gx=gx-gdw
+        gsx=gdg*gdw
+        gsx=gsx+gsx0
+        xpic gx,gy2,gdw,gdh,gsx,gsy,gsp
+        gc=gc+1
+        gmore=0
+        if(gnum>0)
+        {
+          gmore=1
+        }
+        if(gc<gmin)
+        {
+          gmore=1
+        }
+      }
+      gf=gf+1
+    }
+  }
 }
-----
-
----- Touch Press Event (the page) --------------------
-gknop=0
-if(tch0>=16&&tch0<232&&tch1>=266&&tch1<312)
-{
-  gknop=9
-  picq 16,266,216,46,14
-}else if(tch0>=248&&tch0<464&&tch1>=266&&tch1<312)
-{
-  gknop=1
-  picq 248,266,216,46,14
-}else if(tch0>=200&&tch0<260&&tch1>=50&&tch1<88)
-{
-  gknop=11
-  picq 200,50,60,38,14
-}else if(tch0>=392&&tch0<452&&tch1>=50&&tch1<88)
-{
-  gknop=21
-  picq 392,50,60,38,14
-}else if(tch0>=200&&tch0<260&&tch1>=92&&tch1<130)
-{
-  gknop=12
-  picq 200,92,60,38,14
-}else if(tch0>=392&&tch0<452&&tch1>=92&&tch1<130)
-{
-  gknop=22
-  picq 392,92,60,38,14
-}else if(tch0>=200&&tch0<260&&tch1>=134&&tch1<172)
-{
-  gknop=13
-  picq 200,134,60,38,14
-}else if(tch0>=392&&tch0<452&&tch1>=134&&tch1<172)
-{
-  gknop=23
-  picq 392,134,60,38,14
-}else if(tch0>=200&&tch0<260&&tch1>=176&&tch1<214)
-{
-  gknop=14
-  picq 200,176,60,38,14
-}else if(tch0>=392&&tch0<452&&tch1>=176&&tch1<214)
-{
-  gknop=24
-  picq 392,176,60,38,14
-}else if(tch0>=200&&tch0<260&&tch1>=218&&tch1<256)
-{
-  gknop=15
-  picq 200,218,60,38,14
-}else if(tch0>=392&&tch0<452&&tch1>=218&&tch1<256)
-{
-  gknop=25
-  picq 392,218,60,38,14
-}
-----
-
----- Touch Release Event (the page) --------------------
-if(gknop==1)
-{
-  // the day goes to 1 first, so every in-between date exists
-  rtc2=1
-  rtc0=gkj
-  rtc1=gkm
-  rtc2=gkd
-  rtc3=gku
-  rtc4=gkmi
-  rtc5=0
-  gkladen=0
-  page taken
-}else if(gknop==9)
-{
-  gkladen=0
-  page taken
-}else if(gknop==11)
-{
-  picq 200,50,60,38,13
-  gmax=31
-  if(gkm==4||gkm==6||gkm==9||gkm==11)
-  {
-    gmax=30
-  }else if(gkm==2)
-  {
-    gmax=28
-    gtmp=gkj/4
-    gtmp=gtmp*4
-    if(gtmp==gkj)
-    {
-      gmax=29
-    }
-  }
-  if(gkd>gmax)
-  {
-    gkd=gmax
-  }
-  gkd=gkd-1
-  if(gkd<1)
-  {
-    gkd=gmax
-  }
-  covx gkd,taken.va0.txt,0,0
-  xstr 266,50,120,38,1,6436,13,1,1,0,taken.va0.txt
-}else if(gknop==21)
-{
-  picq 392,50,60,38,13
-  gmax=31
-  if(gkm==4||gkm==6||gkm==9||gkm==11)
-  {
-    gmax=30
-  }else if(gkm==2)
-  {
-    gmax=28
-    gtmp=gkj/4
-    gtmp=gtmp*4
-    if(gtmp==gkj)
-    {
-      gmax=29
-    }
-  }
-  if(gkd>gmax)
-  {
-    gkd=gmax
-  }
-  gkd=gkd+1
-  if(gkd>gmax)
-  {
-    gkd=1
-  }
-  covx gkd,taken.va0.txt,0,0
-  xstr 266,50,120,38,1,6436,13,1,1,0,taken.va0.txt
-}else if(gknop==12)
-{
-  picq 200,92,60,38,13
-  gkm=gkm-1
-  if(gkm<1)
-  {
-    gkm=12
-  }
-  gmax=31
-  if(gkm==4||gkm==6||gkm==9||gkm==11)
-  {
-    gmax=30
-  }else if(gkm==2)
-  {
-    gmax=28
-    gtmp=gkj/4
-    gtmp=gtmp*4
-    if(gtmp==gkj)
-    {
-      gmax=29
-    }
-  }
-  if(gkd>gmax)
-  {
-    gkd=gmax
-  }
-  covx gkm,taken.va0.txt,0,0
-  xstr 266,92,120,38,1,6436,13,1,1,0,taken.va0.txt
-  covx gkd,taken.va0.txt,0,0
-  xstr 266,50,120,38,1,6436,13,1,1,0,taken.va0.txt
-}else if(gknop==22)
-{
-  picq 392,92,60,38,13
-  gkm=gkm+1
-  if(gkm>12)
-  {
-    gkm=1
-  }
-  gmax=31
-  if(gkm==4||gkm==6||gkm==9||gkm==11)
-  {
-    gmax=30
-  }else if(gkm==2)
-  {
-    gmax=28
-    gtmp=gkj/4
-    gtmp=gtmp*4
-    if(gtmp==gkj)
-    {
-      gmax=29
-    }
-  }
-  if(gkd>gmax)
-  {
-    gkd=gmax
-  }
-  covx gkm,taken.va0.txt,0,0
-  xstr 266,92,120,38,1,6436,13,1,1,0,taken.va0.txt
-  covx gkd,taken.va0.txt,0,0
-  xstr 266,50,120,38,1,6436,13,1,1,0,taken.va0.txt
-}else if(gknop==13)
-{
-  picq 200,134,60,38,13
-  gkj=gkj-1
-  if(gkj<2025)
-  {
-    gkj=2025
-  }
-  gmax=31
-  if(gkm==4||gkm==6||gkm==9||gkm==11)
-  {
-    gmax=30
-  }else if(gkm==2)
-  {
-    gmax=28
-    gtmp=gkj/4
-    gtmp=gtmp*4
-    if(gtmp==gkj)
-    {
-      gmax=29
-    }
-  }
-  if(gkd>gmax)
-  {
-    gkd=gmax
-  }
-  covx gkj,taken.va0.txt,0,0
-  xstr 266,134,120,38,1,6436,13,1,1,0,taken.va0.txt
-  covx gkd,taken.va0.txt,0,0
-  xstr 266,50,120,38,1,6436,13,1,1,0,taken.va0.txt
-}else if(gknop==23)
-{
-  picq 392,134,60,38,13
-  gkj=gkj+1
-  if(gkj>2099)
-  {
-    gkj=2099
-  }
-  gmax=31
-  if(gkm==4||gkm==6||gkm==9||gkm==11)
-  {
-    gmax=30
-  }else if(gkm==2)
-  {
-    gmax=28
-    gtmp=gkj/4
-    gtmp=gtmp*4
-    if(gtmp==gkj)
-    {
-      gmax=29
-    }
-  }
-  if(gkd>gmax)
-  {
-    gkd=gmax
-  }
-  covx gkj,taken.va0.txt,0,0
-  xstr 266,134,120,38,1,6436,13,1,1,0,taken.va0.txt
-  covx gkd,taken.va0.txt,0,0
-  xstr 266,50,120,38,1,6436,13,1,1,0,taken.va0.txt
-}else if(gknop==14)
-{
-  picq 200,176,60,38,13
-  gku=gku-1
-  if(gku<0)
-  {
-    gku=23
-  }
-  covx gku,taken.va0.txt,0,0
-  xstr 266,176,120,38,1,6436,13,1,1,0,taken.va0.txt
-}else if(gknop==24)
-{
-  picq 392,176,60,38,13
-  gku=gku+1
-  if(gku>23)
-  {
-    gku=0
-  }
-  covx gku,taken.va0.txt,0,0
-  xstr 266,176,120,38,1,6436,13,1,1,0,taken.va0.txt
-}else if(gknop==15)
-{
-  picq 200,218,60,38,13
-  gkmi=gkmi-1
-  if(gkmi<0)
-  {
-    gkmi=59
-  }
-  covx gkmi,taken.va0.txt,0,0
-  if(gkmi<10)
-  {
-    taken.va1.txt="0"+taken.va0.txt
-    xstr 266,218,120,38,1,6436,13,1,1,0,taken.va1.txt
-  }else
-  {
-    xstr 266,218,120,38,1,6436,13,1,1,0,taken.va0.txt
-  }
-}else if(gknop==25)
-{
-  picq 392,218,60,38,13
-  gkmi=gkmi+1
-  if(gkmi>59)
-  {
-    gkmi=0
-  }
-  covx gkmi,taken.va0.txt,0,0
-  if(gkmi<10)
-  {
-    taken.va1.txt="0"+taken.va0.txt
-    xstr 266,218,120,38,1,6436,13,1,1,0,taken.va1.txt
-  }else
-  {
-    xstr 266,218,120,38,1,6436,13,1,1,0,taken.va0.txt
-  }
-}
-----
-

@@ -1,8 +1,10 @@
-"""Tests the screen code in the small Nextion (nextion_sim.py) and makes
-preview.png. Run it after make_screens.py:
+"""Tests Huistaken.HMI on the computer and makes preview.png. Run it after
+make_screens.py:
     python house_tasks/check.py
-It plays a year of random ticks, undos and power cuts and compares the
-screen with the app's rules after every step.
+It reads the project file like Nextion Editor would (every checksum), runs
+its code in the small Nextion (nextion_sim.py), and plays a year of random
+ticks, undos, new goals and power cuts, comparing the screen with the
+app's rules after every step.
 """
 import math
 import os
@@ -10,30 +12,13 @@ import random
 import sys
 from datetime import date, datetime, timedelta
 
-from PIL import Image, ImageFont
+from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import make_screens as ms                                  # noqa: E402
-from nextion_sim import Nextion, NextionError, parse      # noqa: E402
+import make_screens as ms                                   # noqa: E402
+from nextion_sim import Nextion, NextionError, parse       # noqa: E402
 
 HERE = ms.HERE
-
-
-def nextion_font(kind, height):
-    """The font at the size the Font Generator makes for this height."""
-    path = os.path.join(HERE, "fonts", ms.FONT_FILES[kind])
-    size = height
-    while sum(ImageFont.truetype(path, size).getmetrics()) > height:
-        size -= 1
-    return ImageFont.truetype(path, size)
-
-
-def new_screen(cfg, pictures, clock=None):
-    fonts = {ms.SMALL: nextion_font("regular", ms.SMALL_H),
-             ms.BIG: nextion_font("display", ms.BIG_H)}
-    nx = Nextion(ms.program_s(cfg), ms.pages(cfg), pictures, fonts, clock)
-    nx.boot()
-    return nx
 
 
 def tile_center(i):
@@ -47,7 +32,7 @@ class Model:
     def __init__(self, cfg):
         self.tasks = cfg["tasks"]
         self.last = [None] * len(self.tasks)      # date of the last tick
-        self.undo = [None] * len(self.tasks)      # (prev date, who, points) or None
+        self.undo = [None] * len(self.tasks)      # (prev date, tick) while undo is possible
         self.ticks = []                           # [day, who, points, goal nr, alive]
         self.goal_nr = 0
 
@@ -67,16 +52,19 @@ class Model:
 
     def tick(self, i, who, today):
         pts = self.state(i, today)[1]
-        self.undo[i] = (self.last[i], who, pts, len(self.ticks))
-        self.ticks.append([today, who, pts, self.goal_nr, True])
+        tick = [today, who, pts, self.goal_nr, True]
+        self.ticks.append(tick)
+        self.undo[i] = (self.last[i], tick)
         self.last[i] = today
-        return pts
 
     def untick(self, i):
-        prev, _, _, k = self.undo[i]
-        self.ticks[k][4] = False
+        prev, tick = self.undo[i]
+        tick[4] = False
         self.last[i] = prev
         self.undo[i] = None
+
+    def power_cut(self):
+        self.undo = [None] * len(self.tasks)      # undo lives in the screen's RAM only
 
     def scores(self, today):
         monday = today - timedelta(days=today.weekday())
@@ -94,25 +82,67 @@ class Model:
         return week, month, goal
 
 
-def check_screen(nx, model, cfg):
+def check_screen(nx, model, cfg, state_code, pictures):
+    """The scores in the memory and every task (worked out by the screen's own
+    code, and as drawn) against the app's rules."""
     today = nx.clock.date()
-    assert nx.page == "taken", nx.page
+    assert nx.vars["gscherm"] == ms.TAKEN, nx.vars["gscherm"]
     week, month, goal = model.scores(today)
     got = ([nx.peek(a) for a in ms.A_WEEK], [nx.peek(a) for a in ms.A_MONTH], nx.peek(ms.A_GOAL))
     assert got == (week, month, goal), f"{today}: scores {got} != {(week, month, goal)}"
     for i in range(len(cfg["tasks"])):
-        want = model.state(i, today)[0]
-        assert nx.vars[f"gs{i}"] == want, f"{today} task {i}: state {nx.vars[f'gs{i}']} != {want}"
+        nx.vars["gi"] = i
+        nx.run(state_code)
+        want = model.state(i, today)
+        assert (nx.vars["gs"], nx.vars["gq"]) == want, f"{today} task {i}: {nx.vars['gs'], nx.vars['gq']} != {want}"
+        x, y, w, h = ms.tile_box(i)                 # the name part of the tile, as drawn
+        box = (x, y, x + w, y + 30)
+        assert nx.screen.crop(box).tobytes() == pictures[want[0]].crop(box).tobytes(), \
+            f"{today} task {i}: tile drawn wrong"
 
 
-def test_day_numbers(cfg, pictures):
+def new_screen(data, clock=None):
+    nx = Nextion(data, clock)
+    nx.ticks(1)
+    return nx
+
+
+def set_clock(nx, when):
+    """Set the clock with the - and + buttons, as a person would."""
+    assert nx.vars["gscherm"] == ms.KLOK
+    targets = [when.day, when.month, when.year, when.hour, when.minute]
+    for _ in range(3):                    # the day can depend on month and year
+        for row in (1, 2, 0, 3, 4):
+            var = ms.CLOCK_FIELDS[row][1]
+            while nx.vars[var] != targets[row]:
+                part = "plus" if nx.vars[var] < targets[row] else "minus"
+                nx.tap_box(ms.clock_box(row, part))
+    nx.tap_box(ms.CLOCK_BUTTONS[1])
+    nx.ticks(1)
+
+
+def test_project(data, project):
+    """The file on disk is the one tasks.json makes, and it reads back whole."""
+    path = ms.PROJECT
+    on_disk = open(path, "rb").read() if os.path.exists(path) else b""
+    assert on_disk == data, "Huistaken.HMI is not up to date: run make_screens.py"
+    nx = Nextion(data)
+    assert len(nx.pics) == len(project["pictures"])
+    for a, b in zip(nx.pics, project["pictures"]):
+        assert a.tobytes() == b.tobytes(), "a picture changed on the way"
+    assert nx.program == project["program"] + [""]
+    print(f"Huistaken.HMI: {len(data) // 1024} KB, every checksum right, "
+          f"{len(nx.pics)} pictures, 1 page, {len(nx.parts) - 1} parts read back")
+
+
+def test_day_numbers(data):
     """gdag counts days, gweek is the Monday, gmaand the 1st (2025-2099)."""
-    nx = new_screen(cfg, pictures, datetime(2026, 1, 1, 12))
-    code = parse(ms.day_numbers(), "day numbers")
+    nx = Nextion(data, datetime(2026, 1, 1, 12))
+    code = parse(ms.Code.day_numbers(), "day numbers")
     d, base = date(2025, 1, 1), None
     while d < date(2100, 1, 1):
         nx.clock = datetime(d.year, d.month, d.day, 12)
-        nx.run_nodes(code)
+        nx.run(code)
         off = nx.vars["gdag"] - d.toordinal()
         base = off if base is None else base
         assert off == base, f"day number of {d}"
@@ -122,49 +152,40 @@ def test_day_numbers(cfg, pictures):
     print("day numbers: right for every day 2025-2099")
 
 
-def set_clock(nx, when):
-    """Set the clock with the - and + buttons, as a person would."""
-    assert nx.page == "klok"
-    targets = [when.day, when.month, when.year, when.hour, when.minute]
-    for _ in range(3):                    # the day can depend on month and year
-        for row in (1, 2, 0, 3, 4):
-            var = ms.CLOCK_FIELDS[row][1]
-            while nx.vars[var] != targets[row]:
-                part = "plus" if nx.vars[var] < targets[row] else "minus"
-                nx.tap_box(ms.clock_box(row, part))
-    nx.tap_box(ms.CLOCK_BUTTONS[1])
-
-
-def test_clock(cfg, pictures):
-    nx = new_screen(cfg, pictures)                       # never set: the clock page
-    assert nx.page == "klok"
+def test_clock(data):
+    nx = new_screen(data)                               # never set: the clock page
+    assert nx.vars["gscherm"] == ms.KLOK
     for when in (datetime(2027, 2, 28, 7, 5), datetime(2028, 2, 29, 23, 59),
                  datetime(2026, 12, 31, 0, 0)):
         set_clock(nx, when)
         assert nx.clock == when, (nx.clock, when)
         nx.tap_box(ms.MENU_BOX)
         nx.tap_box(ms.MENU_BUTTONS[1])
-    # 31 January -> February: the day goes to 28 (or 29)
-    nx.tap_box(ms.clock_box(1, "plus"))                  # December -> January
+    nx.tap_box(ms.clock_box(1, "plus"))                 # December -> January
     while nx.vars["gkd"] != 31:
         nx.tap_box(ms.clock_box(0, "plus"))
-    nx.tap_box(ms.clock_box(1, "plus"))
+    nx.tap_box(ms.clock_box(1, "plus"))                 # 31 January -> February: 28
     assert (nx.vars["gkm"], nx.vars["gkd"]) == (2, 28), (nx.vars["gkm"], nx.vars["gkd"])
-    nx.tap_box(ms.clock_box(2, "plus"))                  # 2027 -> 2028 keeps 28
-    nx.tap_box(ms.CLOCK_BUTTONS[0])                      # Annuleren: clock unchanged
-    assert nx.clock == datetime(2026, 12, 31, 0, 0) and nx.page == "taken"
-    print("clock page: sets the clock, keeps the day within the month")
+    nx.tap_box(ms.CLOCK_BUTTONS[0])                     # Annuleren: clock unchanged
+    nx.ticks(1)
+    assert nx.clock == datetime(2026, 12, 31, 0, 0) and nx.vars["gscherm"] == ms.TAKEN
+    nx.power_cycle(keep_clock=False)                    # no battery: asks for the time again
+    nx.ticks(20)
+    assert nx.vars["gscherm"] == ms.KLOK
+    print("clock page: sets the clock, keeps the day within the month, asks again without battery")
 
 
-def test_year(cfg, pictures, seed=1, days=400):
+def test_year(data, project, seed=1, days=400):
     """Random ticks, undos and power cuts; compared with the app's rules."""
+    cfg, pictures = project["code"].cfg, project["pictures"]
+    state_code = parse(project["code"].task_state(), "task state")
     rnd = random.Random(seed)
-    nx = new_screen(cfg, pictures)
+    nx = new_screen(data)
     set_clock(nx, datetime(2026, 10, 6, 7, 30))
     model = Model(cfg)
     n = len(cfg["tasks"])
     counts = {"tick": 0, "again": 0, "undo": 0, "cancel": 0, "goal": 0, "power": 0}
-    check_screen(nx, model, cfg)
+    check_screen(nx, model, cfg, state_code, pictures)
     for _ in range(days):
         for _ in range(rnd.randint(0, 5)):
             today = nx.clock.date()
@@ -172,7 +193,7 @@ def test_year(cfg, pictures, seed=1, days=400):
             nx.tap(*tile_center(i))
             state, pts = model.state(i, today)
             if state == ms.P_DONE:
-                assert nx.page == "terug"
+                assert nx.vars["gscherm"] == ms.TERUG
                 undo = model.undo[i]
                 assert (nx.vars["gwie"] > 0) == (undo is not None)
                 choice = rnd.choice(["undo", "again", "back"])
@@ -182,7 +203,7 @@ def test_year(cfg, pictures, seed=1, days=400):
                     counts["undo"] += 1
                 elif choice == "again":
                     nx.tap_box(ms.BACK_BUTTONS[1])
-                    assert nx.page == "wie" and nx.vars["gpts"] == pts
+                    assert nx.vars["gscherm"] == ms.WIE and nx.vars["gq"] == pts
                     who = rnd.randint(1, 3)
                     nx.tap_box(ms.WHO_BUTTONS[who - 1])
                     model.tick(i, who, today)
@@ -190,8 +211,8 @@ def test_year(cfg, pictures, seed=1, days=400):
                 else:
                     nx.tap_box(ms.BACK_BUTTONS[2])
             else:
-                assert nx.page == "wie", nx.page
-                assert nx.vars["gpts"] == pts, (today, i, nx.vars["gpts"], pts)
+                assert nx.vars["gscherm"] == ms.WIE, nx.vars["gscherm"]
+                assert nx.vars["gq"] == pts, (today, i, nx.vars["gq"], pts)
                 who = rnd.randint(0, 3)
                 if who == 0:
                     nx.tap_box(ms.WHO_CANCEL)
@@ -200,7 +221,7 @@ def test_year(cfg, pictures, seed=1, days=400):
                     nx.tap_box(ms.WHO_BUTTONS[who - 1])
                     model.tick(i, who, today)
                     counts["tick"] += 1
-            check_screen(nx, model, cfg)
+            check_screen(nx, model, cfg, state_code, pictures)
         if rnd.random() < .03:                           # a new goal (two taps)
             nx.tap_box(ms.MENU_BOX)
             nx.tap_box(ms.MENU_BUTTONS[0])
@@ -211,19 +232,32 @@ def test_year(cfg, pictures, seed=1, days=400):
             counts["goal"] += 1
         if rnd.random() < .05:                           # the power goes off and on
             nx.power_cycle()
+            model.power_cut()
             counts["power"] += 1
-        nx.later(hours=rnd.choice([24, 24, 24, 48]))
-        nx.timer()                                       # the minute timer sees a new day
-        check_screen(nx, model, cfg)
-    print(f"{days} days: {counts}; scores and task states match the app's rules")
-    return nx, model
+        nx.later(hours=rnd.choice([24, 24, 24, 48]))     # the timer sees the new day
+        check_screen(nx, model, cfg, state_code, pictures)
+    print(f"{days} days: {counts}; scores, tasks and tiles match the app's rules "
+          f"({nx.lines_run // days} lines of code run per day)")
 
 
-def screenshots(cfg, pictures):
+def test_fit(project):
+    """The longest texts stay inside their space."""
+    sp, cfg = project["sprites"], project["code"].cfg
+    dw = lambda s: ms.digit_width(s)
+    worst = max(sp[("soon", "nooit gedaan")].w, sp[("done", "over ")].w + 3 * dw("done")
+                + sp[("done", " d")].w, 3 * dw("late") + sp[("late", " d te laat")].w)
+    for i, task in enumerate(cfg["tasks"]):
+        f, uf = ms.font("display", 14), ms.font("regular", 11)
+        pill = 9 + max(f.getlength(str(p)) for p in (task["points"], *ms.bonus_points(task))) \
+            + uf.getlength("pt") + 14
+        assert ms.STATUS_RIGHT - worst > pill + 4, f"status text runs into the points of task {i}"
+    print("texts: every status fits next to its points")
+
+
+def screenshots(data, project):
     """A few days of use, for preview.png."""
-    nx = new_screen(cfg, pictures)
+    nx = new_screen(data)
     set_clock(nx, datetime(2026, 9, 26, 9, 0))
-    klok_shot = None
     plan = {0: [(6, 3), (7, 1), (9, 2), (10, 1), (11, 2)],          # (task, who)
             4: [(3, 2), (4, 1), (5, 3)],
             8: [(0, 1), (1, 2), (3, 1)],
@@ -231,48 +265,46 @@ def screenshots(cfg, pictures):
     for day in range(11):
         for i, who in plan.get(day, []):
             nx.tap(*tile_center(i))
-            if nx.page == "terug":
+            if nx.vars["gscherm"] == ms.TERUG:
                 nx.tap_box(ms.BACK_BUTTONS[1])
             nx.tap_box(ms.WHO_BUTTONS[who - 1])
         nx.later(days=1)
-        nx.timer()
     shots = [nx.screen.copy()]
-    late = max(range(len(cfg["tasks"])), key=lambda i: nx.vars[f"gs{i}"] % 3 * 10 - i)
+    cfg, state = project["code"].cfg, parse(project["code"].task_state(), "state")
+    states = []
+    for i in range(len(cfg["tasks"])):
+        nx.vars["gi"] = i
+        nx.run(state)
+        states.append(nx.vars["gs"])
+    late = max(range(len(states)), key=lambda i: states[i] % 3 * 10 - i)
     nx.tap(*tile_center(late))
     shots.append(nx.screen.copy())
     nx.tap_box(ms.WHO_CANCEL)
-    done = next(i for i in range(len(cfg["tasks"])) if nx.vars[f"gs{i}"] == ms.P_DONE
-                and nx.peek(ms.a_who(i)) > 0)
+    done = next(i for i in range(len(states)) if states[i] == ms.P_DONE)
     nx.tap(*tile_center(done))
     shots.append(nx.screen.copy())
     nx.tap_box(ms.BACK_BUTTONS[2])
     nx.tap_box(ms.MENU_BOX)
     shots.append(nx.screen.copy())
     nx.tap_box(ms.MENU_BUTTONS[1])
-    nx.press(*[v + d // 2 for v, d in zip(ms.clock_box(3, "plus")[:2], ms.clock_box(3, "plus")[2:])])
-    klok_shot = nx.screen.copy()
-    nx.release()
-    shots.append(klok_shot)
-    return shots, nx
+    nx.tap_box(ms.clock_box(3, "plus"))
+    shots.append(nx.screen.copy())
+    return shots
 
 
 def main():
     cfg = ms.load_config()
-    pictures = ms.draw_pictures(cfg)
+    project = ms.build(cfg)
+    data = ms.hmi_bytes(project)
     try:
-        test_day_numbers(cfg, pictures)
-        test_clock(cfg, pictures)
-        nx, _ = test_year(cfg, pictures)
-        shots, nx2 = screenshots(cfg, pictures)
+        test_project(data, project)
+        test_day_numbers(data)
+        test_clock(data)
+        test_fit(project)
+        test_year(data, project)
+        shots = screenshots(data, project)
     except (NextionError, AssertionError) as e:
         sys.exit(f"PROBLEM: {e}")
-    overflow = {(p, s): (tw, w) for p, s, tw, w in nx.overflow + nx2.overflow}
-    for (p, s), (tw, w) in sorted(overflow.items()):
-        print(f"  too wide on {p}: '{s}' ({tw} px in {w})")
-    lines = {f"{name} / {ev}": len([l for l in code if l.strip() and not l.strip().startswith('//')])
-             for name, _, _, events in ms.pages(cfg) for ev, code in events.items()}
-    print(f"code: {sum(lines.values())} lines; longest: "
-          + ", ".join(f"{k} {v}" for k, v in sorted(lines.items(), key=lambda kv: -kv[1])[:3]))
     pad = 16
     sheet = Image.new("RGB", (3 * ms.W + 4 * pad, 2 * ms.H + 3 * pad), (60, 60, 60))
     for k, img in enumerate(shots):

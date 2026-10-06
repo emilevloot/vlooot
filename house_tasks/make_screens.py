@@ -5,10 +5,17 @@ week and month, "Samen gedaan", tasks that come back after their number of
 days (with bonus points when late), and a savings goal. Like the app, but
 the screen keeps its own list.
 
-Draws the pictures from tasks.json and writes nextion_code.txt: the code
-for Program.s and every page, ready to paste into Nextion Editor.
+Makes Huistaken.HMI: the finished Nextion Editor project, with the
+pictures and all the code. Open it in Nextion Editor and choose File > TFT
+file output (README.txt). nextion_code.txt holds the same code to read.
     python house_tasks/make_screens.py
-Needs Pillow (pip install pillow). See README.txt.
+Needs Pillow (pip install pillow).
+
+How the screen works: one page and a timer. Every 50 ms the timer draws
+what changed (the task list, "wie", "terug", the menu or the clock page)
+from pictures: whole screens with pic and picq, and every number and word
+from strips of letters with xpic, so the project needs no fonts. A tap only
+changes numbers; the next timer tick draws it.
 """
 import json
 import math
@@ -18,46 +25,48 @@ from functools import lru_cache
 
 from PIL import Image, ImageDraw, ImageFont
 
+import nextion_hmi
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCREENS = os.path.join(HERE, "screens")
+PROJECT = os.path.join(HERE, "Huistaken.HMI")
 
 W, H = 480, 320       # the screen, lying down
 S = 3                 # shapes are drawn 3x bigger, then shrunk: smooth edges
 
 # ---------------------------------------------------------------- layout
-# Main page: the two people at the top, then 3 x 4 task tiles
-CARDS = [(8, 6, 196, 50), (210, 6, 196, 50)]     # x, y, w, h
+CARDS = [(8, 6, 196, 50), (210, 6, 196, 50)]     # the two people: x, y, w, h
 MENU_BOX = (412, 6, 60, 50)
 COLS, ROWS = 3, 4
 TILE_W, TILE_H, GAP = 150, 58, 6
 GRID_X = (W - COLS * TILE_W - (COLS - 1) * GAP) // 2    # 9
 GRID_Y = 62
 MAX_TASKS = COLS * ROWS
-
-# The other pages
 TILE_SHOW = (165, 50)                            # where a tile is shown again
-INFO_BOX = (16, 114, 448, 20)                    # the line under that tile
+INFO_Y = 116                                     # the line under that tile
 WHO_BUTTONS = [(16, 144, 144, 84), (168, 144, 144, 84), (320, 144, 144, 84)]
 WHO_CANCEL = (16, 240, 448, 64)
 BACK_BUTTONS = [(16, 142, 448, 50), (16, 198, 448, 50), (16, 254, 448, 50)]
-DATE_BOX = (180, 18, 284, 20)
 GOAL_CARD = (16, 50, 448, 100)
-GOAL_NUMS = (232, 78, 216, 20)
 GOAL_BAR = (32, 106, 416, 14)
-GOAL_FOOT = (32, 126, 416, 18)
 MENU_BUTTONS = [(16, 160, 448, 44), (16, 212, 448, 44), (16, 264, 448, 44)]
 CLOCK_ROWS = [50, 92, 134, 176, 218]
-CLOCK_ROW_H = 38
+CLOCK_ROW_H, CLOCK_PITCH = 38, 42
 CLOCK_MINUS, CLOCK_VALUE, CLOCK_PLUS = (200, 60), (266, 120), (392, 60)  # x, w
 CLOCK_BUTTONS = [(16, 266, 216, 46), (248, 266, 216, 46)]   # Annuleren, Opslaan
+CLOCK_FIELDS = [("Dag", "gkd"), ("Maand", "gkm"), ("Jaar", "gkj"), ("Uur", "gku"),
+                ("Minuut", "gkmi")]
 
-# The fonts made in Nextion Editor
-SMALL, BIG = 0, 1
-SMALL_H, BIG_H = 16, 32
+# What the screen shows (gscherm)
+TAKEN, WIE, TERUG, MENU, KLOK, TAPPED = 0, 1, 2, 3, 4, 6
+
+# The pictures: whole screens, then the strips of letters
+SCREEN_PICTURES = ["taken", "taken_gedaan", "taken_hoog", "taken_urgent",
+                   "wie", "terug", "menu", "klok"]
+P_OPEN, P_DONE, P_HIGH, P_URGENT, P_WIE, P_TERUG, P_MENU, P_KLOK = range(8)
 
 # ---------------------------------------------------------------- memory
-# The screen's own memory (EEPROM, 1 KB, kept without power).
-# Every number takes 4 bytes.
+# The screen's own memory (EEPROM, 1 KB, kept without power), 4 bytes each.
 A_MARK = 0            # holds the marker once the memory is set up
 A_WEEK = (4, 8)       # points this week: person 1, person 2
 A_MONTH = (12, 16)    # points this month
@@ -65,50 +74,12 @@ A_WEEK_KEY = 20       # the day number of this week's Monday
 A_MONTH_KEY = 24      # the day number of the 1st of this month
 A_GOAL = 28           # points saved for the goal
 A_GOAL_NR = 32        # the goal's number: +1 for every new goal
-A_TASKS = 64          # task i: 64 + 20*i
+A_TASKS = 64          # the day task i was last done: 64 + 4*i (0 = never)
 
-
-def a_last(i):        # the day it was last done (0 = never)
-    return A_TASKS + 20 * i
-
-
-def a_who(i):         # who did it last: 1, 2, 3 = together (0 = can't undo)
-    return A_TASKS + 20 * i + 4
-
-
-def a_pts(i):         # the points it gave
-    return A_TASKS + 20 * i + 8
-
-
-def a_prev(i):        # the day before that (for undo)
-    return A_TASKS + 20 * i + 12
-
-
-def a_goal_nr(i):     # the goal it counted for (for undo)
-    return A_TASKS + 20 * i + 16
-
-
-# ---------------------------------------------------------------- pictures
-PICTURES = [
-    ("00_taken.png", "taken: every task open"),
-    ("01_taken_gedaan.png", "taken: every task done"),
-    ("02_taken_hoog.png", "taken: every task a bit late (x1.5)"),
-    ("03_taken_urgent.png", "taken: every task very late (x2)"),
-    ("04_wie.png", "wie"),
-    ("05_wie_in.png", "wie, buttons pressed"),
-    ("06_terug.png", "terug"),
-    ("07_terug_in.png", "terug, buttons pressed"),
-    ("08_terug_uit.png", "terug, undo greyed out"),
-    ("09_menu.png", "menu"),
-    ("10_menu_in.png", "menu, buttons pressed"),
-    ("11_menu_zeker.png", "menu, 'Zeker?' button"),
-    ("12_menu_vol.png", "menu, full goal bar"),
-    ("13_klok.png", "klok"),
-    ("14_klok_in.png", "klok, buttons pressed"),
-]
-(P_OPEN, P_DONE, P_HIGH, P_URGENT, P_WHO, P_WHO_IN, P_BACK, P_BACK_IN,
- P_BACK_OFF, P_MENU, P_MENU_IN, P_MENU_SURE, P_MENU_FULL, P_CLOCK,
- P_CLOCK_IN) = range(len(PICTURES))
+# Every task has invisible Variables on the page, reached by number with
+# b[...]: the day it was done, who, the points, the day before (for undo),
+# the goal's number, and its two settings: every how many days, points.
+TASK_VARS = ["vl", "vw", "vp", "vv", "vd", "ve", "vq"]
 
 # The app's colours
 BG = (242, 244, 239)
@@ -121,12 +92,17 @@ ACCENT = (47, 107, 79)
 PERSON = [(62, 99, 201), (194, 77, 122)]
 LATE = (184, 67, 47)
 SOON = (138, 106, 18)
-PRESSED = (226, 231, 223)
 LATE_TINT = (247, 237, 234)     # LATE at 7% on white
 
 
 def mix(c1, c2, f):
     return tuple(round(a + (b - a) * f) for a, b in zip(c1, c2))
+
+
+def rgb565(c):
+    """The colour the screen really shows (16 bits)."""
+    r, g, b = c
+    return (r >> 3 << 3 | r >> 5, g >> 2 << 2 | g >> 6, b >> 3 << 3 | b >> 5)
 
 
 FONT_FILES = {
@@ -141,6 +117,7 @@ def font(kind, size):
     return ImageFont.truetype(os.path.join(HERE, "fonts", FONT_FILES[kind]), size)
 
 
+# ---------------------------------------------------------------- drawing
 class Canvas:
     """One screen picture. Shapes are drawn S times bigger and shrunk
     (smooth edges); text is drawn after that, at its real size (sharp)."""
@@ -175,7 +152,16 @@ class Canvas:
         d = ImageDraw.Draw(img)
         for xy, s, f, fill, anchor in self.texts:
             d.text(xy, s, font=f, fill=fill, anchor=anchor)
-        return img
+        return to565(img)
+
+
+def to565(img):
+    """Exactly the colours the screen can show (16 bits), so the editor and
+    the screen change nothing."""
+    r, g, b = img.convert("RGB").split()
+    five = lambda v: (v >> 3 << 3) | (v >> 5)
+    six = lambda v: (v >> 2 << 2) | (v >> 6)
+    return Image.merge("RGB", (r.point(five), g.point(six), b.point(five)))
 
 
 def tick(c, cx, cy, r, color):
@@ -188,23 +174,10 @@ def tile_box(i):
     return (GRID_X + col * (TILE_W + GAP), GRID_Y + row * (TILE_H + GAP), TILE_W, TILE_H)
 
 
-def status_box(i):
-    """Where the screen writes "vandaag", "over 3 d", "2 d te laat"."""
-    x, y, w, h = tile_box(i)
-    return (x + 60, y + 34, w - 68, 18)
-
-
 def bonus_points(task):
     """Points when a bit late (x1.5) and very late (x2), as in the app."""
     p = task["points"]
     return p + math.ceil(p / 2), 2 * p
-
-
-def late_days(task):
-    """Days late from which the bonus starts: a bit late, very late
-    (the app: half the repeat and 2 days, the whole repeat and 3 days)."""
-    every = task["every"]
-    return max(math.ceil(every / 2), 2), max(every, 3)
 
 
 def name_font(tasks):
@@ -233,18 +206,16 @@ def draw_tile(c, i, task, state, nfont):
     if state in (P_HIGH, P_URGENT):                       # the app's side bar
         c.rect(x, y + 8, 4, h - 16, SOON if state == P_HIGH else LATE, radius=2)
     c.text((x + 11, y + 9), task["name"], nfont, MUTED if state == P_DONE else INK)
-    # The tick circle, top right
-    cx, cy, r = x + w - 17, y + 17, 9
+    cx, cy, r = x + w - 17, y + 17, 9                     # the tick circle
     if state == P_DONE:
         c.circle(cx, cy, r, fill=ACCENT)
         tick(c, cx, cy, r, SURFACE)
     else:
         ring = {P_HIGH: SOON, P_URGENT: LATE}.get(state, MUTED)
         c.circle(cx, cy, r, outline=ring, width=1.6)
-    # The points, bottom left, like the app's pill
     color = {P_HIGH: SOON, P_URGENT: LATE, P_DONE: MUTED}.get(state, INK)
     fill = {P_OPEN: SUNK, P_DONE: mix(SUNK, MUTED, .12)}.get(state, mix(SURFACE, color, .14))
-    nf, uf = font("display", 14), font("regular", 11)
+    nf, uf = font("display", 14), font("regular", 11)     # the points, like the app's pill
     pw = nf.getlength(str(pts)) + uf.getlength("pt") + 14
     c.rect(x + 9, y + 34, pw, 18, fill, radius=7)
     c.text((x + 15, y + 43), str(pts), nf, color, "lm")
@@ -258,6 +229,8 @@ def draw_taken(cfg, state):
         c.circle(x + 15, y + 15, 5, fill=PERSON[k])
         c.text((x + 25, y + 15), cfg["people"][k], font("bold", 15), INK, "lm")
         c.text((x + w - 10, y + 10), "DEZE WEEK", font("bold", 10), MUTED, "rm")
+        st = STYLES["month"]
+        c.text((x + 10, y + MONTH_DY + baseline(st)), "maand", style_font(st), st[2], "ls")
     x, y, w, h = MENU_BOX
     c.rect(x, y, w, h, SURFACE, radius=14, outline=LINE)
     for dy in (-7, 0, 7):
@@ -272,13 +245,13 @@ def title(c, text):
     c.text((24, 28), text, font("display", 22), INK, "lm")
 
 
-def button(c, box, label, pressed, style="card", sub=None, dot=None):
+def button(c, box, label, style="card", sub=None, dot=None):
     """style: card (white), primary (green), danger (red), off (greyed)."""
     x, y, w, h = box
     fill, ink, edge = {
-        "card": (PRESSED if pressed else SURFACE, INK, LINE),
-        "primary": (mix(ACCENT, INK, .35) if pressed else ACCENT, SURFACE, None),
-        "danger": (mix(LATE, INK, .3) if pressed else LATE, SURFACE, None),
+        "card": (SURFACE, INK, LINE),
+        "primary": (ACCENT, SURFACE, None),
+        "danger": (LATE, SURFACE, None),
         "off": (SUNK, mix(MUTED, SUNK, .45), None),
     }[style]
     c.rect(x, y, w, h, fill, radius=14, outline=edge)
@@ -294,48 +267,43 @@ def button(c, box, label, pressed, style="card", sub=None, dot=None):
         c.text((x + w / 2, cy + 22), sub, font("regular", 13), MUTED, "mm")
 
 
-def draw_wie(cfg, pressed=False):
+def draw_wie(cfg):
     c = Canvas()
     title(c, "Wie heeft dit gedaan?")
     for k, box in enumerate(WHO_BUTTONS[:2]):
-        button(c, box, cfg["people"][k], pressed, sub="krijgt de punten", dot=PERSON[k])
-    button(c, WHO_BUTTONS[2], "Samen", pressed, sub="allebei de punten")
-    button(c, WHO_CANCEL, "Annuleren", pressed)
+        button(c, box, cfg["people"][k], sub="krijgt de punten", dot=PERSON[k])
+    button(c, WHO_BUTTONS[2], "Samen", sub="allebei de punten")
+    button(c, WHO_CANCEL, "Annuleren")
     return c.image()
 
 
-def draw_terug(cfg, pressed=False, undo_off=False):
+def draw_terug(cfg, undo_off=False):
     c = Canvas()
     title(c, "Al gedaan")
     labels = ["Afvinken ongedaan maken", "Nog een keer gedaan", "Terug naar de taken"]
     for k, (box, label) in enumerate(zip(BACK_BUTTONS, labels)):
-        style = "off" if k == 0 and undo_off else "primary" if k == 2 else "card"
-        button(c, box, label, pressed, style)
+        button(c, box, label, "off" if k == 0 and undo_off else "primary" if k == 2 else "card")
     return c.image()
 
 
-def draw_menu(cfg, pressed=False, sure=False, full=False):
+def draw_menu(cfg, sure=False, full=False):
     c = Canvas()
     title(c, "Menu")
     x, y, w, h = GOAL_CARD
     c.rect(x, y, w, h, SURFACE, radius=16, outline=LINE)
     c.text((x + 16, y + 16), "SPAARDOEL", font("bold", 11), MUTED, "lm")
     c.text((x + 16, y + 38), cfg["goal"]["name"], font("display", 20), INK, "lm")
+    st = STYLES["goal"]
+    c.text((GOAL_RIGHT, GOAL_NUM_Y + baseline(st)), goal_suffix(cfg), style_font(st), st[2], "rs")
     bx, by, bw, bh = GOAL_BAR
-    c.rect(bx, by, bw, bh, SUNK, radius=bh / 2)
-    if full:
-        c.rect(bx, by, bw, bh, ACCENT, radius=bh / 2)
+    c.rect(bx, by, bw, bh, ACCENT if full else SUNK, radius=bh / 2)
     if sure:
-        button(c, MENU_BUTTONS[0], "Zeker? Tik nog een keer", False, "danger")
+        button(c, MENU_BUTTONS[0], "Zeker? Tik nog een keer", "danger")
     else:
-        button(c, MENU_BUTTONS[0], "Nieuw spaardoel beginnen", pressed)
-    button(c, MENU_BUTTONS[1], "Klok gelijkzetten", pressed)
-    button(c, MENU_BUTTONS[2], "Terug naar de taken", pressed, "primary")
+        button(c, MENU_BUTTONS[0], "Nieuw spaardoel beginnen")
+    button(c, MENU_BUTTONS[1], "Klok gelijkzetten")
+    button(c, MENU_BUTTONS[2], "Terug naar de taken", "primary")
     return c.image()
-
-
-CLOCK_FIELDS = [("Dag", "gkd"), ("Maand", "gkm"), ("Jaar", "gkj"), ("Uur", "gku"),
-                ("Minuut", "gkmi")]
 
 
 def clock_box(row, part):
@@ -343,7 +311,7 @@ def clock_box(row, part):
     return (x, CLOCK_ROWS[row], w, CLOCK_ROW_H)
 
 
-def draw_klok(cfg, pressed=False):
+def draw_klok(cfg):
     c = Canvas()
     title(c, "Klok gelijkzetten")
     for row, (label, _) in enumerate(CLOCK_FIELDS):
@@ -351,38 +319,156 @@ def draw_klok(cfg, pressed=False):
         c.text((32, y + CLOCK_ROW_H / 2), label, font("bold", 17), INK, "lm")
         for part, sign in (("minus", "-"), ("plus", "+")):
             x, y0, w, h = clock_box(row, part)
-            c.rect(x, y0, w, h, PRESSED if pressed else SURFACE, radius=12, outline=LINE)
+            c.rect(x, y0, w, h, SURFACE, radius=12, outline=LINE)
             cx, cy = x + w / 2, y0 + h / 2
             c.rect(cx - 8, cy - 1.25, 16, 2.5, INK, radius=1.25)
             if sign == "+":
                 c.rect(cx - 1.25, cy - 8, 2.5, 16, INK, radius=1.25)
         x, y0, w, h = clock_box(row, "value")
         c.rect(x, y0, w, h, SUNK, radius=12)
-    button(c, CLOCK_BUTTONS[0], "Annuleren", pressed)
-    button(c, CLOCK_BUTTONS[1], "Opslaan", pressed, "primary")
+    button(c, CLOCK_BUTTONS[0], "Annuleren")
+    button(c, CLOCK_BUTTONS[1], "Opslaan", "primary")
     return c.image()
 
 
-def draw_pictures(cfg):
-    return [
-        draw_taken(cfg, P_OPEN), draw_taken(cfg, P_DONE),
-        draw_taken(cfg, P_HIGH), draw_taken(cfg, P_URGENT),
-        draw_wie(cfg), draw_wie(cfg, pressed=True),
-        draw_terug(cfg), draw_terug(cfg, pressed=True), draw_terug(cfg, undo_off=True),
-        draw_menu(cfg), draw_menu(cfg, pressed=True), draw_menu(cfg, sure=True),
-        draw_menu(cfg, full=True),
-        draw_klok(cfg), draw_klok(cfg, pressed=True),
-    ]
+# ---------------------------------------------------------------- letters
+# Every changing number and word comes from a strip of letters in its own
+# colours (style): font, size, colour, background, height.
+STYLES = {
+    "soon": ("regular", 13, SOON, SURFACE, 16),     # nooit gedaan, vandaag
+    "done": ("regular", 13, MUTED, SUNK, 16),       # morgen, over 4 d
+    "late": ("regular", 13, LATE, SURFACE, 16),     # 2 d te laat
+    "late3": ("regular", 13, LATE, LATE_TINT, 16),  # on a very late tile
+    "week0": ("display", 26, PERSON[0], SURFACE, 30),
+    "week1": ("display", 26, PERSON[1], SURFACE, 30),
+    "month": ("regular", 12, MUTED, SURFACE, 16),
+    "info": ("regular", 15, INK, BG, 20),           # +6 punten, Gedaan door ...
+    "infom": ("regular", 15, MUTED, BG, 20),
+    "date": ("regular", 13, MUTED, BG, 16),
+    "goal": ("bold", 15, INK, SURFACE, 20),
+    "foot": ("regular", 13, MUTED, SURFACE, 16),
+    "footok": ("regular", 13, ACCENT, SURFACE, 16),
+    "klok": ("display", 26, INK, SUNK, 30),
+}
+MONTH_DY = 30          # the month line in a person's card (top, from the card's top)
+WEEK_DY = 17           # the week number (top)
+GOAL_RIGHT, GOAL_NUM_Y, GOAL_FOOT_Y = 448, 78, 128
+DATE_RIGHT, DATE_Y = 464, 20
+STATUS_RIGHT, STATUS_DY = 142, 35     # in a tile
+
+
+def style_font(st):
+    return font(st[0], st[1])
+
+
+def baseline(st):
+    asc, desc = style_font(st).getmetrics()
+    return round((st[4] - asc - desc) / 2 + asc)
+
+
+def text_width(style, text):
+    return math.ceil(style_font(STYLES[style]).getlength(text))
+
+
+@lru_cache(maxsize=None)
+def digit_font(style):
+    """The style's font with its equal-width digits (OpenType tnum, as the
+    app shows them); without libraqm the plain digits, centred in a cell."""
+    st = STYLES[style]
+    try:
+        f = ImageFont.truetype(os.path.join(HERE, "fonts", FONT_FILES[st[0]]), st[1],
+                               layout_engine=ImageFont.Layout.RAQM)
+        f.getlength("0", features=["tnum"])
+        return f, ["tnum"]
+    except (OSError, KeyError, ValueError):
+        return style_font(st), None
+
+
+def digit_width(style):
+    f, features = digit_font(style)
+    return math.ceil(max(f.getlength(d, features=features) for d in "0123456789") - 0.25)
+
+
+def goal_suffix(cfg):
+    return f" / {int(cfg['goal']['points'])} punten"
+
+
+def words(cfg):
+    a, b = cfg["people"]
+    return [("soon", "nooit gedaan"), ("soon", "vandaag"), ("done", "morgen"),
+            ("done", "over "), ("done", " d"), ("late", " d te laat"), ("late3", " d te laat"),
+            ("info", "+"), ("info", " punten"), ("info", ", met "), ("info", " bonus"),
+            ("info", f"Gedaan door {a}, +"), ("info", f"Gedaan door {b}, +"),
+            ("info", "Samen gedaan, allebei +"),
+            ("infom", "Nog een keer gedaan? Dat mag altijd."),
+            ("date", ":"), ("date", "-"), ("foot", "Nog "), ("foot", " punten te gaan"),
+            ("footok", "Gehaald! Tijd voor de beloning.")]
+
+
+DIGIT_STYLES = ["done", "late", "late3", "week0", "week1", "month", "info", "date", "goal",
+                "foot", "klok"]
+
+
+def render_text(style, text, width=None):
+    st = STYLES[style]
+    w = width or text_width(style, text)
+    img = Image.new("RGB", (max(w, 1), st[4]), st[3])
+    ImageDraw.Draw(img).text((0, baseline(st)), text, font=style_font(st), fill=st[2], anchor="ls")
+    return img
+
+
+def render_digits(style):
+    st, dw = STYLES[style], digit_width(style)
+    f, features = digit_font(style)
+    img = Image.new("RGB", (10 * dw, st[4]), st[3])
+    d = ImageDraw.Draw(img)
+    for k in range(10):
+        d.text((k * dw + dw / 2, baseline(st)), str(k), font=f, fill=st[2], anchor="ms",
+               features=features)
+    return img
+
+
+class Sprite:
+    def __init__(self, pic, x, y, w, h):
+        self.pic, self.x, self.y, self.w, self.h = pic, x, y, w, h
+
+    def xpic(self, x, y, w=None):
+        return f"xpic {x},{y},{w or self.w},{self.h},{self.x},{self.y},{self.pic}"
+
+
+def make_sprites(cfg):
+    """Packs every strip into as few 480 x 320 pictures as needed (shelf by
+    shelf). Returns the pictures and {key: Sprite}; digits are keyed
+    ("digits", style)."""
+    items = [((style, text), render_text(style, text)) for style, text in words(cfg)]
+    items += [(("digits", s), render_digits(s)) for s in DIGIT_STYLES]
+    items += [("zeker", draw_menu(cfg, sure=True).crop(box_xy(MENU_BUTTONS[0]))),
+              ("undo_off", draw_terug(cfg, undo_off=True).crop(box_xy(BACK_BUTTONS[0]))),
+              ("bar", draw_menu(cfg, full=True).crop(box_xy(GOAL_BAR)))]
+    items.sort(key=lambda kv: (-kv[1].size[1], -kv[1].size[0]))
+    sheets, sprites = [], {}
+    x = y = shelf = 0
+    for key, img in items:
+        w, h = img.size
+        if x + w > W:
+            x, y, shelf = 0, y + shelf, 0
+        if not sheets or y + h > H:
+            sheets.append(Image.new("RGB", (W, H), BG))
+            x = y = shelf = 0
+        sheets[-1].paste(img, (x, y))
+        sprites[key] = Sprite(len(SCREEN_PICTURES) + len(sheets) - 1, x, y, w, h)
+        x, shelf = x + w, max(shelf, h)
+    return [to565(sheet) for sheet in sheets], sprites
+
+
+def box_xy(box):
+    x, y, w, h = box
+    return (x, y, x + w, y + h)
 
 
 # ---------------------------------------------------------------- the code
 # Nextion's rules: no spaces in a line (except after the command), no
 # brackets in sums, and a sum is worked out from left to right.
-
-def rgb565(color):
-    r, g, b = color
-    return (r >> 3) << 11 | (g >> 2) << 5 | b >> 3
-
 
 def indent(lines):
     return ["  " + line for line in lines]
@@ -398,391 +484,407 @@ def IF(*branches, otherwise=None):
     return out + ["}"]
 
 
-def inside(box, var=("tch0", "tch1"), grow=0):
-    x, y, w, h = box
-    return (f"{var[0]}>={x - grow}&&{var[0]}<{x + w + grow}&&"
-            f"{var[1]}>={y - grow}&&{var[1]}<{y + h + grow}")
+def WHILE(cond, lines):
+    return [f"while({cond})", "{"] + indent(lines) + ["}"]
 
 
-def xstr(box, fnt, color, pic, text, xcen=0):
-    x, y, w, h = box
-    return f"xstr {x},{y},{w},{h},{fnt},{rgb565(color)},{pic},{xcen},1,0,{text}"
+class Code:
+    """Writes the screen's code for one tasks.json."""
 
+    def __init__(self, cfg, sprites):
+        self.cfg, self.sp = cfg, sprites
+        self.n = len(cfg["tasks"])
 
-def picq(box, pic):
-    x, y, w, h = box
-    return f"picq {x},{y},{w},{h},{pic}"
+    # ---- the parts on the page
+    def var_id(self, block, i=0):
+        return 2 + TASK_VARS.index(block) * self.n + i
 
+    def components(self):
+        """(kind, name, attributes, events), in id order: the page, tm0, the variables."""
+        parts = [("timer", "tm0", {"tim": 50, "en": 1}, {"timer": self.timer()})]
+        for block in TASK_VARS:
+            for i, task in enumerate(self.cfg["tasks"]):
+                val = {"ve": task["every"], "vq": task["points"]}.get(block, 0)
+                parts.append(("variable", f"{block}{i}", {"sta": 0, "val": val, "txt": "",
+                                                           "txt_maxl": 1, "vscope": 0}, {}))
+        return parts
 
-def day_numbers():
-    """Today as a day number (gdag), with this week's Monday (gweek) and the
-    1st of this month (gmaand)."""
-    return [
-        "// today as a day number: gdag; this week's Monday: gweek; the 1st: gmaand",
-        "gy=rtc0-2000",
-        "gm=rtc1",
-    ] + IF(("gm<3", ["gy=gy-1", "gm=gm+12"])) + [
-        "gdag=gy*365",
-        "gtmp=gy/4",
-        "gdag=gdag+gtmp",
-        "gtmp=gm*153",
-        "gtmp=gtmp-457",
-        "gtmp=gtmp/5",
-        "gdag=gdag+gtmp",
-        "gdag=gdag+rtc2",
-        "gmaand=gdag-rtc2",
-        "gmaand=gmaand+1",
-    ] + IF(("rtc6==0", ["gweek=gdag-6"]), otherwise=["gweek=gdag-rtc6", "gweek=gweek+1"])
+    def mark(self):
+        return 4270 + int(self.cfg.get("fresh_start", 1))
 
+    # ---- drawing numbers and words, right to left from gx
+    def word(self, key, y="gy2"):
+        s = self.sp[key]
+        return [f"gx=gx-{s.w}", s.xpic("gx", y)]
 
-def show_scores():
-    out = []
-    for k, (x, y, w, h) in enumerate(CARDS):
-        out += [
-            f"repo gtmp,{A_WEEK[k]}",
-            "covx gtmp,va0.txt,0,0",
-            xstr((x + w - 100, y + 16, 90, BIG_H), BIG, PERSON[k], P_OPEN, "va0.txt", 2),
-            f"repo gtmp,{A_MONTH[k]}",
-            "covx gtmp,va0.txt,0,0",
-            'va1.txt="maand "+va0.txt',
-            xstr((x + 10, y + 28, 90, 18), SMALL, MUTED, P_OPEN, "va1.txt"),
+    def style(self, style):
+        """Which strip of digits the next number comes from."""
+        s = self.sp[("digits", style)]
+        return [f"gdw={s.w // 10}", f"gdh={s.h}", f"gsx0={s.x}", f"gsy={s.y}", f"gsp={s.pic}"]
+
+    # Draws gnum (at least gmin digits) right-aligned at gx in row gy2;
+    # afterwards gx is its left edge.
+    DIGITS = ["gc=0", "gmore=1"] + WHILE("gmore==1", [
+        "gtmp=gnum/10", "gtmp=gtmp*10", "gdg=gnum-gtmp", "gnum=gnum/10",
+        "gx=gx-gdw", "gsx=gdg*gdw", "gsx=gsx+gsx0", "xpic gx,gy2,gdw,gdh,gsx,gsy,gsp",
+        "gc=gc+1", "gmore=0"] + IF(("gnum>0", ["gmore=1"])) + IF(("gc<gmin", ["gmore=1"])))
+
+    def digits(self, style, y="gy2", load=(), x=None, minimum=1):
+        out = list(load)
+        if x is not None:
+            out.append(f"gx={x}")
+        if y != "gy2":
+            out.append(f"gy2={y}")
+        out += self.style(style)
+        if minimum is not None:
+            out.append(f"gmin={minimum}")
+        return out + self.DIGITS
+
+    @staticmethod
+    def count(var):
+        """gc: how many digits var has."""
+        return ["gc=1", f"gtmp={var}/10"] + WHILE("gtmp>0", ["gc=gc+1", "gtmp=gtmp/10"])
+
+    def centered(self, center, var_parts):
+        """gx so that a line of the given widths (numbers: their var) is centred."""
+        out = ["gw=0"]
+        for part in var_parts:
+            if isinstance(part, int):
+                out.append(f"gw=gw+{part}")
+            else:
+                var, style = part
+                out += self.count(var) + [f"gtmp=gc*{digit_width(style)}", "gw=gw+gtmp"]
+        return out + ["gx=gw/2", f"gx=gx+{center}"]
+
+    # ---- the clock
+    @staticmethod
+    def day_numbers():
+        """Today as a day number (gdag), this week's Monday (gweek) and the
+        1st of this month (gmaand)."""
+        return ["// today as a day number, this week's Monday, the 1st of the month",
+                "gy=rtc0-2000", "gm=rtc1"] + IF(("gm<3", ["gy=gy-1", "gm=gm+12"])) + [
+            "gdag=gy*365", "gtmp=gy/4", "gdag=gdag+gtmp", "gtmp=gm*153", "gtmp=gtmp-457",
+            "gtmp=gtmp/5", "gdag=gdag+gtmp", "gdag=gdag+rtc2", "gmaand=gdag-rtc2",
+            "gmaand=gmaand+1"] + IF(("rtc6==0", ["gweek=gdag-6"]),
+                                    otherwise=["gweek=gdag-rtc6", "gweek=gweek+1"])
+
+    @staticmethod
+    def clock_defaults():
+        return ["gkj=2026", "gkm=1", "gkd=1", "gku=12", "gkmi=0"]
+
+    @staticmethod
+    def month_days():
+        """gmax: the days in month gkm of year gkj; the day stays within it."""
+        return ["gmax=31"] + IF(
+            ("gkm==4||gkm==6||gkm==9||gkm==11", ["gmax=30"]),
+            ("gkm==2", ["gmax=28", "gtmp=gkj/4", "gtmp=gtmp*4"] + IF(("gtmp==gkj", ["gmax=29"])))
+        ) + IF(("gkd>gmax", ["gkd=gmax"]))
+
+    # ---- Program.s and the page's start
+    def program_s(self):
+        return [
+            "// Onze huistaken: the numbers the code uses (made by make_screens.py)",
+            "int sys0=0,sys1=0,sys2=0",
+            "int gscherm=0,grender=1,gk=0,gtik=19,gtoon=0,gnul=0",
+            "int gdag=0,gweek=0,gmaand=0,gy=0,gm=0,gtmp=0,gid=0",
+            "int gi=0,gn=0,gtaak=0,gb=0,gbon=0,gl=0,ge=0,gp=0,gs=0,gq=0,gd=0,gst=0",
+            "int gwie=0,gopts=0,gdoel=0,gprev=0,gpp=0,gsave=0",
+            "int gx=0,gy2=0,gtx=0,gty=0,gnum=0,gdg=0,gsx=0,gc=0,gmin=1,gw=0",
+            "int gdw=0,gdh=0,gsx0=0,gsy=0,gsp=0,gmore=0",
+            "int gzeker=0,gkd=1,gkm=1,gkj=2026,gku=12,gkmi=0,gmax=31,gf=0,gdelta=0",
+            "page 0",
         ]
-    return out
+
+    def postinit(self):
+        clear = [f"wepo gnul,{a}" for a in list(A_WEEK) + list(A_MONTH)
+                 + [A_WEEK_KEY, A_MONTH_KEY, A_GOAL, A_GOAL_NR]]
+        clear += [f"wepo gnul,{A_TASKS + 4 * i}" for i in range(MAX_TASKS)]
+        load = [f"repo vl{i}.val,{A_TASKS + 4 * i}" for i in range(self.n)]
+        return (["// the screen's memory: set up the first time (or after a fresh start)",
+                 f"repo gtmp,{A_MARK}"]
+                + IF((f"gtmp!={self.mark()}", clear + [f"gtmp={self.mark()}",
+                                                       f"wepo gtmp,{A_MARK}"]))
+                + ["// the day every task was last done"] + load
+                + ["// the timer looks at the clock and draws, right away", "gtik=19",
+                   "grender=1"])
+
+    # ---- the timer: the clock once a second, and drawing what changed
+    def timer(self):
+        new_day = ["gtoon=gdag", "// a new week or month starts at 0",
+                   f"repo gtmp,{A_WEEK_KEY}"] + IF(
+            ("gtmp!=gweek", [f"wepo gnul,{A_WEEK[0]}", f"wepo gnul,{A_WEEK[1]}",
+                             f"wepo gweek,{A_WEEK_KEY}"])) + [f"repo gtmp,{A_MONTH_KEY}"] + IF(
+            ("gtmp!=gmaand", [f"wepo gnul,{A_MONTH[0]}", f"wepo gnul,{A_MONTH[1]}",
+                              f"wepo gmaand,{A_MONTH_KEY}"])) + IF(
+            (f"gscherm=={TAKEN}", ["grender=1"]))
+        clock = IF(("rtc0<2025", IF((f"gscherm!={KLOK}",
+                                     ["// the clock isn't set: set it first"]
+                                     + self.clock_defaults() + [f"gscherm={KLOK}",
+                                                                "grender=1"]))),
+                   otherwise=self.day_numbers() + IF(("gdag!=gtoon", new_day)))
+        return (["gtik=gtik+1"] + IF(("gtik>=20", ["gtik=0"] + clock))
+                + IF(("grender>0", ["gk=grender", "grender=0"] + self.draw())))
+
+    def draw(self):
+        return (self.draw_tasks() + IF(
+            (f"gscherm=={TAKEN}", self.draw_scores()),
+            (f"gscherm=={WIE}", self.draw_wie()),
+            (f"gscherm=={TERUG}", self.draw_terug()),
+            (f"gscherm=={MENU}", self.draw_menu()),
+            (f"gscherm=={KLOK}", self.draw_klok())))
+
+    def task_state(self):
+        """For task gi: gs = its picture (0 open, 1 done, 2 a bit late, 3 very
+        late), gq = the points it gives now, gst = what it says, gd = days."""
+        late = ["gd=0-gd", "gst=4", "// very late: a whole round, at least 3 days",
+                "gtmp=ge"] + IF(("gtmp<3", ["gtmp=3"])) + IF(
+            ("gd>=gtmp", ["gs=3", "gq=gp*2"]),
+            otherwise=["// a bit late: half a round, at least 2 days", "gtmp=ge+1",
+                       "gtmp=gtmp/2"] + IF(("gtmp<2", ["gtmp=2"])) + IF(
+                ("gd>=gtmp", ["gs=2", "gtmp=gp+1", "gtmp=gtmp/2", "gq=gp+gtmp"])))
+        return [f"gid=gi+{self.var_id('vl')}", "gl=b[gid].val",
+                f"gid=gi+{self.var_id('ve')}", "ge=b[gid].val",
+                f"gid=gi+{self.var_id('vq')}", "gp=b[gid].val",
+                "gq=gp", "gs=0", "gst=0", "gd=0"] + IF(
+            ("gl>0", ["gd=gl+ge", "gd=gd-gdag", "// days until it comes back"] + IF(
+                ("gd>0", ["gs=1", "gst=3"] + IF(("gd==1", ["gst=2"]))),
+                ("gd==0", ["gst=1"]),
+                otherwise=late)))
+
+    def draw_tasks(self):
+        n = self.n
+        status = IF(
+            ("gst==0", self.word(("soon", "nooit gedaan"))),
+            ("gst==1", self.word(("soon", "vandaag"))),
+            ("gst==2", self.word(("done", "morgen"))),
+            otherwise=IF(("gd>999", ["gd=999"])) + IF(
+                ("gst==3", self.word(("done", " d")) + self.style("done")),
+                ("gs==3", self.word(("late3", " d te laat")) + self.style("late3")),
+                otherwise=self.word(("late", " d te laat")) + self.style("late"))
+            + ["gnum=gd", "gmin=1"] + self.DIGITS + IF(("gst==3", self.word(("done", "over ")))))
+        tile = IF(("gs>0", [f"picq gtx,gty,{TILE_W},{TILE_H},gs"])) + [
+            f"gx=gtx+{STATUS_RIGHT}", f"gy2=gty+{STATUS_DY}"] + status
+        where = ["// where its tile is", "gtmp=gi/3", f"gty=gtmp*{TILE_H + GAP}",
+                 f"gty=gty+{GRID_Y}", "gtmp=gtmp*3", "gtx=gi-gtmp", f"gtx=gtx*{TILE_W + GAP}",
+                 f"gtx=gtx+{GRID_X}"]
+        tapped = IF(("gs==1", [f"gscherm={TERUG}"]), otherwise=[f"gscherm={WIE}"])
+        return ["// the tasks: all of them (the list) or the one that was tapped"] + IF(
+            (f"gscherm<={TERUG}||gscherm=={TAPPED}",
+             IF((f"gscherm=={TAKEN}", [f"pic 0,0,{P_OPEN}", "gi=0", f"gn={n}"]),
+                otherwise=["gi=gtaak", "gn=gtaak+1"])
+             + WHILE("gi<gn", self.task_state() + where
+                     + IF((f"gscherm=={TAKEN}", tile)) + ["gi=gi+1"])
+             + IF((f"gscherm=={TAPPED}", ["// a done task: undo or again"] + tapped))))
+
+    def draw_scores(self):
+        (xa, y, w, _), (xb, *_) = CARDS
+        week = IF(("gpp==0", [f"repo gnum,{A_WEEK[0]}", f"gx={xa + w - 10}"] + self.style("week0")),
+                  otherwise=[f"repo gnum,{A_WEEK[1]}", f"gx={xb + w - 10}"] + self.style("week1"))
+        month = IF(("gpp==0", [f"repo gnum,{A_MONTH[0]}", f"gx={xa + 10 + text_width('month', 'maand ')}"]),
+                   otherwise=[f"repo gnum,{A_MONTH[1]}", f"gx={xb + 10 + text_width('month', 'maand ')}"])
+        return (["// the points of both people: this week (big), this month", "gpp=0"]
+                + WHILE("gpp<2", week + [f"gy2={y + WEEK_DY}", "gmin=1"] + self.DIGITS
+                        + ["// this month, after the word maand"] + month + self.count("gnum")
+                        + [f"gtmp=gc*{digit_width('month')}", "gx=gx+gtmp", f"gy2={y + MONTH_DY}"]
+                        + self.style("month") + self.DIGITS + ["gpp=gpp+1"]))
+
+    def draw_wie(self):
+        x, y = TILE_SHOW
+        info = lambda t: text_width("info", t)
+        line = self.centered(W // 2, [info("+") + info(" punten"), ("gq", "info")])
+        bonus = [f"gw=gw+{info(', met ') + info(' bonus')}"] + self.count("gbon") + [
+            f"gtmp=gc*{digit_width('info')}", "gw=gw+gtmp", "gx=gw/2", f"gx=gx+{W // 2}"]
+        return ([f"pic 0,0,{P_WIE}", f"xpic {x},{y},{TILE_W},{TILE_H},gtx,gty,gs",
+                 "// +6 punten (, met 3 bonus): in the middle", "gbon=gq-gp"]
+                + line + IF(("gbon>0", bonus))
+                + IF(("gbon>0", self.word(("info", " bonus"), INFO_Y)
+                      + self.digits("info", INFO_Y, ["gnum=gbon"])
+                      + self.word(("info", ", met "), INFO_Y)))
+                + self.word(("info", " punten"), INFO_Y)
+                + self.digits("info", INFO_Y, ["gnum=gq"]) + self.word(("info", "+"), INFO_Y))
+
+    def draw_terug(self):
+        x, y = TILE_SHOW
+        a, b = self.cfg["people"]
+        prefixes = [("info", f"Gedaan door {a}, +"), ("info", f"Gedaan door {b}, +"),
+                    ("info", "Samen gedaan, allebei +")]
+        again = self.sp[("infom", "Nog een keer gedaan? Dat mag altijd.")]
+        off = self.sp["undo_off"]
+        widths = IF(("gwie==1", [f"gw={text_width(*prefixes[0])}"]),
+                    ("gwie==2", [f"gw={text_width(*prefixes[1])}"]),
+                    otherwise=[f"gw={text_width(*prefixes[2])}"])
+        said = (widths + [f"gw=gw+{text_width('info', ' punten')}"] + self.count("gopts")
+                + [f"gtmp=gc*{digit_width('info')}", "gw=gw+gtmp", "gx=gw/2", f"gx=gx+{W // 2}"]
+                + self.word(("info", " punten"), INFO_Y)
+                + self.digits("info", INFO_Y, ["gnum=gopts"])
+                + IF(("gwie==1", self.word(prefixes[0], INFO_Y)),
+                     ("gwie==2", self.word(prefixes[1], INFO_Y)),
+                     otherwise=self.word(prefixes[2], INFO_Y)))
+        return ([f"pic 0,0,{P_TERUG}", f"xpic {x},{y},{TILE_W},{TILE_H},gtx,gty,{P_DONE}",
+                 "// who did it last (gone after a power cut: then no undo)",
+                 f"gid=gtaak+{self.var_id('vw')}", "gwie=b[gid].val",
+                 f"gid=gtaak+{self.var_id('vp')}", "gopts=b[gid].val"]
+                + IF(("gwie==0", [off.xpic(BACK_BUTTONS[0][0], BACK_BUTTONS[0][1]),
+                                  again.xpic((W - again.w) // 2, INFO_Y)]),
+                     otherwise=said))
+
+    def draw_menu(self):
+        target = int(self.cfg["goal"]["points"])
+        bx, by, bw, bh = GOAL_BAR
+        bar = self.sp["bar"]
+        date = ["// the date and time: 6-10-2026  9:05", f"gx={DATE_RIGHT}", "gf=0"] + WHILE(
+            "gf<5", ["gmin=1"] + IF(("gf==0", ["gnum=rtc4", "gmin=2"]), ("gf==1", ["gnum=rtc3"]),
+                                    ("gf==2", ["gnum=rtc0"]), ("gf==3", ["gnum=rtc1"]),
+                                    otherwise=["gnum=rtc2"])
+            + self.digits("date", DATE_Y, minimum=None)
+            + IF(("gf==0", self.word(("date", ":"), DATE_Y)), ("gf==1", ["gx=gx-12"]),
+                 ("gf<4", self.word(("date", "-"), DATE_Y)))
+            + ["gf=gf+1"])
+        suffix = text_width("goal", goal_suffix(self.cfg))
+        rest = text_width("foot", "Nog ") + text_width("foot", " punten te gaan")
+        done = self.sp[("footok", "Gehaald! Tijd voor de beloning.")]
+        goal = (["// the goal: the points so far, the bar, how many to go", f"repo gd,{A_GOAL}"]
+                + self.digits("goal", GOAL_NUM_Y, ["gnum=gd"], GOAL_RIGHT - suffix)
+                + IF(("gd>0", [f"gtmp=gd*{bw}", f"gtmp=gtmp/{target}"]
+                      + IF((f"gtmp>{bw}", [f"gtmp={bw}"]))
+                      + IF(("gtmp>0", [bar.xpic(bx, by, "gtmp")]))))
+                + IF((f"gd>={target}", [done.xpic(bx, GOAL_FOOT_Y)]),
+                     otherwise=[f"gnum={target}-gd", "gtmp=gnum"] + self.count("gtmp")
+                     + [f"gtmp=gc*{digit_width('foot')}", f"gx=gtmp+{bx + rest}"]
+                     + self.word(("foot", " punten te gaan"), GOAL_FOOT_Y)
+                     + self.digits("foot", GOAL_FOOT_Y)
+                     + self.word(("foot", "Nog "), GOAL_FOOT_Y)))
+        sure = self.sp["zeker"]
+        return (IF(("gk==1", [f"pic 0,0,{P_MENU}"] + date + goal))
+                + IF(("gzeker==1", [sure.xpic(MENU_BUTTONS[0][0], MENU_BUTTONS[0][1])])))
+
+    def draw_klok(self):
+        x, w = CLOCK_VALUE
+        dh = STYLES["klok"][4]
+        values = IF(*[(f"gf=={k}", [f"gnum={var}"]) for k, (_, var) in enumerate(CLOCK_FIELDS[:4])],
+                    otherwise=["gnum=gkmi", "gmin=2"])
+        return IF(("gk==1", [f"pic 0,0,{P_KLOK}"])) + ["// the five values", "gf=0"] + WHILE(
+            "gf<5", ["gmin=1"] + values + [
+                f"gy2=gf*{CLOCK_PITCH}", f"gy2=gy2+{CLOCK_ROWS[0]}",
+                f"picq {x},gy2,{w},{CLOCK_ROW_H},{P_KLOK}",
+                f"gy2=gy2+{(CLOCK_ROW_H - dh) // 2}"] + self.count("gnum") + IF(
+                ("gc<gmin", ["gc=gmin"])) + [
+                f"gtmp=gc*{digit_width('klok')}", "gtmp=gtmp/2", f"gx=gtmp+{x + w // 2}"]
+            + self.digits("klok", minimum=None) + ["gf=gf+1"])
+
+    # ---- a tap
+    def press(self):
+        n = self.n
+        col, row = TILE_W + GAP, TILE_H + GAP
+        taken = IF((f"tch1<{GRID_Y - 4}", IF((f"tch0>={MENU_BOX[0]}",
+                                               [f"gscherm={MENU}", "gzeker=0", "grender=1"]))),
+                   otherwise=["// which tile", f"gtmp=tch0-{GRID_X}"]
+                   + IF(("gtmp<0", ["gtmp=0"])) + [f"gc=gtmp/{col}"]
+                   + IF(("gc>2", ["gc=2"])) + [f"gtmp=tch1-{GRID_Y}"]
+                   + IF(("gtmp<0", ["gtmp=0"])) + [f"gtmp=gtmp/{row}"]
+                   + IF(("gtmp>3", ["gtmp=3"])) + ["gtmp=gtmp*3", "gtmp=gtmp+gc"]
+                   + IF((f"gtmp<{n}", ["gtaak=gtmp", f"gscherm={TAPPED}", "grender=1"])))
+        wy0, wy1 = WHO_BUTTONS[0][1], WHO_BUTTONS[0][1] + WHO_BUTTONS[0][3]
+        wie = ["gb=0"] + IF(
+            (f"tch1>={wy0}&&tch1<{wy1}", ["gb=3"] + IF(
+                (f"tch0<{WHO_BUTTONS[1][0] - 4}", ["gb=1"]),
+                (f"tch0<{WHO_BUTTONS[2][0] - 4}", ["gb=2"]))),
+            (f"tch1>={WHO_CANCEL[1]}", [f"gscherm={TAKEN}", "grender=1"])) + IF(
+            ("gb>0", self.save_tick() + [f"gscherm={TAKEN}", "grender=1"]))
+        b0, b1, b2 = BACK_BUTTONS
+        terug = IF(
+            (f"tch1>={b0[1]}&&tch1<{b0[1] + b0[3]}",
+             IF(("gwie>0", self.undo() + [f"gscherm={TAKEN}", "grender=1"]))),
+            (f"tch1>={b1[1]}&&tch1<{b1[1] + b1[3]}", [f"gscherm={WIE}", "grender=1"]),
+            (f"tch1>={b2[1]}", [f"gscherm={TAKEN}", "grender=1"]))
+        m0, m1, m2 = MENU_BUTTONS
+        menu = IF(
+            (f"tch1>={m0[1]}&&tch1<{m0[1] + m0[3]}", IF(
+                ("gzeker==0", ["gzeker=1", "grender=2"]),
+                otherwise=["// a new goal: count from 0, with the next number",
+                           f"wepo gnul,{A_GOAL}", f"repo gtmp,{A_GOAL_NR}", "gtmp=gtmp+1",
+                           f"wepo gtmp,{A_GOAL_NR}", "gzeker=0", "grender=1"])),
+            (f"tch1>={m1[1]}&&tch1<{m1[1] + m1[3]}", IF(
+                ("rtc0<2025", self.clock_defaults()),
+                otherwise=["gkj=rtc0", "gkm=rtc1", "gkd=rtc2", "gku=rtc3", "gkmi=rtc4"])
+             + [f"gscherm={KLOK}", "grender=1"]),
+            (f"tch1>={m2[1]}", [f"gscherm={TAKEN}", "grender=1"]))
+        return IF((f"gscherm=={TAKEN}", taken), (f"gscherm=={WIE}", wie),
+                  (f"gscherm=={TERUG}", terug), (f"gscherm=={MENU}", menu),
+                  (f"gscherm=={KLOK}", self.klok_press())) + IF(
+            ("gsave==1", ["gsave=0"] + self.remember_day()))
+
+    def remember_day(self):
+        """The day of task gtaak into the memory."""
+        return ["// the day it was done, also in the memory"] + IF(
+            *[(f"gtaak=={i}", [f"wepo vl{i}.val,{A_TASKS + 4 * i}"]) for i in range(self.n)])
+
+    def save_tick(self):
+        add = []
+        for k, skip in ((0, 2), (1, 1)):
+            lines = []
+            for a in (A_WEEK[k], A_MONTH[k]):
+                lines += [f"repo gtmp,{a}", "gtmp=gtmp+gq", f"wepo gtmp,{a}"]
+            add += IF((f"gb!={skip}", lines))
+        return ([f"gid=gtaak+{self.var_id('vl')}", "gprev=b[gid].val", "b[gid].val=gdag",
+                 f"gid=gtaak+{self.var_id('vw')}", "b[gid].val=gb",
+                 f"gid=gtaak+{self.var_id('vp')}", "b[gid].val=gq",
+                 f"gid=gtaak+{self.var_id('vv')}", "b[gid].val=gprev",
+                 f"gid=gtaak+{self.var_id('vd')}", f"repo gtmp,{A_GOAL_NR}", "b[gid].val=gtmp"]
+                + ["gsave=1", "// the points (together: both, as in the app)"]
+                + add + [f"repo gtmp,{A_GOAL}", "gtmp=gtmp+gq"]
+                + IF(("gb==3", ["gtmp=gtmp+gq"])) + [f"wepo gtmp,{A_GOAL}"])
+
+    @staticmethod
+    def take_off(a, double=False):
+        out = [f"repo gtmp,{a}", "gtmp=gtmp-gopts"]
+        if double:
+            out += IF(("gwie==3", ["gtmp=gtmp-gopts"]))
+        return out + IF(("gtmp<0", ["gtmp=0"])) + [f"wepo gtmp,{a}"]
+
+    def undo(self):
+        """The day before comes back; the points come off where they still count."""
+        off = []
+        for keys, var in ((A_WEEK, "gweek"), (A_MONTH, "gmaand")):
+            off += IF((f"gl>={var}", IF(("gwie!=2", self.take_off(keys[0])))
+                       + IF(("gwie!=1", self.take_off(keys[1])))))
+        return ([f"gid=gtaak+{self.var_id('vv')}", "gprev=b[gid].val",
+                 f"gid=gtaak+{self.var_id('vl')}", "gl=b[gid].val", "b[gid].val=gprev",
+                 f"gid=gtaak+{self.var_id('vw')}", "gwie=b[gid].val", "b[gid].val=0",
+                 f"gid=gtaak+{self.var_id('vp')}", "gopts=b[gid].val",
+                 f"gid=gtaak+{self.var_id('vd')}", "gdoel=b[gid].val"]
+                + ["gsave=1"] + off + [f"repo gtmp,{A_GOAL_NR}"]
+                + IF(("gdoel==gtmp", self.take_off(A_GOAL, double=True))))
+
+    def klok_press(self):
+        cancel, save = CLOCK_BUTTONS
+        day = IF(("gf==0", ["gkd=gkd+gdelta"] + IF(("gkd<1", ["gkd=gmax"]))
+                  + IF(("gkd>gmax", ["gkd=1"]))))
+        change = IF(
+            ("gf==1", ["gkm=gkm+gdelta"] + IF(("gkm<1", ["gkm=12"])) + IF(("gkm>12", ["gkm=1"]))),
+            ("gf==2", ["gkj=gkj+gdelta"] + IF(("gkj<2025", ["gkj=2025"]))
+             + IF(("gkj>2099", ["gkj=2099"]))),
+            ("gf==3", ["gku=gku+gdelta"] + IF(("gku<0", ["gku=23"])) + IF(("gku>23", ["gku=0"]))),
+            ("gf==4", ["gkmi=gkmi+gdelta"] + IF(("gkmi<0", ["gkmi=59"]))
+             + IF(("gkmi>59", ["gkmi=0"]))))
+        mx, mw = CLOCK_MINUS
+        px, pw = CLOCK_PLUS
+        last = CLOCK_ROWS[-1] + CLOCK_PITCH
+        return IF(
+            (f"tch1>={save[1]}", IF(
+                (f"tch0>={save[0]}", ["// save: the day goes to 1 first, so every date in between exists",
+                                      "rtc2=1", "rtc0=gkj", "rtc1=gkm", "rtc2=gkd", "rtc3=gku",
+                                      "rtc4=gkmi", "rtc5=0", "gtoon=0", "gtik=19",
+                                      f"gscherm={TAKEN}", "grender=1"]),
+                (f"tch0<{cancel[0] + cancel[2]}", [f"gscherm={TAKEN}", "grender=1"]))),
+            (f"tch1>={CLOCK_ROWS[0]}&&tch1<{last}", ["gdelta=0"] + IF(
+                (f"tch0>={mx}&&tch0<{mx + mw}", ["gdelta=-1"]),
+                (f"tch0>={px}&&tch0<{px + pw}", ["gdelta=1"])) + IF(
+                ("gdelta!=0", [f"gf=tch1-{CLOCK_ROWS[0]}", f"gf=gf/{CLOCK_PITCH}"]
+                 + change + self.month_days() + day + ["grender=2"]))))
 
 
-def show_task(i, task):
-    t2, t3 = late_days(task)
-    box, sbox, s = tile_box(i), status_box(i), f"gs{i}"
-    late = ["gtmp=0-gtmp", "covx gtmp,va0.txt,0,0", 'va1.txt=va0.txt+" d te laat"'] + IF(
-        (f"gtmp>={t3}", [f"{s}={P_URGENT}", picq(box, P_URGENT),
-                         xstr(sbox, SMALL, LATE, P_URGENT, "va1.txt", 2)]),
-        (f"gtmp>={t2}", [f"{s}={P_HIGH}", picq(box, P_HIGH),
-                         xstr(sbox, SMALL, LATE, P_HIGH, "va1.txt", 2)]),
-        otherwise=[f"{s}={P_OPEN}", xstr(sbox, SMALL, LATE, P_OPEN, "va1.txt", 2)])
-    done = [f"{s}={P_DONE}", picq(box, P_DONE)] + IF(
-        ("gtmp==1", [xstr(sbox, SMALL, MUTED, P_DONE, '"morgen"', 2)]),
-        otherwise=["covx gtmp,va0.txt,0,0", 'va1.txt="over "+va0.txt+" d"',
-                   xstr(sbox, SMALL, MUTED, P_DONE, "va1.txt", 2)])
-    return [f"// {i + 1}. {task['name']}: every {task['every']} days, {task['points']} points",
-            f"repo glast,{a_last(i)}"] + IF(
-        ("glast<=0", [f"{s}={P_OPEN}", xstr(sbox, SMALL, SOON, P_OPEN, '"nooit gedaan"', 2)]),
-        otherwise=[f"gtmp=glast+{task['every']}", "gtmp=gtmp-gdag"] + IF(
-            ("gtmp>0", done),
-            ("gtmp==0", [f"{s}={P_OPEN}", xstr(sbox, SMALL, SOON, P_OPEN, '"vandaag"', 2)]),
-            otherwise=late))
-
-
-def first_start(cfg):
-    """Everything at 0, also for task places without a task (yet)."""
-    out = ["// the first start (or a fresh start): everything at 0",
-           "gtmp=0"]
-    for a in list(A_WEEK) + list(A_MONTH) + [A_WEEK_KEY, A_MONTH_KEY, A_GOAL, A_GOAL_NR]:
-        out.append(f"wepo gtmp,{a}")
-    for i in range(MAX_TASKS):
-        out += [f"wepo gtmp,{a}" for a in (a_last(i), a_who(i), a_pts(i), a_prev(i),
-                                            a_goal_nr(i))]
-    return out + [f"gtmp={mark(cfg)}", f"wepo gtmp,{A_MARK}"]
-
-
-def mark(cfg):
-    return 4270 + int(cfg.get("fresh_start", 1))
-
-
-def taken_code(cfg):
-    tasks = cfg["tasks"]
-    post = day_numbers() + ["gtoon=gdag", f"repo gtmp,{A_MARK}"]
-    post += IF((f"gtmp!={mark(cfg)}", first_start(cfg)))
-    post += ["// a new week or month starts at 0", f"repo gtmp,{A_WEEK_KEY}"]
-    post += IF(("gtmp!=gweek", ["gtmp=0", f"wepo gtmp,{A_WEEK[0]}", f"wepo gtmp,{A_WEEK[1]}",
-                                f"wepo gweek,{A_WEEK_KEY}"]))
-    post += [f"repo gtmp,{A_MONTH_KEY}"]
-    post += IF(("gtmp!=gmaand", ["gtmp=0", f"wepo gtmp,{A_MONTH[0]}",
-                                 f"wepo gtmp,{A_MONTH[1]}", f"wepo gmaand,{A_MONTH_KEY}"]))
-    post += ["// the points"] + show_scores() + ["// the tasks"]
-    for i, task in enumerate(tasks):
-        post += show_task(i, task)
-    post = ["// the clock isn't set yet: set it first"] + IF(
-        ("rtc0<2025", ["page klok"]), otherwise=post)
-
-    press = ["gknop=0"] + IF(
-        (inside(MENU_BOX), ["gknop=99"]),
-        *[(inside(tile_box(i), grow=GAP // 2), [f"gknop={i + 1}"]) for i in range(len(tasks))])
-
-    branches = [("gknop==99", ["page menu"])]
-    for i, task in enumerate(tasks):
-        x, y, _, _ = tile_box(i)
-        p2, p3 = bonus_points(task)
-        p = task["points"]
-        branches.append((f"gknop=={i + 1}", [
-            f"gtaak={i}", f"gtx={x}", f"gty={y}", f"gpts={p}", "gbonus=0"] + IF(
-            (f"gs{i}=={P_DONE}", [f"gstaat={P_DONE}", "page terug"]),
-            otherwise=[f"gstaat=gs{i}"] + IF(
-                (f"gs{i}=={P_URGENT}", [f"gpts={p3}", f"gbonus={p3 - p}"]),
-                (f"gs{i}=={P_HIGH}", [f"gpts={p2}", f"gbonus={p2 - p}"])) + ["page wie"])))
-    release = IF(*branches)
-
-    timer = ["// once a minute: a new day draws the page again"] + day_numbers() + IF(
-        ("gdag!=gtoon", ["page taken"]))
-    return {"Preinitialize Event": ["gknop=0"], "Postinitialize Event": post,
-            "Touch Press Event": press, "Touch Release Event": release,
-            "tm0 Timer Event": timer}
-
-
-def presses(buttons, pressed_pic, skip=None):
-    """Touch Press: which button (gknop), drawn pressed."""
-    branches = []
-    for code, box in buttons:
-        draw = [picq(box, pressed_pic)]
-        if skip and code in skip:
-            draw = IF((skip[code], draw))
-        branches.append((inside(box), [f"gknop={code}"] + draw))
-    return ["gknop=0"] + IF(*branches)
-
-
-def per_task(cfg, make):
-    return IF(*[(f"gtaak=={i}", make(i)) for i in range(len(cfg["tasks"]))])
-
-
-def add_points():
-    out = []
-    for k, skip in ((0, 2), (1, 1)):
-        lines = []
-        for a in (A_WEEK[k], A_MONTH[k]):
-            lines += [f"repo gtmp,{a}", "gtmp=gtmp+gpts", f"wepo gtmp,{a}"]
-        out += IF((f"gwie!={skip}", lines))
-    out += ["// the goal: together counts for both, as in the app",
-            f"repo gtmp,{A_GOAL}", "gtmp=gtmp+gpts"]
-    out += IF(("gwie==3", ["gtmp=gtmp+gpts"])) + [f"wepo gtmp,{A_GOAL}"]
-    return out
-
-
-def take_off(a, double=False):
-    out = [f"repo gtmp,{a}", "gtmp=gtmp-gopts"]
-    if double:
-        out += IF(("gwie==3", ["gtmp=gtmp-gopts"]))
-    return out + IF(("gtmp<0", ["gtmp=0"])) + [f"wepo gtmp,{a}"]
-
-
-def remove_points():
-    """Undo: the points come off, if they still count in this week, this
-    month and for this goal."""
-    out = []
-    for keys, var in ((A_WEEK, "gweek"), (A_MONTH, "gmaand")):
-        out += IF((f"glast>={var}",
-                   IF(("gwie!=2", take_off(keys[0]))) + IF(("gwie!=1", take_off(keys[1])))))
-    return out + [f"repo gtmp,{A_GOAL_NR}"] + IF(
-        ("gdoel==gtmp", take_off(A_GOAL, double=True)))
-
-
-def wie_code(cfg):
-    x, y = TILE_SHOW
-    post = [f"xpic {x},{y},{TILE_W},{TILE_H},gtx,gty,gstaat",
-            "covx gpts,taken.va0.txt,0,0"] + IF(
-        ("gbonus>0", ["covx gbonus,taken.va1.txt,0,0",
-                      'taken.va2.txt="+"+taken.va0.txt+" punten, met "+taken.va1.txt+" bonus"']),
-        otherwise=['taken.va2.txt="+"+taken.va0.txt+" punten"']) + [
-        xstr(INFO_BOX, SMALL, INK, P_WHO, "taken.va2.txt", 1)]
-    buttons = [(1, WHO_BUTTONS[0]), (2, WHO_BUTTONS[1]), (3, WHO_BUTTONS[2]), (9, WHO_CANCEL)]
-    save = [f"repo gdoel,{A_GOAL_NR}"] + per_task(
-        cfg, lambda i: [f"repo gprev,{a_last(i)}", f"wepo gprev,{a_prev(i)}",
-                        f"wepo gdag,{a_last(i)}", f"wepo gwie,{a_who(i)}",
-                        f"wepo gpts,{a_pts(i)}", f"wepo gdoel,{a_goal_nr(i)}"])
-    release = IF(("gknop==9", ["page taken"]),
-                 ("gknop>=1&&gknop<=3",
-                  ["gwie=gknop", "// remember it with the task"] + save + add_points()
-                  + ["page taken"]))
-    return {"Preinitialize Event": ["gknop=0"], "Postinitialize Event": post,
-            "Touch Press Event": presses(buttons, P_WHO_IN), "Touch Release Event": release}
-
-
-def terug_code(cfg):
-    a, b = cfg["people"]
-    pre = ["gknop=0", "// who did it last, with how many points"] + per_task(
-        cfg, lambda i: [f"repo gwie,{a_who(i)}", f"repo gopts,{a_pts(i)}",
-                        f"repo glast,{a_last(i)}", f"repo gdoel,{a_goal_nr(i)}"])
-    x, y = TILE_SHOW
-    post = [f"xpic {x},{y},{TILE_W},{TILE_H},gtx,gty,{P_DONE}"] + IF(
-        ("gwie==0", [picq(BACK_BUTTONS[0], P_BACK_OFF),
-                     xstr(INFO_BOX, SMALL, MUTED, P_BACK, '"Nog een keer gedaan? Dat mag altijd."', 1)]),
-        otherwise=["covx gopts,taken.va0.txt,0,0"] + IF(
-            ("gwie==1", [f'taken.va2.txt="Gedaan door {a}, +"+taken.va0.txt+" punten"']),
-            ("gwie==2", [f'taken.va2.txt="Gedaan door {b}, +"+taken.va0.txt+" punten"']),
-            otherwise=['taken.va2.txt="Samen gedaan, allebei +"+taken.va0.txt+" punten"'])
-        + [xstr(INFO_BOX, SMALL, INK, P_BACK, "taken.va2.txt", 1)])
-    buttons = [(1, BACK_BUTTONS[0]), (2, BACK_BUTTONS[1]), (9, BACK_BUTTONS[2])]
-    press = ["gknop=0"] + IF(
-        (inside(BACK_BUTTONS[0]), IF(("gwie>0", ["gknop=1", picq(BACK_BUTTONS[0], P_BACK_IN)]))),
-        *[(inside(box), [f"gknop={code}", picq(box, P_BACK_IN)]) for code, box in buttons[1:]])
-    undo = per_task(cfg, lambda i: [f"repo gprev,{a_prev(i)}", f"wepo gprev,{a_last(i)}",
-                                    "gtmp=0", f"wepo gtmp,{a_who(i)}"])
-    release = IF(("gknop==9", ["page taken"]),
-                 ("gknop==2", [f"gstaat={P_DONE}", "gbonus=0", "page wie"]),
-                 ("gknop==1", ["// undo: the task gets its day before back"] + undo
-                  + remove_points() + ["page taken"]))
-    return {"Preinitialize Event": pre, "Postinitialize Event": post,
-            "Touch Press Event": press, "Touch Release Event": release}
-
-
-DAYS = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"]
-MONTHS = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus",
-          "september", "oktober", "november", "december"]
-
-
-def menu_code(cfg):
-    target = int(cfg["goal"]["points"])
-    v0, v1, v2 = "taken.va0.txt", "taken.va1.txt", "taken.va2.txt"
-    date = ["// the date and time"] + IF(
-        *[(f"rtc6=={k}", [f'{v0}="{d}"']) for k, d in enumerate(DAYS)]) + [
-        f"covx rtc2,{v1},0,0", f'{v2}={v0}+" "+{v1}'] + IF(
-        *[(f"rtc1=={k + 1}", [f'{v0}={v2}+" {m}"']) for k, m in enumerate(MONTHS)]) + [
-        f"covx rtc3,{v1},0,0", f'{v2}={v0}+", "+{v1}'] + IF(
-        ("rtc4<10", [f'{v0}={v2}+":0"']), otherwise=[f'{v0}={v2}+":"']) + [
-        f"covx rtc4,{v1},0,0", f"{v2}={v0}+{v1}",
-        xstr(DATE_BOX, SMALL, MUTED, P_MENU, v2, 2)]
-    bx, by, bw, bh = GOAL_BAR
-    goal = ["// the goal", f"repo gtmp,{A_GOAL}"] + IF(
-        ("gtmp>0", [f"gprev=gtmp*{bw}", f"gprev=gprev/{target}"]
-         + IF((f"gprev>{bw}", [f"gprev={bw}"]))
-         + IF(("gprev>0", [f"picq {bx},{by},gprev,{bh},{P_MENU_FULL}"])))) + [
-        f"covx gtmp,{v0},0,0", f'{v2}={v0}+" / {target} punten"',
-        xstr(GOAL_NUMS, SMALL, INK, P_MENU, v2, 2)] + IF(
-        (f"gtmp>={target}", [xstr(GOAL_FOOT, SMALL, ACCENT, P_MENU,
-                                  '"Gehaald! Tijd voor de beloning."')]),
-        otherwise=[f"gprev={target}-gtmp", f"covx gprev,{v0},0,0",
-                   f'{v2}="Nog "+{v0}+" punten te gaan"',
-                   xstr(GOAL_FOOT, SMALL, MUTED, P_MENU, v2)])
-    buttons = [(1, MENU_BUTTONS[0]), (2, MENU_BUTTONS[1]), (9, MENU_BUTTONS[2])]
-    release = IF(("gknop==9", ["page taken"]),
-                 ("gknop==2", ["page klok"]),
-                 ("gknop==1", IF(("gzeker==0", ["gzeker=1", picq(MENU_BUTTONS[0], P_MENU_SURE)]),
-                                 otherwise=["// a new goal: count from 0, with the next number",
-                                            "gtmp=0", f"wepo gtmp,{A_GOAL}",
-                                            f"repo gtmp,{A_GOAL_NR}", "gtmp=gtmp+1",
-                                            f"wepo gtmp,{A_GOAL_NR}", "page menu"])))
-    return {"Preinitialize Event": ["gknop=0", "gzeker=0"],
-            "Postinitialize Event": date + goal,
-            "Touch Press Event": presses(buttons, P_MENU_IN, skip={1: "gzeker==0"}),
-            "Touch Release Event": release}
-
-
-def clock_value(row):
-    var = CLOCK_FIELDS[row][1]
-    box = clock_box(row, "value")
-    out = [f"covx {var},taken.va0.txt,0,0"]
-    if var == "gkmi":
-        out += IF(("gkmi<10", ['taken.va1.txt="0"+taken.va0.txt',
-                               xstr(box, BIG, INK, P_CLOCK, "taken.va1.txt", 1)]),
-                  otherwise=[xstr(box, BIG, INK, P_CLOCK, "taken.va0.txt", 1)])
-        return out
-    return out + [xstr(box, BIG, INK, P_CLOCK, "taken.va0.txt", 1)]
-
-
-def month_days():
-    """gmax: the days in month gkm of year gkj; the day stays within it."""
-    return ["gmax=31"] + IF(
-        ("gkm==4||gkm==6||gkm==9||gkm==11", ["gmax=30"]),
-        ("gkm==2", ["gmax=28", "gtmp=gkj/4", "gtmp=gtmp*4"] + IF(("gtmp==gkj", ["gmax=29"])))
-    ) + IF(("gkd>gmax", ["gkd=gmax"]))
-
-
-def klok_code(cfg):
-    pre = ["gknop=0"] + IF(("gkladen==0", ["gkladen=1"] + IF(
-        ("rtc0<2025", ["gkj=2026", "gkm=1", "gkd=1", "gku=12", "gkmi=0"]),
-        otherwise=["gkj=rtc0", "gkm=rtc1", "gkd=rtc2", "gku=rtc3", "gkmi=rtc4"])))
-    post = []
-    for row in range(len(CLOCK_FIELDS)):
-        post += clock_value(row)
-    buttons = [(9, CLOCK_BUTTONS[0]), (1, CLOCK_BUTTONS[1])]
-    for row in range(len(CLOCK_FIELDS)):
-        buttons += [(11 + row, clock_box(row, "minus")), (21 + row, clock_box(row, "plus"))]
-    # What -/+ does per field: (minus, plus)
-    change = {
-        "gkd": (month_days() + ["gkd=gkd-1"] + IF(("gkd<1", ["gkd=gmax"])),
-                month_days() + ["gkd=gkd+1"] + IF(("gkd>gmax", ["gkd=1"]))),
-        "gkm": (["gkm=gkm-1"] + IF(("gkm<1", ["gkm=12"])) + month_days(),
-                ["gkm=gkm+1"] + IF(("gkm>12", ["gkm=1"])) + month_days()),
-        "gkj": (["gkj=gkj-1"] + IF(("gkj<2025", ["gkj=2025"])) + month_days(),
-                ["gkj=gkj+1"] + IF(("gkj>2099", ["gkj=2099"])) + month_days()),
-        "gku": (["gku=gku-1"] + IF(("gku<0", ["gku=23"])),
-                ["gku=gku+1"] + IF(("gku>23", ["gku=0"]))),
-        "gkmi": (["gkmi=gkmi-1"] + IF(("gkmi<0", ["gkmi=59"])),
-                 ["gkmi=gkmi+1"] + IF(("gkmi>59", ["gkmi=0"]))),
-    }
-    branches = [
-        ("gknop==1", ["// the day goes to 1 first, so every in-between date exists",
-                      "rtc2=1", "rtc0=gkj", "rtc1=gkm", "rtc2=gkd", "rtc3=gku", "rtc4=gkmi",
-                      "rtc5=0", "gkladen=0", "page taken"]),
-        ("gknop==9", ["gkladen=0", "page taken"])]
-    for row, (_, var) in enumerate(CLOCK_FIELDS):
-        redraw = clock_value(row) + (clock_value(0) if var in ("gkm", "gkj") else [])
-        for k, sign in enumerate(("minus", "plus")):
-            code = (11, 21)[k] + row
-            branches.append((f"gknop=={code}", [picq(clock_box(row, sign), P_CLOCK)]
-                             + change[var][k] + redraw))
-    return {"Preinitialize Event": pre, "Postinitialize Event": post,
-            "Touch Press Event": presses(buttons, P_CLOCK_IN),
-            "Touch Release Event": IF(*branches)}
-
-
-def program_s(cfg):
-    states = ",".join(f"gs{i}=0" for i in range(len(cfg["tasks"])))
-    return [
-        "// Onze huistaken: the numbers every page uses",
-        "int sys0=0,sys1=0,sys2=0",
-        "int gdag=0,gweek=0,gmaand=0,gtoon=0,gy=0,gm=0,gtmp=0,gprev=0",
-        "int gtaak=0,gpts=0,gbonus=0,gwie=0,gopts=0,glast=0,gstaat=0,gdoel=0",
-        "int gtx=0,gty=0,gknop=0,gzeker=0",
-        "// the state of every task: 0 open, 1 done, 2 a bit late, 3 very late",
-        f"int {states}",
-        "// the clock page",
-        "int gkladen=0,gkd=1,gkm=1,gkj=2026,gku=12,gkmi=0,gmax=31",
-        "dim=100",
-        "recmod=0",
-        "page 0",
-    ]
-
-
-def pages(cfg):
-    """The pages in order (page 0 first): name, picture, parts, events."""
-    var = "Variable: sta=String, txt_maxl=60, vscope=global"
-    return [
-        ("taken", P_OPEN, [("va0", var), ("va1", var), ("va2", var),
-                           ("tm0", "Timer: tim=60000, en=1")], taken_code(cfg)),
-        ("wie", P_WHO, [], wie_code(cfg)),
-        ("terug", P_BACK, [], terug_code(cfg)),
-        ("menu", P_MENU, [], menu_code(cfg)),
-        ("klok", P_CLOCK, [], klok_code(cfg)),
-    ]
-
-
-def nextion_code(cfg):
-    bar = "=" * 72
-    out = [
-        "ONZE HUISTAKEN - THE CODE FOR NEXTION EDITOR",
-        "Made by make_screens.py from tasks.json: edit those, not this file.",
-        "Copy every block between its ---- lines exactly as it is.",
-        "",
-        "PICTURES (add them all at once, in this order, so the numbers match)",
-    ]
-    out += [f"  {i:>2}  screens\\{f:<22} {what}" for i, (f, what) in enumerate(PICTURES)]
-    out += ["", "FONTS (README.txt, step 3)",
-            f"   0  small: Atkinson Hyperlegible, height {SMALL_H}",
-            f"   1  big:   Bricolage Grotesque ExtraBold, height {BIG_H}", "",
-            bar, "PROGRAM.S  (the tab next to the pages: replace everything in it)", bar,
-            "----"] + program_s(cfg) + ["----", ""]
-    for k, (name, pic, parts, events) in enumerate(pages(cfg)):
-        out += [bar, f"PAGE {name}   (page {k})", bar,
-                f"  The page itself: sta = image, pic = {pic}"]
-        if parts:
-            out += ["  Add to this page (Toolbox, left):"]
-            out += [f"    {pname:<4} {what}" for pname, what in parts]
-        out += [""]
-        for event, code in events.items():
-            where = ("the timer tm0" if event.startswith("tm0") else "the page")
-            out += [f"---- {event.replace('tm0 ', '')} ({where}) " + "-" * 20] + code + ["----", ""]
-    return "\n".join(out)
-
-
+# ---------------------------------------------------------------- the project
 def load_config():
     with open(os.path.join(HERE, "tasks.json"), encoding="utf-8") as f:
         cfg = json.load(f)
@@ -793,24 +895,67 @@ def load_config():
         for key, hi in (("points", 999), ("every", 365)):
             if not (isinstance(t.get(key), int) and 1 <= t[key] <= hi):
                 sys.exit(f"tasks.json: {key} must be a whole number 1-{hi} ({t.get('name')})")
-        if '"' in t["name"]:
-            sys.exit(f'tasks.json: no " in a name ({t["name"]})')
     if len(cfg.get("people", [])) != 2:
         sys.exit("tasks.json: people has two names")
     return cfg
 
 
+def build(cfg):
+    """Everything the project holds: pictures, Program.s, the page and its parts."""
+    screens = [draw_taken(cfg, P_OPEN), draw_taken(cfg, P_DONE), draw_taken(cfg, P_HIGH),
+               draw_taken(cfg, P_URGENT), draw_wie(cfg), draw_terug(cfg), draw_menu(cfg),
+               draw_klok(cfg)]
+    sheets, sprites = make_sprites(cfg)
+    code = Code(cfg, sprites)
+    page = {"load": [], "loadend": code.postinit(), "down": code.press()}
+    return {"pictures": screens + sheets, "program": code.program_s(), "page": page,
+            "parts": code.components(), "code": code, "sprites": sprites}
+
+
+def hmi_bytes(project):
+    objects = [nextion_hmi.component("page", 0, "taken", project["page"], x=0, y=0, w=W, h=H,
+                                     sta=2, bco=0xFFFF, pic=P_OPEN)]
+    for cid, (kind, name, attrs, events) in enumerate(project["parts"], start=1):
+        objects.append(nextion_hmi.component(kind, cid, name, events, **attrs))
+    return nextion_hmi.build(project["program"], "taken", objects, project["pictures"])
+
+
+def code_text(project):
+    bar = "=" * 72
+    parts = project["parts"]
+    out = ["ONZE HUISTAKEN - ALL THE CODE IN Huistaken.HMI",
+           "Made by make_screens.py from tasks.json, to read. Huistaken.HMI already holds",
+           "all of it: you don't need to type or paste anything.", "",
+           bar, "PROGRAM.S", bar] + project["program"] + ["", bar,
+           "PAGE taken (the only page): sta = image, pic = 0", bar,
+           f"  tm0  Timer, tim = 50 ms, en = 1",
+           f"  {len(parts) - 1} Variables (numbers), per task: " + ", ".join(
+               f"{b}0-{b}{len(project['code'].cfg['tasks']) - 1}" for b in TASK_VARS), "",
+           "---- Postinitialize Event (the page) ----"] + project["page"]["loadend"] + [
+           "", "---- Touch Press Event (the page) ----"] + project["page"]["down"] + [
+           "", "---- Timer Event (tm0) ----"] + parts[0][3]["timer"]
+    return "\n".join(out) + "\n"
+
+
 def main():
     cfg = load_config()
+    project = build(cfg)
     os.makedirs(SCREENS, exist_ok=True)
+    names = [f"{k:02d}_{n}.png" for k, n in enumerate(SCREEN_PICTURES)]
+    names += [f"{len(names) + k:02d}_letters.png" for k in range(len(project["pictures"]) - 8)]
     for old in os.listdir(SCREENS):
-        if old.endswith(".png") and old not in dict(PICTURES):
+        if old.endswith(".png") and old not in names:
             os.remove(os.path.join(SCREENS, old))
-    for (name, _), img in zip(PICTURES, draw_pictures(cfg)):
+    for name, img in zip(names, project["pictures"]):
         img.save(os.path.join(SCREENS, name))
+    with open(PROJECT, "wb") as f:
+        f.write(hmi_bytes(project))
     with open(os.path.join(HERE, "nextion_code.txt"), "w", encoding="utf-8") as f:
-        f.write(nextion_code(cfg) + "\n")
-    print(f"{len(cfg['tasks'])} tasks: screens\\ ({len(PICTURES)} pictures), nextion_code.txt")
+        f.write(code_text(project))
+    lines = sum(1 for k in ("loadend", "down") for l in project["page"][k] if not l.strip().startswith("//"))
+    lines += sum(1 for l in project["parts"][0][3]["timer"] if not l.strip().startswith("//"))
+    print(f"{len(cfg['tasks'])} tasks: Huistaken.HMI ({len(project['pictures'])} pictures, "
+          f"{lines} lines of code), screens\\, nextion_code.txt")
     print("Check it and make preview.png: python house_tasks/check.py")
 
 
