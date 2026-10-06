@@ -1,0 +1,343 @@
+HOUSE TASKS - WHAT GOES WHERE IN NEXTION EDITOR
+Made by make_screens.py from tasks.json: edit those, not this file.
+Type everything exactly as here: no spaces around = + - == !=.
+
+PICTURES (add them in this order, so the numbers match)
+  0  screens\0_main.png             main page, every task open
+  1  screens\1_main_done.png        main page, every task done + menu pressed
+  2  screens\2_menu.png             menu page
+  3  screens\3_menu_pressed.png     menu page, buttons pressed
+  4  screens\4_confirm.png          points back to 0?
+  5  screens\5_confirm_pressed.png  points back to 0?, buttons pressed
+
+FONT
+  0  for the points: height 32, bold (README.txt, step 2)
+
+Every Button and Dual-state button: delete the text in txt ("newtxt").
+
+========================================================================
+PAGE main   (page 0)
+========================================================================
+  The page itself: sta = image, pic = 0
+
+  Preinitialize Event (click an empty spot of the page):
+      // read the points and ticks from the screen's memory
+      repo sys0,100
+      if(sys0!=4271)
+      {
+        // the first time: everything at 0
+        sys0=0
+        wepo sys0,0
+        wepo sys0,4
+        wepo sys0,8
+        wepo sys0,12
+        wepo sys0,16
+        wepo sys0,20
+        wepo sys0,24
+        wepo sys0,28
+        wepo sys0,32
+        wepo sys0,36
+        wepo sys0,40
+        wepo sys0,44
+        wepo sys0,48
+        sys0=4271
+        wepo sys0,100
+      }
+      repo n0.val,0
+      repo bt0.val,4
+      repo bt1.val,8
+      repo bt2.val,12
+      repo bt3.val,16
+      repo bt4.val,20
+      repo bt5.val,24
+      repo bt6.val,28
+      repo bt7.val,32
+      repo bt8.val,36
+      repo bt9.val,40
+      repo bt10.val,44
+      repo bt11.val,48
+
+  n0   Number (the points)
+       x=326  y=6  w=96  h=36
+       sta=crop image  picc=0  font=0  pco=65535  xcen=Left  ycen=Center
+
+  b0   Button (menu)
+       x=428  y=0  w=52  h=48
+       sta=crop image  picc=0  picc2=1  txt=(empty)
+       Touch Release Event:
+         page menu
+
+  The tasks, one Dual-state button each (make bt0, then copy and
+  paste it: change x, y and the numbers in its code):
+
+  bt0  Dual-state button: Make the bed (5 points)
+       x=8  y=56  w=149  h=58
+       sta=crop image  picc0=0  picc1=1  txt=(empty)
+       Touch Release Event:
+         if(bt0.val==1)
+         {
+           n0.val=n0.val+5
+         }else
+         {
+           n0.val=n0.val-5
+           if(n0.val<0)
+           {
+             n0.val=0
+           }
+         }
+         wepo bt0.val,4
+         wepo n0.val,0
+
+  bt1  Dual-state button: Do the dishes (10 points)
+       x=165  y=56  w=149  h=58
+       sta=crop image  picc0=0  picc1=1  txt=(empty)
+       Touch Release Event:
+         if(bt1.val==1)
+         {
+           n0.val=n0.val+10
+         }else
+         {
+           n0.val=n0.val-10
+           if(n0.val<0)
+           {
+             n0.val=0
+           }
+         }
+         wepo bt1.val,8
+         wepo n0.val,0
+
+  bt2  Dual-state button: Empty dishwasher (10 points)
+       x=322  y=56  w=149  h=58
+       sta=crop image  picc0=0  picc1=1  txt=(empty)
+       Touch Release Event:
+         if(bt2.val==1)
+         {
+           n0.val=n0.val+10
+         }else
+         {
+           n0.val=n0.val-10
+           if(n0.val<0)
+           {
+             n0.val=0
+           }
+         }
+         wepo bt2.val,12
+         wepo n0.val,0
+
+  bt3  Dual-state button: Set the table (5 points)
+       x=8  y=122  w=149  h=58
+       sta=crop image  picc0=0  picc1=1  txt=(empty)
+       Touch Release Event:
+         if(bt3.val==1)
+         {
+           n0.val=n0.val+5
+         }else
+         {
+           n0.val=n0.val-5
+           if(n0.val<0)
+           {
+             n0.val=0
+           }
+         }
+         wepo bt3.val,16
+         wepo n0.val,0
+
+  bt4  Dual-state button: Take out trash (10 points)
+       x=165  y=122  w=149  h=58
+       sta=crop image  picc0=0  picc1=1  txt=(empty)
+       Touch Release Event:
+         if(bt4.val==1)
+         {
+           n0.val=n0.val+10
+         }else
+         {
+           n0.val=n0.val-10
+           if(n0.val<0)
+           {
+             n0.val=0
+           }
+         }
+         wepo bt4.val,20
+         wepo n0.val,0
+
+  bt5  Dual-state button: Vacuum (20 points)
+       x=322  y=122  w=149  h=58
+       sta=crop image  picc0=0  picc1=1  txt=(empty)
+       Touch Release Event:
+         if(bt5.val==1)
+         {
+           n0.val=n0.val+20
+         }else
+         {
+           n0.val=n0.val-20
+           if(n0.val<0)
+           {
+             n0.val=0
+           }
+         }
+         wepo bt5.val,24
+         wepo n0.val,0
+
+  bt6  Dual-state button: Laundry (15 points)
+       x=8  y=188  w=149  h=58
+       sta=crop image  picc0=0  picc1=1  txt=(empty)
+       Touch Release Event:
+         if(bt6.val==1)
+         {
+           n0.val=n0.val+15
+         }else
+         {
+           n0.val=n0.val-15
+           if(n0.val<0)
+           {
+             n0.val=0
+           }
+         }
+         wepo bt6.val,28
+         wepo n0.val,0
+
+  bt7  Dual-state button: Water plants (5 points)
+       x=165  y=188  w=149  h=58
+       sta=crop image  picc0=0  picc1=1  txt=(empty)
+       Touch Release Event:
+         if(bt7.val==1)
+         {
+           n0.val=n0.val+5
+         }else
+         {
+           n0.val=n0.val-5
+           if(n0.val<0)
+           {
+             n0.val=0
+           }
+         }
+         wepo bt7.val,32
+         wepo n0.val,0
+
+  bt8  Dual-state button: Clean bathroom (25 points)
+       x=322  y=188  w=149  h=58
+       sta=crop image  picc0=0  picc1=1  txt=(empty)
+       Touch Release Event:
+         if(bt8.val==1)
+         {
+           n0.val=n0.val+25
+         }else
+         {
+           n0.val=n0.val-25
+           if(n0.val<0)
+           {
+             n0.val=0
+           }
+         }
+         wepo bt8.val,36
+         wepo n0.val,0
+
+  bt9  Dual-state button: Tidy your room (10 points)
+       x=8  y=254  w=149  h=58
+       sta=crop image  picc0=0  picc1=1  txt=(empty)
+       Touch Release Event:
+         if(bt9.val==1)
+         {
+           n0.val=n0.val+10
+         }else
+         {
+           n0.val=n0.val-10
+           if(n0.val<0)
+           {
+             n0.val=0
+           }
+         }
+         wepo bt9.val,40
+         wepo n0.val,0
+
+  bt10 Dual-state button: Feed the pet (5 points)
+       x=165  y=254  w=149  h=58
+       sta=crop image  picc0=0  picc1=1  txt=(empty)
+       Touch Release Event:
+         if(bt10.val==1)
+         {
+           n0.val=n0.val+5
+         }else
+         {
+           n0.val=n0.val-5
+           if(n0.val<0)
+           {
+             n0.val=0
+           }
+         }
+         wepo bt10.val,44
+         wepo n0.val,0
+
+  bt11 Dual-state button: Groceries (20 points)
+       x=322  y=254  w=149  h=58
+       sta=crop image  picc0=0  picc1=1  txt=(empty)
+       Touch Release Event:
+         if(bt11.val==1)
+         {
+           n0.val=n0.val+20
+         }else
+         {
+           n0.val=n0.val-20
+           if(n0.val<0)
+           {
+             n0.val=0
+           }
+         }
+         wepo bt11.val,48
+         wepo n0.val,0
+
+========================================================================
+PAGE menu   (page 1)
+========================================================================
+  The page itself: sta = image, pic = 2
+
+  b0   Button: New day
+       x=16  y=66  w=448  h=72
+       sta=crop image  picc=2  picc2=3  txt=(empty)
+       Touch Release Event:
+         sys0=0
+         wepo sys0,4
+         wepo sys0,8
+         wepo sys0,12
+         wepo sys0,16
+         wepo sys0,20
+         wepo sys0,24
+         wepo sys0,28
+         wepo sys0,32
+         wepo sys0,36
+         wepo sys0,40
+         wepo sys0,44
+         wepo sys0,48
+         page main
+
+  b1   Button: Points back to 0
+       x=16  y=148  w=448  h=72
+       sta=crop image  picc=2  picc2=3  txt=(empty)
+       Touch Release Event:
+         page confirm
+
+  b2   Button: Back to the tasks
+       x=16  y=230  w=448  h=72
+       sta=crop image  picc=2  picc2=3  txt=(empty)
+       Touch Release Event:
+         page main
+
+========================================================================
+PAGE confirm   (page 2)
+========================================================================
+  The page itself: sta = image, pic = 4
+
+  b0   Button: No, keep them
+       x=16  y=214  w=216  h=72
+       sta=crop image  picc=4  picc2=5  txt=(empty)
+       Touch Release Event:
+         page menu
+
+  b1   Button: Yes, back to 0
+       x=248  y=214  w=216  h=72
+       sta=crop image  picc=4  picc2=5  txt=(empty)
+       Touch Release Event:
+         sys0=0
+         wepo sys0,0
+         page main
+

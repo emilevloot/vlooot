@@ -14,6 +14,8 @@ PROJECT MAP
   app\                         the Android app for the Play Store (Capacitor):
                                see app\README.txt
   icons\                       the app icons (tools\make_icons.py draws them)
+  house_tasks\                 not the game: house tasks for points on a
+                               Nextion touchscreen (see its README.txt)
 
   The game, the coach and the AI (these import each other, so they stay
   together in this folder; the web page loads some of them too):
