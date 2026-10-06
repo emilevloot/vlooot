@@ -10,6 +10,9 @@ PROJECT MAP
   boards.json                  the landscape boards (made with the editor)
   manifest.webmanifest, sw.js  the installable web app: name, icon, and the
                                offline copy (see PLAY ON YOUR PHONE)
+  privacy.html                 the privacy policy (the app and the site)
+  app\                         the Android app for the Play Store (Capacitor):
+                               see app\README.txt
   icons\                       the app icons (tools\make_icons.py draws them)
 
   The game, the coach and the AI (these import each other, so they stay

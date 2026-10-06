@@ -44,8 +44,8 @@
     background: radial-gradient(1200px 600px at 70% -10%, #23384a 0%, var(--night) 60%) fixed, var(--night);
     color: var(--snow);
     font: 16px/1.4 var(--body);
-    padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right));
-    padding-top: env(safe-area-inset-top);
+    padding-inline: max(16px, var(--safe-area-inset-left, env(safe-area-inset-left))) max(16px, var(--safe-area-inset-right, env(safe-area-inset-right)));
+    padding-top: var(--safe-area-inset-top, env(safe-area-inset-top));
   }
   button { font: inherit; color: inherit; }
   .app { max-width: 1360px; margin: 0 auto; padding-block: 14px 40px; display: grid; gap: 14px; }
@@ -197,7 +197,7 @@
   .rbar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
     background: #0f171eee; border-top: 1px solid var(--line); backdrop-filter: blur(6px);
-    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    padding: 10px 16px calc(10px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom)));
   }
   .rbar .in { max-width: 1360px; margin: 0 auto; display: grid; gap: 8px; }
   .rbar .ctl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -215,7 +215,7 @@
   .rbar .btn.on { background: #8fd3ff33; border-color: #8fd3ff; }
   @media (max-width: 640px) {
     body.replaying { padding-bottom: 230px; }
-    .rbar { padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
+    .rbar { padding: 8px 10px calc(8px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom))); }
     .rbar .in { gap: 5px; }
     .rbar .ctl { gap: 5px; }
     .rbar .btn { padding: 5px 10px; }
@@ -290,6 +290,7 @@
   .mbtn small { color: var(--mist); font-size: 14px; }
   .mbtn.primary { background: var(--rune); border-color: var(--rune); }
   .mbtn.primary small { color: #ffe3da; }
+  html.app .webonly { display: none; }      /* the Android app has no dashboards or editor */
   .mlinks { display: flex; gap: 6px 16px; flex-wrap: wrap; justify-content: center; margin-top: 16px; font-size: 14px; }
   .mlinks a, .mlinks button { color: var(--mist); background: none; border: 0; cursor: pointer; font: inherit; text-decoration: underline; padding: 0; }
   .mlinks a:hover, .mlinks button:hover { color: var(--snow); }
@@ -319,7 +320,7 @@
   .deep td.n { text-align: right; white-space: nowrap; }
   .deep tr.me td { color: var(--gold); }
   .deep .verdict { font-weight: 700; color: var(--snow); }
-  .toast { position: fixed; left: 50%; top: calc(12px + env(safe-area-inset-top)); z-index: 45; display: flex; align-items: center; gap: 12px;
+  .toast { position: fixed; left: 50%; top: calc(12px + var(--safe-area-inset-top, env(safe-area-inset-top))); z-index: 45; display: flex; align-items: center; gap: 12px;
            background: #0f171ef2; border: 2px solid var(--tc, var(--line)); border-radius: 14px; padding: 10px 16px 10px 12px;
            box-shadow: 0 12px 40px #000a; transform: translate(-50%, -16px); opacity: 0; pointer-events: none;
            transition: opacity .25s, transform .25s; max-width: min(92vw, 520px); cursor: pointer; }
@@ -333,8 +334,8 @@
     <h1>Lo<span>oo</span>t</h1>
     <div class="players" id="players"></div>
     <div class="hdr-btns">
-      <a class="btn" href="dashboard.html" style="text-decoration:none">AI dashboard</a>
-      <a class="btn" href="editor.html" style="text-decoration:none">Board editor</a>
+      <a class="btn webonly" href="dashboard.html" style="text-decoration:none">AI dashboard</a>
+      <a class="btn webonly" href="editor.html" style="text-decoration:none">Board editor</a>
       <button class="btn" id="btnCoach" aria-pressed="true" title="A chess-trainer style judgement of every move">Coach: on</button>
       <button class="btn" id="btnInstall" hidden title="Install Looot as an app on this device">Install app</button>
       <button class="btn" id="btnNew">Menu</button>
@@ -754,11 +755,17 @@
     }, 850);
   }
 
+  // In the Android app (app/, tools/make_app.py) the page comes from the
+  // phone itself, at https://localhost: there is no local server and no
+  // service worker, and links for friends go to the web site (they can join
+  // there without the app). make_app.py sets window.LOOOT_APP.
+  const APP = !!window.LOOOT_APP;
+  const WEB_SITE = 'https://emilevloot.github.io/vlooot/';
   // The neural network runs either in server.py (on your own pc: fast, it
   // has numba) or right here in the browser (a web site without a server:
   // numpy in Pyodide, a bit slower). ?browsernn in the address forces the
   // browser way, to try it out locally.
-  const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
+  const LOCAL = !APP && ['localhost', '127.0.0.1'].includes(location.hostname);
   const NN_IN_BROWSER = !LOCAL || new URLSearchParams(location.search).has('browsernn');
   const WEB_MODEL = 's2_r32';          // models/<WEB_MODEL>.npz: the network that plays
   const WEB_MODEL_MP = 't4_r8';        // ... with 3 or 4 players
@@ -1417,7 +1424,7 @@
       ${pending ? `<p style="color:var(--mist)"><span class="spin sm"></span> The coach is still judging ${pending} turn${pending > 1 ? 's' : ''}…</p>` : ''}
       ${deepSummary(h)}
       ${h.deepRun ? `<p style="color:var(--mist)"><span class="spin sm"></span> Playing the moves out: ${h.deepRun.done} of ${h.deepRun.total}…</p>` : ''}
-      ${!CAN_PLAY_OUT ? `<p style="color:var(--mist);font-size:14px">Playing every move out with the network (the deep analysis) works in the local version of the game (start\\start_game.bat): it plays hundreds of games.</p>` : ''}
+      ${!CAN_PLAY_OUT && !APP ? `<p style="color:var(--mist);font-size:14px">Playing every move out with the network (the deep analysis) works in the local version of the game (start\\start_game.bat): it plays hundreds of games.</p>` : ''}
       <div class="row" style="justify-content:flex-end;margin-top:14px">
         ${CAN_PLAY_OUT && !h.deepRun && h.turns.some(t => judged(t) && t.rev.cls && !t.deep) ? '<button class="btn" id="rvDeep" title="The network plays the rest of the game out 32 times after every move, and after the best others">Play every move out</button>' : ''}
         <button class="btn" id="rvScores">Scores</button>
@@ -1612,7 +1619,7 @@
       <div class="engine" id="engineMsg">${engineFailed ? `<span class="err">${esc(engineFailed)}</span>` : api ? '' : 'Loading the game…'}</div>
       <div class="mlinks">
         <button data-menu="rules">How to play</button>
-        <a href="dashboard.html">AI dashboard</a><a href="history.html">History</a><a href="editor.html">Board editor</a>
+        ${APP ? '' : '<a href="dashboard.html">AI dashboard</a><a href="history.html">History</a><a href="editor.html">Board editor</a>'}<a href="privacy.html">Privacy</a>
         ${installAsk ? '<button data-menu="install">Install app</button>' : ''}
       </div></div>`;
   }
@@ -1659,6 +1666,8 @@
   // browsers find each other through PeerJS (a free matchmaking service)
   // and then talk directly (WebRTC). If the host closes the game, it ends.
   const PEERJS = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
+  // the app: Android's own share menu (Capacitor's Share plugin; the WebView has no navigator.share)
+  const capShare = APP && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share;
   const QRJS = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js';
   const ACTS = new Set(['place_viking', 'place_tile', 'use_extra', 'pick_ship', 'cancel_ship',
                         'place_ship', 'claim_trophy', 'end_turn']);
@@ -1682,7 +1691,7 @@
   const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   const newCode = () => Array.from({ length: 5 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
   const peerId = code => 'vlooot-' + code.toLowerCase();
-  const joinLink = code => location.origin + location.pathname + '?join=' + code;
+  const joinLink = code => (APP ? WEB_SITE : location.origin + location.pathname) + '?join=' + code;
   function loadScript(src) {
     return new Promise((ok, bad) => {
       if (document.querySelector(`script[src="${src}"]`) && (src !== PEERJS || window.Peer)) return ok();
@@ -1727,7 +1736,10 @@
         () => { b.textContent = 'Copied!'; setTimeout(() => { b.textContent = 'Copy link'; }, 1500); },
         () => prompt('Send your friends this link:', link));
     }
-    if (what === 'share') navigator.share({ title: 'Looot', text: 'Play Looot with me! Code ' + NET.code, url: joinLink(NET.code) }).catch(() => { });
+    if (what === 'share') {
+      const msg = { title: 'Looot', text: 'Play Looot with me! Code ' + NET.code, url: joinLink(NET.code) };
+      (capShare ? capShare.share(msg) : navigator.share(msg)).catch(() => { });
+    }
     if (what === 'join') {
       const name = ($('joinName').value || '').trim().slice(0, 18), code = ($('joinCode').value || '').trim().toUpperCase();
       if (!name) { $('joinName').focus(); return; }
@@ -1869,7 +1881,7 @@
       <div class="lobbyhead">
         <div><div class="offline">Game code</div><div class="code">${esc(NET.code)}</div>
           <div class="row" style="margin-top:8px">
-            ${navigator.share ? '<button class="btn sm primary" data-online="share">Share link</button>' : ''}
+            ${navigator.share || capShare ? '<button class="btn sm primary" data-online="share">Share link</button>' : ''}
             <button class="btn sm" data-online="copy">Copy link</button></div>
           <div class="offline" style="margin-top:6px;word-break:break-all">${esc(link)}</div></div>
         <div class="qr" id="lobbyQr" title="Scan to join"></div>
@@ -2162,7 +2174,7 @@
   // The service worker keeps a copy of the game, so it starts faster and
   // also works without internet. Not on the local server (it would keep old
   // copies while you edit), unless the address has ?sw.
-  if ('serviceWorker' in navigator && (!LOCAL || new URLSearchParams(location.search).has('sw'))) {
+  if (!APP && 'serviceWorker' in navigator && (!LOCAL || new URLSearchParams(location.search).has('sw'))) {
     navigator.serviceWorker.register('sw.js').then(async reg => {
       await navigator.serviceWorker.ready;
       // the networks and numpy: fetched in advance, for playing offline
@@ -2192,6 +2204,19 @@
     const app = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
     return ios && !app ? '<br>Tip: tap Share, then “Add to Home Screen”, to install Looot as an app.' : '';
   }
+
+  // ---------- the Android back button (the app only) ----------
+  // In a game it does what the Menu button does, in a lobby it leaves the
+  // lobby, on another screen (the rules, a new game) it goes back to the
+  // menu, and on the menu it closes the app.
+  const capApp = APP && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+  if (capApp) capApp.addListener('backButton', () => {
+    const ov = $('overlay');
+    if (ov.hidden) $('btnNew').click();
+    else if (ov.querySelector('.card.menu')) capApp.exitApp();
+    else if (ov.querySelector('[data-online="close"]')) ov.querySelector('[data-online="close"]').click();
+    else showMenu();
+  });
 
   // ---------- starting up ----------
   const startup = new URLSearchParams(location.search);

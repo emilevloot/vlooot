@@ -1,0 +1,17 @@
+{
+  "name": "looot-app",
+  "private": true,
+  "description": "Looot as an Android app (Capacitor). The game itself is ../index.html; tools/make_app.py copies it into www/.",
+  "scripts": {
+    "sync": "cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/share": "^8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2"
+  }
+}

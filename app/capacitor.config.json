@@ -1,0 +1,14 @@
+{
+  "appId": "io.github.emilevloot.looot",
+  "appName": "Looot",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#141d25"
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "style": "DARK"
+    }
+  }
+}

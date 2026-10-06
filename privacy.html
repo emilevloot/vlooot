@@ -1,0 +1,65 @@
+<!doctype html>
+<title>Looot – Privacy</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141d25">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<style>
+  :root { color-scheme: dark; --night: #141d25; --snow: #eef2f5; --mist: #a9b8c4; --gold: #e3b448; }
+  body { margin: 0; background: var(--night); color: var(--snow);
+         font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 680px; margin: 0 auto; padding: max(24px, var(--safe-area-inset-top, env(safe-area-inset-top))) 16px 48px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 28px 0 6px; color: var(--gold); }
+  p, li { color: var(--snow); }
+  .muted { color: var(--mist); font-size: 14px; }
+  a { color: var(--gold); }
+  ul { padding-left: 20px; }
+</style>
+<main>
+  <h1>Privacy</h1>
+  <p class="muted">Looot – the app (Android) and the web site emilevloot.github.io/vlooot. Last changed: 6 October 2026.</p>
+
+  <p><b>In short:</b> Looot has no accounts, no ads and no analytics. The maker of the game collects no
+    data about you. The game runs on your own device; only when you play online with friends does it
+    connect to other players.</p>
+
+  <h2>What stays on your device</h2>
+  <ul>
+    <li>The name you type for online games, a random player number (so you get your seat back after a
+      lost connection) and whether the coach is on. They are kept in the app's own storage and never
+      sent to the maker. Uninstalling the app (or clearing the site's data) removes them.</li>
+    <li>The game itself, the computer players and the coach run entirely on your device.</li>
+  </ul>
+
+  <h2>Playing online with friends</h2>
+  <ul>
+    <li>To find each other, devices use <a href="https://peerjs.com">PeerJS</a>, a free connection service.
+      Its server sees the game code and your device's internet address while it connects you; after that
+      the devices talk directly (WebRTC). When a direct connection is not possible, the game data may go
+      through PeerJS's relay server. See PeerJS for how it handles this.</li>
+    <li>The players in your game see the name you chose and your moves. Nothing else about you is shared.</li>
+    <li>If you never play online, none of this happens.</li>
+  </ul>
+
+  <h2>The web site</h2>
+  <p>The web site is hosted by GitHub Pages; GitHub may keep technical logs (such as internet addresses)
+    to run its service. The site loads fonts from Google Fonts and code from jsDelivr, which also see
+    your internet address. The Android app has its own copy of these files.</p>
+
+  <h2>Children</h2>
+  <p>Looot is not directed at children under 13 and collects no personal data from anyone.</p>
+
+  <h2>Questions</h2>
+  <p>Open an issue at <a href="https://github.com/emilevloot/vlooot/issues">github.com/emilevloot/vlooot/issues</a>.
+    If this policy changes, the new version will be on this page with a new date.</p>
+
+  <h2>Nederlands, kort</h2>
+  <p>Looot heeft geen accounts, geen advertenties en geen analytics; de maker verzamelt geen gegevens.
+    Je naam voor online spelen, een willekeurig spelersnummer en de coach-instelling blijven op je eigen
+    toestel. Bij online spelen met vrienden zoeken de toestellen elkaar via PeerJS (die server ziet de
+    spelcode en je internetadres) en praten ze daarna rechtstreeks met elkaar; je medespelers zien je naam
+    en je zetten.</p>
+
+  <p class="muted"><a href="./">Back to the game</a></p>
+</main>

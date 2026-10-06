@@ -26,3 +26,15 @@ site/
 # Raw games for the dashboard (make_dashboard.py puts the summary in dashboard.html)
 results/dashboard_data.json
 results/selfplay_data.json
+
+# The Android app (app/): installed packages, downloads and copies that
+# tools/make_app.py and Capacitor make again, and the signed versions
+app/node_modules/
+app/vendor/
+app/www/
+app/release/
+app/*.log
+app/android/app/src/main/assets/public/
+app/android/app/src/main/assets/capacitor.config.json
+app/android/app/src/main/assets/capacitor.plugins.json
+app/android/capacitor-cordova-android-plugins/
