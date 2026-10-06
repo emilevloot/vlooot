@@ -846,10 +846,12 @@
     const seq = ++thinkSeq;
     let t = null;
     if (S && S.players.some(p => p.nn) && NN_IN_BROWSER) {
+      // a computer player is about to move: ask after its move (maybeAI does)
+      if (busy) return;
       try {
         await loadBrowserNN();
         await new Promise(ok => setTimeout(ok, 30));    // let the board draw first
-        if (seq !== thinkSeq) return;
+        if (seq !== thinkSeq || busy) return;
         t = JSON.parse(api.nn_view(netFor()));
       } catch (err) {
         t = { error: errText(err) };
@@ -1086,7 +1088,8 @@
     const key = S.turn_no + (S.game_over ? '/over' : '');
     if (key === hist.key) return;
     const now = api.save_state();
-    hist.turns.push({ who: hist.who, nn: !!S.players[hist.who].nn, before: hist.state, after: now, rev: null });
+    hist.turns.push({ who: hist.who, nn: !!S.players[hist.who].nn, ai: !!S.players[hist.who].ai,
+                      before: hist.state, after: now, rev: null });
     hist.key = key; hist.state = now; hist.who = S.current;
     coachSel = null; marks = null;
     setTimeout(pumpReviews, 0);
@@ -1099,6 +1102,9 @@
     renderCoach();
     try {
       for (;;) {
+        // Python in the browser does one thing at a time: a computer player
+        // about to move goes first, the coach catches up afterwards
+        while (NN_IN_BROWSER && busy) await new Promise(ok => setTimeout(ok, 150));
         const h = hist, t = h && h.turns.find(x => !x.rev);
         if (!t) break;
         let rev;
@@ -1115,7 +1121,9 @@
   }
 
   async function reviewTurn(t) {
-    const search = !t.nn;           // the network's own turns: only the win chances
+    // the network's own turns: only the win chances; in the browser (a phone)
+    // the greedy computer's turns too - the full judgement is for people
+    const search = !t.nn && !(NN_IN_BROWSER && t.ai);
     if (NN_IN_BROWSER) {
       await loadBrowserNN();
       await new Promise(ok => setTimeout(ok, 30));       // let the page draw first
@@ -1416,7 +1424,7 @@
         <tr><th></th>${players.map(p => `<th style="color:${PCOL[p.color]}">${esc(p.name)}</th>`).join('')}</tr>
         <tr class="total"><td>Accuracy</td>${players.map((p, i) => {
           const a = accuracyOf(h, i);
-          return `<td>${a !== null ? `<span class="accbig">${a.toFixed(1)}</span>` : p.nn ? '<small style="color:var(--mist)">network</small>' : '–'}</td>`;
+          return `<td>${a !== null ? `<span class="accbig">${a.toFixed(1)}</span>` : p.ai ? `<small style="color:var(--mist)">${p.nn ? 'network' : 'computer'}</small>` : '–'}</td>`;
         }).join('')}</tr>
         ${CLS_ORDER.map(c => `<tr><td>${clsIcon(c)} ${CLS[c].name}</td>${players.map((p, i) =>
           `<td>${p.nn ? '' : `<span style="color:${cnt(i, c) ? CLS[c].col : 'var(--mist)'};font-weight:800">${cnt(i, c)}</span>`}</td>`).join('')}</tr>`).join('')}

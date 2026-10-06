@@ -93,6 +93,7 @@ def encode_reference(g, me):
     Returns (land int8 [105, LAND_F], fjord int8 [4, 37, FJORD_F], glob int16)."""
     order = seats(g, me)
     opps = order[1:]
+    keys = {j: E2.board_key(g, j) for j in order}      # what a Viking captures: remembered per board
     land = np.zeros((N_LAND, LAND_F), dtype=np.int8)
     fjord = np.zeros((MAX_PLAYERS, N_FJORD, FJORD_F), dtype=np.int8)
     glob = np.zeros(GLOB_F, dtype=np.int16)
@@ -102,7 +103,7 @@ def encode_reference(g, me):
     needs, spots = {}, {}
     for k, idx in enumerate(order):
         needs[idx] = [0] * len(SITE_ITEMS)
-        spots[idx] = E2._fjord_reference(P[idx], fjord[k], needs[idx])
+        spots[idx] = E2._fjord_cached(P[idx], fjord[k], needs[idx])
     tl = {idx: E2.turns_left(P[idx]) for idx in order}
     for k, idx in enumerate(order):
         fjord[k, :, E2.FF_TURNS] = tl[idx]
@@ -165,7 +166,7 @@ def encode_reference(g, me):
             else:
                 land[i, LF_FREE] = 1
                 glob[G["anchors_" + L.TERRAIN_RESOURCE[t]]] += 1
-                gains = {j: E2._placement_gain(g, j, c, needs[j]) for j in order}
+                gains = {j: E2._placement_gain(g, j, c, needs[j], keys[j]) for j in order}
                 opp_gain = [max(gains[j][x] for j in opps) for x in range(len(GAIN))]
                 for x in range(len(GAIN)):
                     land[i, LF_GAIN + x] = min(gains[me][x], 127)
@@ -241,12 +242,21 @@ def outcome(g, me):
     return float(margin), (1.0 / len(w)) if me in w else 0.0
 
 
+_FAST = None                                         # mp_game, or False without numba
+
+
 def encode(g, me):
     """The encoding the players use: mp_game.py's compiled version (exactly
     the numbers of encode_reference, checked by test_mp.py)."""
-    try:
-        import mp_game                               # (mp_game imports this file)
-    except ImportError:                              # no numba (e.g. in the browser)
+    global _FAST
+    if _FAST is None:
+        try:
+            import mp_game                           # (mp_game imports this file)
+            _FAST = mp_game
+        except ImportError:                          # no numba (e.g. in the browser): tried once
+            _FAST = False
+    if not _FAST:
         return encode_reference(g, me)
+    mp_game = _FAST
     s, gs = mp_game.from_game(g)
     return mp_game.encode_state(s, gs, me)

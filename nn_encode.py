@@ -28,7 +28,6 @@ encode(), which runs the compiled copy in fastgame.py; test_speedups.py and
 test_fastgame.py check that both give exactly the same numbers.
 """
 
-import copy
 
 import numpy as np
 
@@ -176,6 +175,28 @@ def _empty_neighbours(p, c):
     return sum(1 for n in L.neighbours(c) if n in FJORD_INDEX and n not in p.fjord)
 
 
+# The same for the fjords: the candidate turns of one move share most
+# fjords (the opponents' always), so each different fjord is worked out once.
+_FJORDS = {}
+
+
+def _fjord_cached(p, out, need):
+    """_fjord_reference(), remembered: out and need come in empty."""
+    key = (frozenset((c, it["kind"], it.get("type"), it.get("id"), it.get("filled"), it.get("done"),
+                      tuple(it.get("need") or ())) for c, it in p.fjord.items()),
+           p.vikings_left, bool(p.shields.get("double")))
+    hit = _FJORDS.get(key)
+    if hit is None:
+        if len(_FJORDS) > 20000:
+            _FJORDS.clear()
+        spots = _fjord_reference(p, out, need)
+        _FJORDS[key] = (out.copy(), list(need), spots)
+        return spots
+    out[:] = hit[0]
+    need[:] = hit[1]
+    return hit[2]
+
+
 def _fjord_reference(p, out, need):
     """Fill out [N_FJORD, FJORD_F] for player p, and add the items still
     missing on ships/sites that can be finished to need[7] (SITE_ITEMS order).
@@ -228,15 +249,44 @@ def _fjord_reference(p, out, need):
     return ship_spots
 
 
-def _placement_gain(g, idx, c, need):
+# The computer player encodes hundreds of candidate turns that share their
+# landscape (all ways to lay out the fjord after one Viking): what a Viking
+# would capture is worked out once per board. The cache belongs to one game's
+# landscape (copies of a game share it, see Game.__deepcopy__) and is kept
+# with it, so a new game starts a new cache.
+_GAINS = {"land": None, "got": {}}
+
+
+def board_key(g, idx):
+    """Everything captures() looks at for player idx, but the landscape."""
+    if g.land is not _GAINS["land"] or len(_GAINS["got"]) > 50000:
+        _GAINS["land"], _GAINS["got"] = g.land, {}
+    p = g.players[idx]
+    return (idx, frozenset(c for c, v in g.vikings.items() if idx in v), frozenset(g.stock.items()),
+            frozenset(p.wt_pairs), frozenset(p.castle_taken.items()), g.rules["buildings"])
+
+
+def _placement_gain(g, idx, c, need, key=None):
     """What player idx would get from a Viking on free space c (without
     shields): [chain size, house, watchtower and castle tiles, useful items].
-    Done the plain way: capture on a copy of the game."""
-    g2 = copy.deepcopy(g)
-    p2 = g2.players[idx]
-    chain = len(g2.chain(p2, c))
-    kinds = [g.land[a] for a in g2.captures(p2, c)]
-    got = [kinds.count(b) for b in BLD]
+    Done the plain way: capture in the game itself, and put back the only
+    three things captures() changes (the tiles left on the board, the
+    player's linked watchtowers and castle levels) - much quicker than a
+    copy of the whole game. key: board_key(g, idx), to remember it."""
+    hit = _GAINS["got"].get((key, c)) if key is not None else None
+    if hit is None:
+        p = g.players[idx]
+        saved = g.stock, p.wt_pairs, p.castle_taken
+        g.stock, p.wt_pairs, p.castle_taken = dict(g.stock), set(p.wt_pairs), dict(p.castle_taken)
+        try:
+            chain = len(g.chain(p, c))
+            kinds = [g.land[a] for a in g.captures(p, c)]
+        finally:
+            g.stock, p.wt_pairs, p.castle_taken = saved
+        hit = (chain, [kinds.count(b) for b in BLD])
+        if key is not None:
+            _GAINS["got"][(key, c)] = hit
+    chain, got = hit
     res = RES.index(L.TERRAIN_RESOURCE[g.land[c]])
     useful = min(1, need[res]) + sum(min(n, need[4 + k]) for k, n in enumerate(got))
     return [chain] + got + [useful]
@@ -257,7 +307,7 @@ def encode_reference(g, me):
     needs = []
     for w, idx in enumerate(order):
         need = [0] * len(SITE_ITEMS)
-        glob[G["ship_spots_" + who[w]]] = _fjord_reference(g.players[idx], fjord[w], need)
+        glob[G["ship_spots_" + who[w]]] = _fjord_cached(g.players[idx], fjord[w], need)
         for t, n in enumerate(need):
             glob[G["need_%s_%s" % (SITE_ITEMS[t], who[w])]] = n
         needs.append(need)
@@ -277,6 +327,7 @@ def encode_reference(g, me):
             for k in pk.split("|"):
                 links[w][k] = links[w].get(k, 0) + 1
     best = [[0, 0], [0, 0]]                    # [w] -> best gain, best useful
+    keys = [board_key(g, idx) for idx in order]
     for c, t in g.land.items():
         i = LAND_INDEX[c]
         land[i, LF_TERRAIN + TERRAINS.index(t)] = 1
@@ -305,7 +356,7 @@ def encode_reference(g, me):
                 land[i, LF_FREE] = 1
                 glob[G["anchors_" + L.TERRAIN_RESOURCE[t]]] += 1
                 for w, idx in enumerate(order):
-                    gain = _placement_gain(g, idx, c, needs[w])
+                    gain = _placement_gain(g, idx, c, needs[w], keys[w])
                     for j, x in enumerate(gain):
                         land[i, LF_GAIN + w * len(GAIN) + j] = min(x, 127)
                     best[w][0] = max(best[w][0], 1 + sum(gain[1:4]))
@@ -358,14 +409,23 @@ def encode_reference(g, me):
     return land, fjord, glob
 
 
+_FAST = None                                   # fastgame, or False without numba
+
+
 def encode(g, me):
     """Encode game g as seen by player index `me`: (land int8, fjord int8,
     glob int16). The compiled version in fastgame.py; exactly the numbers
     of encode_reference(), many times faster."""
-    try:
-        import fastgame                        # (fastgame imports this file)
-    except ImportError:                        # no numba (e.g. in the browser):
+    global _FAST
+    if _FAST is None:
+        try:
+            import fastgame                    # (fastgame imports this file)
+            _FAST = fastgame
+        except ImportError:                    # no numba (e.g. in the browser): tried once
+            _FAST = False
+    if not _FAST:
         return encode_reference(g, me)         # the plain version, same numbers
+    fastgame = _FAST
     s, gs = fastgame.from_game(g)
     return fastgame.encode_state(s, gs, me)
 
