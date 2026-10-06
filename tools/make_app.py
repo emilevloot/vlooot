@@ -34,7 +34,7 @@ APP = os.path.join(ROOT, "app")
 GRADLE = os.path.join(APP, "android", "app", "build.gradle")
 WWW = os.path.join(APP, "www")
 VENDOR = os.path.join(APP, "vendor")
-FILES = ["index.html", "privacy.html", "boards.json", "looot.py", "nn_bot.py", "nn_encode.py",
+FILES = ["index.html", "nn_worker.js", "privacy.html", "boards.json", "looot.py", "nn_bot.py", "nn_encode.py",
          "mp_encode.py", "review.py", "endgame.py"]
 PY = ["pyodide.js", "pyodide.asm.js", "pyodide.asm.wasm", "python_stdlib.b64.txt", "pyodide-lock.json"]
 ICONS = ["favicon-32.png", "favicon-64.png", "icon-192.png"]

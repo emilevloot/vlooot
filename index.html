@@ -805,12 +805,63 @@
     return nnReady;
   }
 
+  // The network in the background (nn_worker.js): a second Python that only
+  // thinks, so the page stays smooth while the network makes its move.
+  // Questions go one at a time, in order. If the worker can't start (an old
+  // browser), the page thinks itself, as before (loadBrowserNN).
+  let worker = null, workerSeq = 0;
+  let workerOk = new URLSearchParams(location.search).has('noworker') ? false : null;   // ?noworker: on the page (to compare)
+  const workerWaiting = new Map();
+  function nnWorker() {
+    if (workerOk === false || typeof Worker === 'undefined') return null;
+    if (!worker) {
+      const fail = err => {
+        workerOk = false;
+        console.warn('The network runs on the page itself:', err);
+        for (const w of workerWaiting.values()) w.bad(null);
+        workerWaiting.clear();
+      };
+      try {
+        worker = new Worker('nn_worker.js');
+      } catch (err) { fail(err); return null; }
+      worker.onmessage = e => {
+        const m = e.data;
+        if (m.ready !== undefined) { if (m.ready) workerOk = true; else fail(m.error); return; }
+        const w = workerWaiting.get(m.id);
+        if (!w) return;
+        workerWaiting.delete(m.id);
+        if (m.error) w.bad(new Error(m.error)); else w.ok(m.out);
+      };
+      worker.onerror = e => fail(e.message || e);
+      worker.postMessage({ init: { models: [WEB_MODEL, WEB_MODEL_MP] } });
+    }
+    return worker;
+  }
+  // The worker's answer (JSON text), or null when there is no worker (then
+  // the caller thinks on the page itself).
+  async function askWorker(kind, body) {
+    const w = nnWorker();
+    if (!w) return null;
+    try {
+      return await new Promise((ok, bad) => {
+        const id = ++workerSeq;
+        workerWaiting.set(id, { ok, bad });
+        w.postMessage({ id, kind, model: netFor(), body });
+      });
+    } catch (err) {
+      if (err === null) return null;               // the worker could not start
+      throw err;
+    }
+  }
+
   // One network turn. If it fails, the normal computer player takes the turn.
   async function nnTurn() {
     if (NN_IN_BROWSER) {
       try {
-        await loadBrowserNN();
         lastError = '';
+        const st = await askWorker('turn', api.save_state());
+        if (st !== null) return api.load_state(st);
+        await loadBrowserNN();
         return api.nn_turn(netFor());
       } catch (err) {
         const res = JSON.parse(api.ai_turn());
@@ -849,10 +900,14 @@
       // a computer player is about to move: ask after its move (maybeAI does)
       if (busy) return;
       try {
-        await loadBrowserNN();
-        await new Promise(ok => setTimeout(ok, 30));    // let the board draw first
-        if (seq !== thinkSeq || busy) return;
-        t = JSON.parse(api.nn_view(netFor()));
+        const out = await askWorker('view', api.save_state());
+        if (out !== null) t = JSON.parse(out);
+        else {
+          await loadBrowserNN();
+          await new Promise(ok => setTimeout(ok, 30));  // let the board draw first
+          if (seq !== thinkSeq || busy) return;
+          t = JSON.parse(api.nn_view(netFor()));
+        }
       } catch (err) {
         t = { error: errText(err) };
       }
@@ -1125,6 +1180,8 @@
     // the greedy computer's turns too - the full judgement is for people
     const search = !t.nn && !(NN_IN_BROWSER && t.ai);
     if (NN_IN_BROWSER) {
+      const out = await askWorker('review', `{"before":${t.before},"after":${t.after},"search":${search}}`);
+      if (out !== null) return JSON.parse(out);
       await loadBrowserNN();
       await new Promise(ok => setTimeout(ok, 30));       // let the page draw first
       return JSON.parse(api.nn_review(netFor(), t.before, t.after, search));
@@ -2234,5 +2291,6 @@
     showJoin(code);
     if (myName()) guestJoin(code);
   } else { showMenu(); engine = boot(); }
+  if (NN_IN_BROWSER && engine) engine.then(() => nnWorker()).catch(() => { });
 })();
 </script>

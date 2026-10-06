@@ -11,9 +11,9 @@
 // index.html asks it to fetch the networks and numpy in advance ("warm"),
 // so playing against the network also works offline after the first visit.
 
-const CACHE = 'looot-v1';
+const CACHE = 'looot-v2';
 const CORE = [
-  './', 'index.html', 'manifest.webmanifest', 'boards.json',
+  './', 'index.html', 'nn_worker.js', 'manifest.webmanifest', 'boards.json',
   'looot.py', 'nn_bot.py', 'nn_encode.py', 'mp_encode.py', 'review.py', 'endgame.py',
   'py/pyodide.js', 'py/pyodide.asm.js', 'py/pyodide.asm.wasm',
   'py/python_stdlib.b64.txt', 'py/pyodide-lock.json',
