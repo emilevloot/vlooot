@@ -1,343 +1,2144 @@
-HOUSE TASKS - WHAT GOES WHERE IN NEXTION EDITOR
+ONZE HUISTAKEN - THE CODE FOR NEXTION EDITOR
 Made by make_screens.py from tasks.json: edit those, not this file.
-Type everything exactly as here: no spaces around = + - == !=.
+Copy every block between its ---- lines exactly as it is.
 
-PICTURES (add them in this order, so the numbers match)
-  0  screens\0_main.png             main page, every task open
-  1  screens\1_main_done.png        main page, every task done + menu pressed
-  2  screens\2_menu.png             menu page
-  3  screens\3_menu_pressed.png     menu page, buttons pressed
-  4  screens\4_confirm.png          points back to 0?
-  5  screens\5_confirm_pressed.png  points back to 0?, buttons pressed
+PICTURES (add them all at once, in this order, so the numbers match)
+   0  screens\00_taken.png           taken: every task open
+   1  screens\01_taken_gedaan.png    taken: every task done
+   2  screens\02_taken_hoog.png      taken: every task a bit late (x1.5)
+   3  screens\03_taken_urgent.png    taken: every task very late (x2)
+   4  screens\04_wie.png             wie
+   5  screens\05_wie_in.png          wie, buttons pressed
+   6  screens\06_terug.png           terug
+   7  screens\07_terug_in.png        terug, buttons pressed
+   8  screens\08_terug_uit.png       terug, undo greyed out
+   9  screens\09_menu.png            menu
+  10  screens\10_menu_in.png         menu, buttons pressed
+  11  screens\11_menu_zeker.png      menu, 'Zeker?' button
+  12  screens\12_menu_vol.png        menu, full goal bar
+  13  screens\13_klok.png            klok
+  14  screens\14_klok_in.png         klok, buttons pressed
 
-FONT
-  0  for the points: height 32, bold (README.txt, step 2)
-
-Every Button and Dual-state button: delete the text in txt ("newtxt").
+FONTS (README.txt, step 3)
+   0  small: Atkinson Hyperlegible, height 16
+   1  big:   Bricolage Grotesque ExtraBold, height 32
 
 ========================================================================
-PAGE main   (page 0)
+PROGRAM.S  (the tab next to the pages: replace everything in it)
+========================================================================
+----
+// Onze huistaken: the numbers every page uses
+int sys0=0,sys1=0,sys2=0
+int gdag=0,gweek=0,gmaand=0,gtoon=0,gy=0,gm=0,gtmp=0,gprev=0
+int gtaak=0,gpts=0,gbonus=0,gwie=0,gopts=0,glast=0,gstaat=0,gdoel=0
+int gtx=0,gty=0,gknop=0,gzeker=0
+// the state of every task: 0 open, 1 done, 2 a bit late, 3 very late
+int gs0=0,gs1=0,gs2=0,gs3=0,gs4=0,gs5=0,gs6=0,gs7=0,gs8=0,gs9=0,gs10=0,gs11=0
+// the clock page
+int gkladen=0,gkd=1,gkm=1,gkj=2026,gku=12,gkmi=0,gmax=31
+dim=100
+recmod=0
+page 0
+----
+
+========================================================================
+PAGE taken   (page 0)
 ========================================================================
   The page itself: sta = image, pic = 0
+  Add to this page (Toolbox, left):
+    va0  Variable: sta=String, txt_maxl=60, vscope=global
+    va1  Variable: sta=String, txt_maxl=60, vscope=global
+    va2  Variable: sta=String, txt_maxl=60, vscope=global
+    tm0  Timer: tim=60000, en=1
 
-  Preinitialize Event (click an empty spot of the page):
-      // read the points and ticks from the screen's memory
-      repo sys0,100
-      if(sys0!=4271)
+---- Preinitialize Event (the page) --------------------
+gknop=0
+----
+
+---- Postinitialize Event (the page) --------------------
+// the clock isn't set yet: set it first
+if(rtc0<2025)
+{
+  page klok
+}else
+{
+  // today as a day number: gdag; this week's Monday: gweek; the 1st: gmaand
+  gy=rtc0-2000
+  gm=rtc1
+  if(gm<3)
+  {
+    gy=gy-1
+    gm=gm+12
+  }
+  gdag=gy*365
+  gtmp=gy/4
+  gdag=gdag+gtmp
+  gtmp=gm*153
+  gtmp=gtmp-457
+  gtmp=gtmp/5
+  gdag=gdag+gtmp
+  gdag=gdag+rtc2
+  gmaand=gdag-rtc2
+  gmaand=gmaand+1
+  if(rtc6==0)
+  {
+    gweek=gdag-6
+  }else
+  {
+    gweek=gdag-rtc6
+    gweek=gweek+1
+  }
+  gtoon=gdag
+  repo gtmp,0
+  if(gtmp!=4271)
+  {
+    // the first start (or a fresh start): everything at 0
+    gtmp=0
+    wepo gtmp,4
+    wepo gtmp,8
+    wepo gtmp,12
+    wepo gtmp,16
+    wepo gtmp,20
+    wepo gtmp,24
+    wepo gtmp,28
+    wepo gtmp,32
+    wepo gtmp,64
+    wepo gtmp,68
+    wepo gtmp,72
+    wepo gtmp,76
+    wepo gtmp,80
+    wepo gtmp,84
+    wepo gtmp,88
+    wepo gtmp,92
+    wepo gtmp,96
+    wepo gtmp,100
+    wepo gtmp,104
+    wepo gtmp,108
+    wepo gtmp,112
+    wepo gtmp,116
+    wepo gtmp,120
+    wepo gtmp,124
+    wepo gtmp,128
+    wepo gtmp,132
+    wepo gtmp,136
+    wepo gtmp,140
+    wepo gtmp,144
+    wepo gtmp,148
+    wepo gtmp,152
+    wepo gtmp,156
+    wepo gtmp,160
+    wepo gtmp,164
+    wepo gtmp,168
+    wepo gtmp,172
+    wepo gtmp,176
+    wepo gtmp,180
+    wepo gtmp,184
+    wepo gtmp,188
+    wepo gtmp,192
+    wepo gtmp,196
+    wepo gtmp,200
+    wepo gtmp,204
+    wepo gtmp,208
+    wepo gtmp,212
+    wepo gtmp,216
+    wepo gtmp,220
+    wepo gtmp,224
+    wepo gtmp,228
+    wepo gtmp,232
+    wepo gtmp,236
+    wepo gtmp,240
+    wepo gtmp,244
+    wepo gtmp,248
+    wepo gtmp,252
+    wepo gtmp,256
+    wepo gtmp,260
+    wepo gtmp,264
+    wepo gtmp,268
+    wepo gtmp,272
+    wepo gtmp,276
+    wepo gtmp,280
+    wepo gtmp,284
+    wepo gtmp,288
+    wepo gtmp,292
+    wepo gtmp,296
+    wepo gtmp,300
+    gtmp=4271
+    wepo gtmp,0
+  }
+  // a new week or month starts at 0
+  repo gtmp,20
+  if(gtmp!=gweek)
+  {
+    gtmp=0
+    wepo gtmp,4
+    wepo gtmp,8
+    wepo gweek,20
+  }
+  repo gtmp,24
+  if(gtmp!=gmaand)
+  {
+    gtmp=0
+    wepo gtmp,12
+    wepo gtmp,16
+    wepo gmaand,24
+  }
+  // the points
+  repo gtmp,4
+  covx gtmp,va0.txt,0,0
+  xstr 104,22,90,32,1,15129,0,2,1,0,va0.txt
+  repo gtmp,12
+  covx gtmp,va0.txt,0,0
+  va1.txt="maand "+va0.txt
+  xstr 18,34,90,18,0,23372,0,0,1,0,va1.txt
+  repo gtmp,8
+  covx gtmp,va0.txt,0,0
+  xstr 306,22,90,32,1,49775,0,2,1,0,va0.txt
+  repo gtmp,16
+  covx gtmp,va0.txt,0,0
+  va1.txt="maand "+va0.txt
+  xstr 220,34,90,18,0,23372,0,0,1,0,va1.txt
+  // the tasks
+  // 1. Afwassen: every 1 days, 3 points
+  repo glast,64
+  if(glast<=0)
+  {
+    gs0=0
+    xstr 69,96,82,18,0,35650,0,2,1,0,"nooit gedaan"
+  }else
+  {
+    gtmp=glast+1
+    gtmp=gtmp-gdag
+    if(gtmp>0)
+    {
+      gs0=1
+      picq 9,62,150,58,1
+      if(gtmp==1)
       {
-        // the first time: everything at 0
-        sys0=0
-        wepo sys0,0
-        wepo sys0,4
-        wepo sys0,8
-        wepo sys0,12
-        wepo sys0,16
-        wepo sys0,20
-        wepo sys0,24
-        wepo sys0,28
-        wepo sys0,32
-        wepo sys0,36
-        wepo sys0,40
-        wepo sys0,44
-        wepo sys0,48
-        sys0=4271
-        wepo sys0,100
+        xstr 69,96,82,18,0,23372,1,2,1,0,"morgen"
+      }else
+      {
+        covx gtmp,va0.txt,0,0
+        va1.txt="over "+va0.txt+" d"
+        xstr 69,96,82,18,0,23372,1,2,1,0,va1.txt
       }
-      repo n0.val,0
-      repo bt0.val,4
-      repo bt1.val,8
-      repo bt2.val,12
-      repo bt3.val,16
-      repo bt4.val,20
-      repo bt5.val,24
-      repo bt6.val,28
-      repo bt7.val,32
-      repo bt8.val,36
-      repo bt9.val,40
-      repo bt10.val,44
-      repo bt11.val,48
+    }else if(gtmp==0)
+    {
+      gs0=0
+      xstr 69,96,82,18,0,35650,0,2,1,0,"vandaag"
+    }else
+    {
+      gtmp=0-gtmp
+      covx gtmp,va0.txt,0,0
+      va1.txt=va0.txt+" d te laat"
+      if(gtmp>=3)
+      {
+        gs0=3
+        picq 9,62,150,58,3
+        xstr 69,96,82,18,0,47621,3,2,1,0,va1.txt
+      }else if(gtmp>=2)
+      {
+        gs0=2
+        picq 9,62,150,58,2
+        xstr 69,96,82,18,0,47621,2,2,1,0,va1.txt
+      }else
+      {
+        gs0=0
+        xstr 69,96,82,18,0,47621,0,2,1,0,va1.txt
+      }
+    }
+  }
+  // 2. Koken: every 1 days, 8 points
+  repo glast,84
+  if(glast<=0)
+  {
+    gs1=0
+    xstr 225,96,82,18,0,35650,0,2,1,0,"nooit gedaan"
+  }else
+  {
+    gtmp=glast+1
+    gtmp=gtmp-gdag
+    if(gtmp>0)
+    {
+      gs1=1
+      picq 165,62,150,58,1
+      if(gtmp==1)
+      {
+        xstr 225,96,82,18,0,23372,1,2,1,0,"morgen"
+      }else
+      {
+        covx gtmp,va0.txt,0,0
+        va1.txt="over "+va0.txt+" d"
+        xstr 225,96,82,18,0,23372,1,2,1,0,va1.txt
+      }
+    }else if(gtmp==0)
+    {
+      gs1=0
+      xstr 225,96,82,18,0,35650,0,2,1,0,"vandaag"
+    }else
+    {
+      gtmp=0-gtmp
+      covx gtmp,va0.txt,0,0
+      va1.txt=va0.txt+" d te laat"
+      if(gtmp>=3)
+      {
+        gs1=3
+        picq 165,62,150,58,3
+        xstr 225,96,82,18,0,47621,3,2,1,0,va1.txt
+      }else if(gtmp>=2)
+      {
+        gs1=2
+        picq 165,62,150,58,2
+        xstr 225,96,82,18,0,47621,2,2,1,0,va1.txt
+      }else
+      {
+        gs1=0
+        xstr 225,96,82,18,0,47621,0,2,1,0,va1.txt
+      }
+    }
+  }
+  // 3. Vaatwasser leeg: every 1 days, 2 points
+  repo glast,104
+  if(glast<=0)
+  {
+    gs2=0
+    xstr 381,96,82,18,0,35650,0,2,1,0,"nooit gedaan"
+  }else
+  {
+    gtmp=glast+1
+    gtmp=gtmp-gdag
+    if(gtmp>0)
+    {
+      gs2=1
+      picq 321,62,150,58,1
+      if(gtmp==1)
+      {
+        xstr 381,96,82,18,0,23372,1,2,1,0,"morgen"
+      }else
+      {
+        covx gtmp,va0.txt,0,0
+        va1.txt="over "+va0.txt+" d"
+        xstr 381,96,82,18,0,23372,1,2,1,0,va1.txt
+      }
+    }else if(gtmp==0)
+    {
+      gs2=0
+      xstr 381,96,82,18,0,35650,0,2,1,0,"vandaag"
+    }else
+    {
+      gtmp=0-gtmp
+      covx gtmp,va0.txt,0,0
+      va1.txt=va0.txt+" d te laat"
+      if(gtmp>=3)
+      {
+        gs2=3
+        picq 321,62,150,58,3
+        xstr 381,96,82,18,0,47621,3,2,1,0,va1.txt
+      }else if(gtmp>=2)
+      {
+        gs2=2
+        picq 321,62,150,58,2
+        xstr 381,96,82,18,0,47621,2,2,1,0,va1.txt
+      }else
+      {
+        gs2=0
+        xstr 381,96,82,18,0,47621,0,2,1,0,va1.txt
+      }
+    }
+  }
+  // 4. Vuilnis weg: every 3 days, 2 points
+  repo glast,124
+  if(glast<=0)
+  {
+    gs3=0
+    xstr 69,160,82,18,0,35650,0,2,1,0,"nooit gedaan"
+  }else
+  {
+    gtmp=glast+3
+    gtmp=gtmp-gdag
+    if(gtmp>0)
+    {
+      gs3=1
+      picq 9,126,150,58,1
+      if(gtmp==1)
+      {
+        xstr 69,160,82,18,0,23372,1,2,1,0,"morgen"
+      }else
+      {
+        covx gtmp,va0.txt,0,0
+        va1.txt="over "+va0.txt+" d"
+        xstr 69,160,82,18,0,23372,1,2,1,0,va1.txt
+      }
+    }else if(gtmp==0)
+    {
+      gs3=0
+      xstr 69,160,82,18,0,35650,0,2,1,0,"vandaag"
+    }else
+    {
+      gtmp=0-gtmp
+      covx gtmp,va0.txt,0,0
+      va1.txt=va0.txt+" d te laat"
+      if(gtmp>=3)
+      {
+        gs3=3
+        picq 9,126,150,58,3
+        xstr 69,160,82,18,0,47621,3,2,1,0,va1.txt
+      }else if(gtmp>=2)
+      {
+        gs3=2
+        picq 9,126,150,58,2
+        xstr 69,160,82,18,0,47621,2,2,1,0,va1.txt
+      }else
+      {
+        gs3=0
+        xstr 69,160,82,18,0,47621,0,2,1,0,va1.txt
+      }
+    }
+  }
+  // 5. Was draaien: every 3 days, 4 points
+  repo glast,144
+  if(glast<=0)
+  {
+    gs4=0
+    xstr 225,160,82,18,0,35650,0,2,1,0,"nooit gedaan"
+  }else
+  {
+    gtmp=glast+3
+    gtmp=gtmp-gdag
+    if(gtmp>0)
+    {
+      gs4=1
+      picq 165,126,150,58,1
+      if(gtmp==1)
+      {
+        xstr 225,160,82,18,0,23372,1,2,1,0,"morgen"
+      }else
+      {
+        covx gtmp,va0.txt,0,0
+        va1.txt="over "+va0.txt+" d"
+        xstr 225,160,82,18,0,23372,1,2,1,0,va1.txt
+      }
+    }else if(gtmp==0)
+    {
+      gs4=0
+      xstr 225,160,82,18,0,35650,0,2,1,0,"vandaag"
+    }else
+    {
+      gtmp=0-gtmp
+      covx gtmp,va0.txt,0,0
+      va1.txt=va0.txt+" d te laat"
+      if(gtmp>=3)
+      {
+        gs4=3
+        picq 165,126,150,58,3
+        xstr 225,160,82,18,0,47621,3,2,1,0,va1.txt
+      }else if(gtmp>=2)
+      {
+        gs4=2
+        picq 165,126,150,58,2
+        xstr 225,160,82,18,0,47621,2,2,1,0,va1.txt
+      }else
+      {
+        gs4=0
+        xstr 225,160,82,18,0,47621,0,2,1,0,va1.txt
+      }
+    }
+  }
+  // 6. Boodschappen: every 4 days, 12 points
+  repo glast,164
+  if(glast<=0)
+  {
+    gs5=0
+    xstr 381,160,82,18,0,35650,0,2,1,0,"nooit gedaan"
+  }else
+  {
+    gtmp=glast+4
+    gtmp=gtmp-gdag
+    if(gtmp>0)
+    {
+      gs5=1
+      picq 321,126,150,58,1
+      if(gtmp==1)
+      {
+        xstr 381,160,82,18,0,23372,1,2,1,0,"morgen"
+      }else
+      {
+        covx gtmp,va0.txt,0,0
+        va1.txt="over "+va0.txt+" d"
+        xstr 381,160,82,18,0,23372,1,2,1,0,va1.txt
+      }
+    }else if(gtmp==0)
+    {
+      gs5=0
+      xstr 381,160,82,18,0,35650,0,2,1,0,"vandaag"
+    }else
+    {
+      gtmp=0-gtmp
+      covx gtmp,va0.txt,0,0
+      va1.txt=va0.txt+" d te laat"
+      if(gtmp>=4)
+      {
+        gs5=3
+        picq 321,126,150,58,3
+        xstr 381,160,82,18,0,47621,3,2,1,0,va1.txt
+      }else if(gtmp>=2)
+      {
+        gs5=2
+        picq 321,126,150,58,2
+        xstr 381,160,82,18,0,47621,2,2,1,0,va1.txt
+      }else
+      {
+        gs5=0
+        xstr 381,160,82,18,0,47621,0,2,1,0,va1.txt
+      }
+    }
+  }
+  // 7. Stofzuigen: every 7 days, 6 points
+  repo glast,184
+  if(glast<=0)
+  {
+    gs6=0
+    xstr 69,224,82,18,0,35650,0,2,1,0,"nooit gedaan"
+  }else
+  {
+    gtmp=glast+7
+    gtmp=gtmp-gdag
+    if(gtmp>0)
+    {
+      gs6=1
+      picq 9,190,150,58,1
+      if(gtmp==1)
+      {
+        xstr 69,224,82,18,0,23372,1,2,1,0,"morgen"
+      }else
+      {
+        covx gtmp,va0.txt,0,0
+        va1.txt="over "+va0.txt+" d"
+        xstr 69,224,82,18,0,23372,1,2,1,0,va1.txt
+      }
+    }else if(gtmp==0)
+    {
+      gs6=0
+      xstr 69,224,82,18,0,35650,0,2,1,0,"vandaag"
+    }else
+    {
+      gtmp=0-gtmp
+      covx gtmp,va0.txt,0,0
+      va1.txt=va0.txt+" d te laat"
+      if(gtmp>=7)
+      {
+        gs6=3
+        picq 9,190,150,58,3
+        xstr 69,224,82,18,0,47621,3,2,1,0,va1.txt
+      }else if(gtmp>=4)
+      {
+        gs6=2
+        picq 9,190,150,58,2
+        xstr 69,224,82,18,0,47621,2,2,1,0,va1.txt
+      }else
+      {
+        gs6=0
+        xstr 69,224,82,18,0,47621,0,2,1,0,va1.txt
+      }
+    }
+  }
+  // 8. Badkamer: every 7 days, 8 points
+  repo glast,204
+  if(glast<=0)
+  {
+    gs7=0
+    xstr 225,224,82,18,0,35650,0,2,1,0,"nooit gedaan"
+  }else
+  {
+    gtmp=glast+7
+    gtmp=gtmp-gdag
+    if(gtmp>0)
+    {
+      gs7=1
+      picq 165,190,150,58,1
+      if(gtmp==1)
+      {
+        xstr 225,224,82,18,0,23372,1,2,1,0,"morgen"
+      }else
+      {
+        covx gtmp,va0.txt,0,0
+        va1.txt="over "+va0.txt+" d"
+        xstr 225,224,82,18,0,23372,1,2,1,0,va1.txt
+      }
+    }else if(gtmp==0)
+    {
+      gs7=0
+      xstr 225,224,82,18,0,35650,0,2,1,0,"vandaag"
+    }else
+    {
+      gtmp=0-gtmp
+      covx gtmp,va0.txt,0,0
+      va1.txt=va0.txt+" d te laat"
+      if(gtmp>=7)
+      {
+        gs7=3
+        picq 165,190,150,58,3
+        xstr 225,224,82,18,0,47621,3,2,1,0,va1.txt
+      }else if(gtmp>=4)
+      {
+        gs7=2
+        picq 165,190,150,58,2
+        xstr 225,224,82,18,0,47621,2,2,1,0,va1.txt
+      }else
+      {
+        gs7=0
+        xstr 225,224,82,18,0,47621,0,2,1,0,va1.txt
+      }
+    }
+  }
+  // 9. Wc schoonmaken: every 7 days, 3 points
+  repo glast,224
+  if(glast<=0)
+  {
+    gs8=0
+    xstr 381,224,82,18,0,35650,0,2,1,0,"nooit gedaan"
+  }else
+  {
+    gtmp=glast+7
+    gtmp=gtmp-gdag
+    if(gtmp>0)
+    {
+      gs8=1
+      picq 321,190,150,58,1
+      if(gtmp==1)
+      {
+        xstr 381,224,82,18,0,23372,1,2,1,0,"morgen"
+      }else
+      {
+        covx gtmp,va0.txt,0,0
+        va1.txt="over "+va0.txt+" d"
+        xstr 381,224,82,18,0,23372,1,2,1,0,va1.txt
+      }
+    }else if(gtmp==0)
+    {
+      gs8=0
+      xstr 381,224,82,18,0,35650,0,2,1,0,"vandaag"
+    }else
+    {
+      gtmp=0-gtmp
+      covx gtmp,va0.txt,0,0
+      va1.txt=va0.txt+" d te laat"
+      if(gtmp>=7)
+      {
+        gs8=3
+        picq 321,190,150,58,3
+        xstr 381,224,82,18,0,47621,3,2,1,0,va1.txt
+      }else if(gtmp>=4)
+      {
+        gs8=2
+        picq 321,190,150,58,2
+        xstr 381,224,82,18,0,47621,2,2,1,0,va1.txt
+      }else
+      {
+        gs8=0
+        xstr 381,224,82,18,0,47621,0,2,1,0,va1.txt
+      }
+    }
+  }
+  // 10. Planten water: every 7 days, 2 points
+  repo glast,244
+  if(glast<=0)
+  {
+    gs9=0
+    xstr 69,288,82,18,0,35650,0,2,1,0,"nooit gedaan"
+  }else
+  {
+    gtmp=glast+7
+    gtmp=gtmp-gdag
+    if(gtmp>0)
+    {
+      gs9=1
+      picq 9,254,150,58,1
+      if(gtmp==1)
+      {
+        xstr 69,288,82,18,0,23372,1,2,1,0,"morgen"
+      }else
+      {
+        covx gtmp,va0.txt,0,0
+        va1.txt="over "+va0.txt+" d"
+        xstr 69,288,82,18,0,23372,1,2,1,0,va1.txt
+      }
+    }else if(gtmp==0)
+    {
+      gs9=0
+      xstr 69,288,82,18,0,35650,0,2,1,0,"vandaag"
+    }else
+    {
+      gtmp=0-gtmp
+      covx gtmp,va0.txt,0,0
+      va1.txt=va0.txt+" d te laat"
+      if(gtmp>=7)
+      {
+        gs9=3
+        picq 9,254,150,58,3
+        xstr 69,288,82,18,0,47621,3,2,1,0,va1.txt
+      }else if(gtmp>=4)
+      {
+        gs9=2
+        picq 9,254,150,58,2
+        xstr 69,288,82,18,0,47621,2,2,1,0,va1.txt
+      }else
+      {
+        gs9=0
+        xstr 69,288,82,18,0,47621,0,2,1,0,va1.txt
+      }
+    }
+  }
+  // 11. Dweilen: every 14 days, 6 points
+  repo glast,264
+  if(glast<=0)
+  {
+    gs10=0
+    xstr 225,288,82,18,0,35650,0,2,1,0,"nooit gedaan"
+  }else
+  {
+    gtmp=glast+14
+    gtmp=gtmp-gdag
+    if(gtmp>0)
+    {
+      gs10=1
+      picq 165,254,150,58,1
+      if(gtmp==1)
+      {
+        xstr 225,288,82,18,0,23372,1,2,1,0,"morgen"
+      }else
+      {
+        covx gtmp,va0.txt,0,0
+        va1.txt="over "+va0.txt+" d"
+        xstr 225,288,82,18,0,23372,1,2,1,0,va1.txt
+      }
+    }else if(gtmp==0)
+    {
+      gs10=0
+      xstr 225,288,82,18,0,35650,0,2,1,0,"vandaag"
+    }else
+    {
+      gtmp=0-gtmp
+      covx gtmp,va0.txt,0,0
+      va1.txt=va0.txt+" d te laat"
+      if(gtmp>=14)
+      {
+        gs10=3
+        picq 165,254,150,58,3
+        xstr 225,288,82,18,0,47621,3,2,1,0,va1.txt
+      }else if(gtmp>=7)
+      {
+        gs10=2
+        picq 165,254,150,58,2
+        xstr 225,288,82,18,0,47621,2,2,1,0,va1.txt
+      }else
+      {
+        gs10=0
+        xstr 225,288,82,18,0,47621,0,2,1,0,va1.txt
+      }
+    }
+  }
+  // 12. Bed verschonen: every 14 days, 4 points
+  repo glast,284
+  if(glast<=0)
+  {
+    gs11=0
+    xstr 381,288,82,18,0,35650,0,2,1,0,"nooit gedaan"
+  }else
+  {
+    gtmp=glast+14
+    gtmp=gtmp-gdag
+    if(gtmp>0)
+    {
+      gs11=1
+      picq 321,254,150,58,1
+      if(gtmp==1)
+      {
+        xstr 381,288,82,18,0,23372,1,2,1,0,"morgen"
+      }else
+      {
+        covx gtmp,va0.txt,0,0
+        va1.txt="over "+va0.txt+" d"
+        xstr 381,288,82,18,0,23372,1,2,1,0,va1.txt
+      }
+    }else if(gtmp==0)
+    {
+      gs11=0
+      xstr 381,288,82,18,0,35650,0,2,1,0,"vandaag"
+    }else
+    {
+      gtmp=0-gtmp
+      covx gtmp,va0.txt,0,0
+      va1.txt=va0.txt+" d te laat"
+      if(gtmp>=14)
+      {
+        gs11=3
+        picq 321,254,150,58,3
+        xstr 381,288,82,18,0,47621,3,2,1,0,va1.txt
+      }else if(gtmp>=7)
+      {
+        gs11=2
+        picq 321,254,150,58,2
+        xstr 381,288,82,18,0,47621,2,2,1,0,va1.txt
+      }else
+      {
+        gs11=0
+        xstr 381,288,82,18,0,47621,0,2,1,0,va1.txt
+      }
+    }
+  }
+}
+----
 
-  n0   Number (the points)
-       x=326  y=6  w=96  h=36
-       sta=crop image  picc=0  font=0  pco=65535  xcen=Left  ycen=Center
+---- Touch Press Event (the page) --------------------
+gknop=0
+if(tch0>=412&&tch0<472&&tch1>=6&&tch1<56)
+{
+  gknop=99
+}else if(tch0>=6&&tch0<162&&tch1>=59&&tch1<123)
+{
+  gknop=1
+}else if(tch0>=162&&tch0<318&&tch1>=59&&tch1<123)
+{
+  gknop=2
+}else if(tch0>=318&&tch0<474&&tch1>=59&&tch1<123)
+{
+  gknop=3
+}else if(tch0>=6&&tch0<162&&tch1>=123&&tch1<187)
+{
+  gknop=4
+}else if(tch0>=162&&tch0<318&&tch1>=123&&tch1<187)
+{
+  gknop=5
+}else if(tch0>=318&&tch0<474&&tch1>=123&&tch1<187)
+{
+  gknop=6
+}else if(tch0>=6&&tch0<162&&tch1>=187&&tch1<251)
+{
+  gknop=7
+}else if(tch0>=162&&tch0<318&&tch1>=187&&tch1<251)
+{
+  gknop=8
+}else if(tch0>=318&&tch0<474&&tch1>=187&&tch1<251)
+{
+  gknop=9
+}else if(tch0>=6&&tch0<162&&tch1>=251&&tch1<315)
+{
+  gknop=10
+}else if(tch0>=162&&tch0<318&&tch1>=251&&tch1<315)
+{
+  gknop=11
+}else if(tch0>=318&&tch0<474&&tch1>=251&&tch1<315)
+{
+  gknop=12
+}
+----
 
-  b0   Button (menu)
-       x=428  y=0  w=52  h=48
-       sta=crop image  picc=0  picc2=1  txt=(empty)
-       Touch Release Event:
-         page menu
+---- Touch Release Event (the page) --------------------
+if(gknop==99)
+{
+  page menu
+}else if(gknop==1)
+{
+  gtaak=0
+  gtx=9
+  gty=62
+  gpts=3
+  gbonus=0
+  if(gs0==1)
+  {
+    gstaat=1
+    page terug
+  }else
+  {
+    gstaat=gs0
+    if(gs0==3)
+    {
+      gpts=6
+      gbonus=3
+    }else if(gs0==2)
+    {
+      gpts=5
+      gbonus=2
+    }
+    page wie
+  }
+}else if(gknop==2)
+{
+  gtaak=1
+  gtx=165
+  gty=62
+  gpts=8
+  gbonus=0
+  if(gs1==1)
+  {
+    gstaat=1
+    page terug
+  }else
+  {
+    gstaat=gs1
+    if(gs1==3)
+    {
+      gpts=16
+      gbonus=8
+    }else if(gs1==2)
+    {
+      gpts=12
+      gbonus=4
+    }
+    page wie
+  }
+}else if(gknop==3)
+{
+  gtaak=2
+  gtx=321
+  gty=62
+  gpts=2
+  gbonus=0
+  if(gs2==1)
+  {
+    gstaat=1
+    page terug
+  }else
+  {
+    gstaat=gs2
+    if(gs2==3)
+    {
+      gpts=4
+      gbonus=2
+    }else if(gs2==2)
+    {
+      gpts=3
+      gbonus=1
+    }
+    page wie
+  }
+}else if(gknop==4)
+{
+  gtaak=3
+  gtx=9
+  gty=126
+  gpts=2
+  gbonus=0
+  if(gs3==1)
+  {
+    gstaat=1
+    page terug
+  }else
+  {
+    gstaat=gs3
+    if(gs3==3)
+    {
+      gpts=4
+      gbonus=2
+    }else if(gs3==2)
+    {
+      gpts=3
+      gbonus=1
+    }
+    page wie
+  }
+}else if(gknop==5)
+{
+  gtaak=4
+  gtx=165
+  gty=126
+  gpts=4
+  gbonus=0
+  if(gs4==1)
+  {
+    gstaat=1
+    page terug
+  }else
+  {
+    gstaat=gs4
+    if(gs4==3)
+    {
+      gpts=8
+      gbonus=4
+    }else if(gs4==2)
+    {
+      gpts=6
+      gbonus=2
+    }
+    page wie
+  }
+}else if(gknop==6)
+{
+  gtaak=5
+  gtx=321
+  gty=126
+  gpts=12
+  gbonus=0
+  if(gs5==1)
+  {
+    gstaat=1
+    page terug
+  }else
+  {
+    gstaat=gs5
+    if(gs5==3)
+    {
+      gpts=24
+      gbonus=12
+    }else if(gs5==2)
+    {
+      gpts=18
+      gbonus=6
+    }
+    page wie
+  }
+}else if(gknop==7)
+{
+  gtaak=6
+  gtx=9
+  gty=190
+  gpts=6
+  gbonus=0
+  if(gs6==1)
+  {
+    gstaat=1
+    page terug
+  }else
+  {
+    gstaat=gs6
+    if(gs6==3)
+    {
+      gpts=12
+      gbonus=6
+    }else if(gs6==2)
+    {
+      gpts=9
+      gbonus=3
+    }
+    page wie
+  }
+}else if(gknop==8)
+{
+  gtaak=7
+  gtx=165
+  gty=190
+  gpts=8
+  gbonus=0
+  if(gs7==1)
+  {
+    gstaat=1
+    page terug
+  }else
+  {
+    gstaat=gs7
+    if(gs7==3)
+    {
+      gpts=16
+      gbonus=8
+    }else if(gs7==2)
+    {
+      gpts=12
+      gbonus=4
+    }
+    page wie
+  }
+}else if(gknop==9)
+{
+  gtaak=8
+  gtx=321
+  gty=190
+  gpts=3
+  gbonus=0
+  if(gs8==1)
+  {
+    gstaat=1
+    page terug
+  }else
+  {
+    gstaat=gs8
+    if(gs8==3)
+    {
+      gpts=6
+      gbonus=3
+    }else if(gs8==2)
+    {
+      gpts=5
+      gbonus=2
+    }
+    page wie
+  }
+}else if(gknop==10)
+{
+  gtaak=9
+  gtx=9
+  gty=254
+  gpts=2
+  gbonus=0
+  if(gs9==1)
+  {
+    gstaat=1
+    page terug
+  }else
+  {
+    gstaat=gs9
+    if(gs9==3)
+    {
+      gpts=4
+      gbonus=2
+    }else if(gs9==2)
+    {
+      gpts=3
+      gbonus=1
+    }
+    page wie
+  }
+}else if(gknop==11)
+{
+  gtaak=10
+  gtx=165
+  gty=254
+  gpts=6
+  gbonus=0
+  if(gs10==1)
+  {
+    gstaat=1
+    page terug
+  }else
+  {
+    gstaat=gs10
+    if(gs10==3)
+    {
+      gpts=12
+      gbonus=6
+    }else if(gs10==2)
+    {
+      gpts=9
+      gbonus=3
+    }
+    page wie
+  }
+}else if(gknop==12)
+{
+  gtaak=11
+  gtx=321
+  gty=254
+  gpts=4
+  gbonus=0
+  if(gs11==1)
+  {
+    gstaat=1
+    page terug
+  }else
+  {
+    gstaat=gs11
+    if(gs11==3)
+    {
+      gpts=8
+      gbonus=4
+    }else if(gs11==2)
+    {
+      gpts=6
+      gbonus=2
+    }
+    page wie
+  }
+}
+----
 
-  The tasks, one Dual-state button each (make bt0, then copy and
-  paste it: change x, y and the numbers in its code):
-
-  bt0  Dual-state button: Make the bed (5 points)
-       x=8  y=56  w=149  h=58
-       sta=crop image  picc0=0  picc1=1  txt=(empty)
-       Touch Release Event:
-         if(bt0.val==1)
-         {
-           n0.val=n0.val+5
-         }else
-         {
-           n0.val=n0.val-5
-           if(n0.val<0)
-           {
-             n0.val=0
-           }
-         }
-         wepo bt0.val,4
-         wepo n0.val,0
-
-  bt1  Dual-state button: Do the dishes (10 points)
-       x=165  y=56  w=149  h=58
-       sta=crop image  picc0=0  picc1=1  txt=(empty)
-       Touch Release Event:
-         if(bt1.val==1)
-         {
-           n0.val=n0.val+10
-         }else
-         {
-           n0.val=n0.val-10
-           if(n0.val<0)
-           {
-             n0.val=0
-           }
-         }
-         wepo bt1.val,8
-         wepo n0.val,0
-
-  bt2  Dual-state button: Empty dishwasher (10 points)
-       x=322  y=56  w=149  h=58
-       sta=crop image  picc0=0  picc1=1  txt=(empty)
-       Touch Release Event:
-         if(bt2.val==1)
-         {
-           n0.val=n0.val+10
-         }else
-         {
-           n0.val=n0.val-10
-           if(n0.val<0)
-           {
-             n0.val=0
-           }
-         }
-         wepo bt2.val,12
-         wepo n0.val,0
-
-  bt3  Dual-state button: Set the table (5 points)
-       x=8  y=122  w=149  h=58
-       sta=crop image  picc0=0  picc1=1  txt=(empty)
-       Touch Release Event:
-         if(bt3.val==1)
-         {
-           n0.val=n0.val+5
-         }else
-         {
-           n0.val=n0.val-5
-           if(n0.val<0)
-           {
-             n0.val=0
-           }
-         }
-         wepo bt3.val,16
-         wepo n0.val,0
-
-  bt4  Dual-state button: Take out trash (10 points)
-       x=165  y=122  w=149  h=58
-       sta=crop image  picc0=0  picc1=1  txt=(empty)
-       Touch Release Event:
-         if(bt4.val==1)
-         {
-           n0.val=n0.val+10
-         }else
-         {
-           n0.val=n0.val-10
-           if(n0.val<0)
-           {
-             n0.val=0
-           }
-         }
-         wepo bt4.val,20
-         wepo n0.val,0
-
-  bt5  Dual-state button: Vacuum (20 points)
-       x=322  y=122  w=149  h=58
-       sta=crop image  picc0=0  picc1=1  txt=(empty)
-       Touch Release Event:
-         if(bt5.val==1)
-         {
-           n0.val=n0.val+20
-         }else
-         {
-           n0.val=n0.val-20
-           if(n0.val<0)
-           {
-             n0.val=0
-           }
-         }
-         wepo bt5.val,24
-         wepo n0.val,0
-
-  bt6  Dual-state button: Laundry (15 points)
-       x=8  y=188  w=149  h=58
-       sta=crop image  picc0=0  picc1=1  txt=(empty)
-       Touch Release Event:
-         if(bt6.val==1)
-         {
-           n0.val=n0.val+15
-         }else
-         {
-           n0.val=n0.val-15
-           if(n0.val<0)
-           {
-             n0.val=0
-           }
-         }
-         wepo bt6.val,28
-         wepo n0.val,0
-
-  bt7  Dual-state button: Water plants (5 points)
-       x=165  y=188  w=149  h=58
-       sta=crop image  picc0=0  picc1=1  txt=(empty)
-       Touch Release Event:
-         if(bt7.val==1)
-         {
-           n0.val=n0.val+5
-         }else
-         {
-           n0.val=n0.val-5
-           if(n0.val<0)
-           {
-             n0.val=0
-           }
-         }
-         wepo bt7.val,32
-         wepo n0.val,0
-
-  bt8  Dual-state button: Clean bathroom (25 points)
-       x=322  y=188  w=149  h=58
-       sta=crop image  picc0=0  picc1=1  txt=(empty)
-       Touch Release Event:
-         if(bt8.val==1)
-         {
-           n0.val=n0.val+25
-         }else
-         {
-           n0.val=n0.val-25
-           if(n0.val<0)
-           {
-             n0.val=0
-           }
-         }
-         wepo bt8.val,36
-         wepo n0.val,0
-
-  bt9  Dual-state button: Tidy your room (10 points)
-       x=8  y=254  w=149  h=58
-       sta=crop image  picc0=0  picc1=1  txt=(empty)
-       Touch Release Event:
-         if(bt9.val==1)
-         {
-           n0.val=n0.val+10
-         }else
-         {
-           n0.val=n0.val-10
-           if(n0.val<0)
-           {
-             n0.val=0
-           }
-         }
-         wepo bt9.val,40
-         wepo n0.val,0
-
-  bt10 Dual-state button: Feed the pet (5 points)
-       x=165  y=254  w=149  h=58
-       sta=crop image  picc0=0  picc1=1  txt=(empty)
-       Touch Release Event:
-         if(bt10.val==1)
-         {
-           n0.val=n0.val+5
-         }else
-         {
-           n0.val=n0.val-5
-           if(n0.val<0)
-           {
-             n0.val=0
-           }
-         }
-         wepo bt10.val,44
-         wepo n0.val,0
-
-  bt11 Dual-state button: Groceries (20 points)
-       x=322  y=254  w=149  h=58
-       sta=crop image  picc0=0  picc1=1  txt=(empty)
-       Touch Release Event:
-         if(bt11.val==1)
-         {
-           n0.val=n0.val+20
-         }else
-         {
-           n0.val=n0.val-20
-           if(n0.val<0)
-           {
-             n0.val=0
-           }
-         }
-         wepo bt11.val,48
-         wepo n0.val,0
+---- Timer Event (the timer tm0) --------------------
+// once a minute: a new day draws the page again
+// today as a day number: gdag; this week's Monday: gweek; the 1st: gmaand
+gy=rtc0-2000
+gm=rtc1
+if(gm<3)
+{
+  gy=gy-1
+  gm=gm+12
+}
+gdag=gy*365
+gtmp=gy/4
+gdag=gdag+gtmp
+gtmp=gm*153
+gtmp=gtmp-457
+gtmp=gtmp/5
+gdag=gdag+gtmp
+gdag=gdag+rtc2
+gmaand=gdag-rtc2
+gmaand=gmaand+1
+if(rtc6==0)
+{
+  gweek=gdag-6
+}else
+{
+  gweek=gdag-rtc6
+  gweek=gweek+1
+}
+if(gdag!=gtoon)
+{
+  page taken
+}
+----
 
 ========================================================================
-PAGE menu   (page 1)
-========================================================================
-  The page itself: sta = image, pic = 2
-
-  b0   Button: New day
-       x=16  y=66  w=448  h=72
-       sta=crop image  picc=2  picc2=3  txt=(empty)
-       Touch Release Event:
-         sys0=0
-         wepo sys0,4
-         wepo sys0,8
-         wepo sys0,12
-         wepo sys0,16
-         wepo sys0,20
-         wepo sys0,24
-         wepo sys0,28
-         wepo sys0,32
-         wepo sys0,36
-         wepo sys0,40
-         wepo sys0,44
-         wepo sys0,48
-         page main
-
-  b1   Button: Points back to 0
-       x=16  y=148  w=448  h=72
-       sta=crop image  picc=2  picc2=3  txt=(empty)
-       Touch Release Event:
-         page confirm
-
-  b2   Button: Back to the tasks
-       x=16  y=230  w=448  h=72
-       sta=crop image  picc=2  picc2=3  txt=(empty)
-       Touch Release Event:
-         page main
-
-========================================================================
-PAGE confirm   (page 2)
+PAGE wie   (page 1)
 ========================================================================
   The page itself: sta = image, pic = 4
 
-  b0   Button: No, keep them
-       x=16  y=214  w=216  h=72
-       sta=crop image  picc=4  picc2=5  txt=(empty)
-       Touch Release Event:
-         page menu
+---- Preinitialize Event (the page) --------------------
+gknop=0
+----
 
-  b1   Button: Yes, back to 0
-       x=248  y=214  w=216  h=72
-       sta=crop image  picc=4  picc2=5  txt=(empty)
-       Touch Release Event:
-         sys0=0
-         wepo sys0,0
-         page main
+---- Postinitialize Event (the page) --------------------
+xpic 165,50,150,58,gtx,gty,gstaat
+covx gpts,taken.va0.txt,0,0
+if(gbonus>0)
+{
+  covx gbonus,taken.va1.txt,0,0
+  taken.va2.txt="+"+taken.va0.txt+" punten, met "+taken.va1.txt+" bonus"
+}else
+{
+  taken.va2.txt="+"+taken.va0.txt+" punten"
+}
+xstr 16,114,448,20,0,6436,4,1,1,0,taken.va2.txt
+----
+
+---- Touch Press Event (the page) --------------------
+gknop=0
+if(tch0>=16&&tch0<160&&tch1>=144&&tch1<228)
+{
+  gknop=1
+  picq 16,144,144,84,5
+}else if(tch0>=168&&tch0<312&&tch1>=144&&tch1<228)
+{
+  gknop=2
+  picq 168,144,144,84,5
+}else if(tch0>=320&&tch0<464&&tch1>=144&&tch1<228)
+{
+  gknop=3
+  picq 320,144,144,84,5
+}else if(tch0>=16&&tch0<464&&tch1>=240&&tch1<304)
+{
+  gknop=9
+  picq 16,240,448,64,5
+}
+----
+
+---- Touch Release Event (the page) --------------------
+if(gknop==9)
+{
+  page taken
+}else if(gknop>=1&&gknop<=3)
+{
+  gwie=gknop
+  // remember it with the task
+  repo gdoel,32
+  if(gtaak==0)
+  {
+    repo gprev,64
+    wepo gprev,76
+    wepo gdag,64
+    wepo gwie,68
+    wepo gpts,72
+    wepo gdoel,80
+  }else if(gtaak==1)
+  {
+    repo gprev,84
+    wepo gprev,96
+    wepo gdag,84
+    wepo gwie,88
+    wepo gpts,92
+    wepo gdoel,100
+  }else if(gtaak==2)
+  {
+    repo gprev,104
+    wepo gprev,116
+    wepo gdag,104
+    wepo gwie,108
+    wepo gpts,112
+    wepo gdoel,120
+  }else if(gtaak==3)
+  {
+    repo gprev,124
+    wepo gprev,136
+    wepo gdag,124
+    wepo gwie,128
+    wepo gpts,132
+    wepo gdoel,140
+  }else if(gtaak==4)
+  {
+    repo gprev,144
+    wepo gprev,156
+    wepo gdag,144
+    wepo gwie,148
+    wepo gpts,152
+    wepo gdoel,160
+  }else if(gtaak==5)
+  {
+    repo gprev,164
+    wepo gprev,176
+    wepo gdag,164
+    wepo gwie,168
+    wepo gpts,172
+    wepo gdoel,180
+  }else if(gtaak==6)
+  {
+    repo gprev,184
+    wepo gprev,196
+    wepo gdag,184
+    wepo gwie,188
+    wepo gpts,192
+    wepo gdoel,200
+  }else if(gtaak==7)
+  {
+    repo gprev,204
+    wepo gprev,216
+    wepo gdag,204
+    wepo gwie,208
+    wepo gpts,212
+    wepo gdoel,220
+  }else if(gtaak==8)
+  {
+    repo gprev,224
+    wepo gprev,236
+    wepo gdag,224
+    wepo gwie,228
+    wepo gpts,232
+    wepo gdoel,240
+  }else if(gtaak==9)
+  {
+    repo gprev,244
+    wepo gprev,256
+    wepo gdag,244
+    wepo gwie,248
+    wepo gpts,252
+    wepo gdoel,260
+  }else if(gtaak==10)
+  {
+    repo gprev,264
+    wepo gprev,276
+    wepo gdag,264
+    wepo gwie,268
+    wepo gpts,272
+    wepo gdoel,280
+  }else if(gtaak==11)
+  {
+    repo gprev,284
+    wepo gprev,296
+    wepo gdag,284
+    wepo gwie,288
+    wepo gpts,292
+    wepo gdoel,300
+  }
+  if(gwie!=2)
+  {
+    repo gtmp,4
+    gtmp=gtmp+gpts
+    wepo gtmp,4
+    repo gtmp,12
+    gtmp=gtmp+gpts
+    wepo gtmp,12
+  }
+  if(gwie!=1)
+  {
+    repo gtmp,8
+    gtmp=gtmp+gpts
+    wepo gtmp,8
+    repo gtmp,16
+    gtmp=gtmp+gpts
+    wepo gtmp,16
+  }
+  // the goal: together counts for both, as in the app
+  repo gtmp,28
+  gtmp=gtmp+gpts
+  if(gwie==3)
+  {
+    gtmp=gtmp+gpts
+  }
+  wepo gtmp,28
+  page taken
+}
+----
+
+========================================================================
+PAGE terug   (page 2)
+========================================================================
+  The page itself: sta = image, pic = 6
+
+---- Preinitialize Event (the page) --------------------
+gknop=0
+// who did it last, with how many points
+if(gtaak==0)
+{
+  repo gwie,68
+  repo gopts,72
+  repo glast,64
+  repo gdoel,80
+}else if(gtaak==1)
+{
+  repo gwie,88
+  repo gopts,92
+  repo glast,84
+  repo gdoel,100
+}else if(gtaak==2)
+{
+  repo gwie,108
+  repo gopts,112
+  repo glast,104
+  repo gdoel,120
+}else if(gtaak==3)
+{
+  repo gwie,128
+  repo gopts,132
+  repo glast,124
+  repo gdoel,140
+}else if(gtaak==4)
+{
+  repo gwie,148
+  repo gopts,152
+  repo glast,144
+  repo gdoel,160
+}else if(gtaak==5)
+{
+  repo gwie,168
+  repo gopts,172
+  repo glast,164
+  repo gdoel,180
+}else if(gtaak==6)
+{
+  repo gwie,188
+  repo gopts,192
+  repo glast,184
+  repo gdoel,200
+}else if(gtaak==7)
+{
+  repo gwie,208
+  repo gopts,212
+  repo glast,204
+  repo gdoel,220
+}else if(gtaak==8)
+{
+  repo gwie,228
+  repo gopts,232
+  repo glast,224
+  repo gdoel,240
+}else if(gtaak==9)
+{
+  repo gwie,248
+  repo gopts,252
+  repo glast,244
+  repo gdoel,260
+}else if(gtaak==10)
+{
+  repo gwie,268
+  repo gopts,272
+  repo glast,264
+  repo gdoel,280
+}else if(gtaak==11)
+{
+  repo gwie,288
+  repo gopts,292
+  repo glast,284
+  repo gdoel,300
+}
+----
+
+---- Postinitialize Event (the page) --------------------
+xpic 165,50,150,58,gtx,gty,1
+if(gwie==0)
+{
+  picq 16,142,448,50,8
+  xstr 16,114,448,20,0,23372,6,1,1,0,"Nog een keer gedaan? Dat mag altijd."
+}else
+{
+  covx gopts,taken.va0.txt,0,0
+  if(gwie==1)
+  {
+    taken.va2.txt="Gedaan door Nadia, +"+taken.va0.txt+" punten"
+  }else if(gwie==2)
+  {
+    taken.va2.txt="Gedaan door Vriend, +"+taken.va0.txt+" punten"
+  }else
+  {
+    taken.va2.txt="Samen gedaan, allebei +"+taken.va0.txt+" punten"
+  }
+  xstr 16,114,448,20,0,6436,6,1,1,0,taken.va2.txt
+}
+----
+
+---- Touch Press Event (the page) --------------------
+gknop=0
+if(tch0>=16&&tch0<464&&tch1>=142&&tch1<192)
+{
+  if(gwie>0)
+  {
+    gknop=1
+    picq 16,142,448,50,7
+  }
+}else if(tch0>=16&&tch0<464&&tch1>=198&&tch1<248)
+{
+  gknop=2
+  picq 16,198,448,50,7
+}else if(tch0>=16&&tch0<464&&tch1>=254&&tch1<304)
+{
+  gknop=9
+  picq 16,254,448,50,7
+}
+----
+
+---- Touch Release Event (the page) --------------------
+if(gknop==9)
+{
+  page taken
+}else if(gknop==2)
+{
+  gstaat=1
+  gbonus=0
+  page wie
+}else if(gknop==1)
+{
+  // undo: the task gets its day before back
+  if(gtaak==0)
+  {
+    repo gprev,76
+    wepo gprev,64
+    gtmp=0
+    wepo gtmp,68
+  }else if(gtaak==1)
+  {
+    repo gprev,96
+    wepo gprev,84
+    gtmp=0
+    wepo gtmp,88
+  }else if(gtaak==2)
+  {
+    repo gprev,116
+    wepo gprev,104
+    gtmp=0
+    wepo gtmp,108
+  }else if(gtaak==3)
+  {
+    repo gprev,136
+    wepo gprev,124
+    gtmp=0
+    wepo gtmp,128
+  }else if(gtaak==4)
+  {
+    repo gprev,156
+    wepo gprev,144
+    gtmp=0
+    wepo gtmp,148
+  }else if(gtaak==5)
+  {
+    repo gprev,176
+    wepo gprev,164
+    gtmp=0
+    wepo gtmp,168
+  }else if(gtaak==6)
+  {
+    repo gprev,196
+    wepo gprev,184
+    gtmp=0
+    wepo gtmp,188
+  }else if(gtaak==7)
+  {
+    repo gprev,216
+    wepo gprev,204
+    gtmp=0
+    wepo gtmp,208
+  }else if(gtaak==8)
+  {
+    repo gprev,236
+    wepo gprev,224
+    gtmp=0
+    wepo gtmp,228
+  }else if(gtaak==9)
+  {
+    repo gprev,256
+    wepo gprev,244
+    gtmp=0
+    wepo gtmp,248
+  }else if(gtaak==10)
+  {
+    repo gprev,276
+    wepo gprev,264
+    gtmp=0
+    wepo gtmp,268
+  }else if(gtaak==11)
+  {
+    repo gprev,296
+    wepo gprev,284
+    gtmp=0
+    wepo gtmp,288
+  }
+  if(glast>=gweek)
+  {
+    if(gwie!=2)
+    {
+      repo gtmp,4
+      gtmp=gtmp-gopts
+      if(gtmp<0)
+      {
+        gtmp=0
+      }
+      wepo gtmp,4
+    }
+    if(gwie!=1)
+    {
+      repo gtmp,8
+      gtmp=gtmp-gopts
+      if(gtmp<0)
+      {
+        gtmp=0
+      }
+      wepo gtmp,8
+    }
+  }
+  if(glast>=gmaand)
+  {
+    if(gwie!=2)
+    {
+      repo gtmp,12
+      gtmp=gtmp-gopts
+      if(gtmp<0)
+      {
+        gtmp=0
+      }
+      wepo gtmp,12
+    }
+    if(gwie!=1)
+    {
+      repo gtmp,16
+      gtmp=gtmp-gopts
+      if(gtmp<0)
+      {
+        gtmp=0
+      }
+      wepo gtmp,16
+    }
+  }
+  repo gtmp,32
+  if(gdoel==gtmp)
+  {
+    repo gtmp,28
+    gtmp=gtmp-gopts
+    if(gwie==3)
+    {
+      gtmp=gtmp-gopts
+    }
+    if(gtmp<0)
+    {
+      gtmp=0
+    }
+    wepo gtmp,28
+  }
+  page taken
+}
+----
+
+========================================================================
+PAGE menu   (page 3)
+========================================================================
+  The page itself: sta = image, pic = 9
+
+---- Preinitialize Event (the page) --------------------
+gknop=0
+gzeker=0
+----
+
+---- Postinitialize Event (the page) --------------------
+// the date and time
+if(rtc6==0)
+{
+  taken.va0.txt="zondag"
+}else if(rtc6==1)
+{
+  taken.va0.txt="maandag"
+}else if(rtc6==2)
+{
+  taken.va0.txt="dinsdag"
+}else if(rtc6==3)
+{
+  taken.va0.txt="woensdag"
+}else if(rtc6==4)
+{
+  taken.va0.txt="donderdag"
+}else if(rtc6==5)
+{
+  taken.va0.txt="vrijdag"
+}else if(rtc6==6)
+{
+  taken.va0.txt="zaterdag"
+}
+covx rtc2,taken.va1.txt,0,0
+taken.va2.txt=taken.va0.txt+" "+taken.va1.txt
+if(rtc1==1)
+{
+  taken.va0.txt=taken.va2.txt+" januari"
+}else if(rtc1==2)
+{
+  taken.va0.txt=taken.va2.txt+" februari"
+}else if(rtc1==3)
+{
+  taken.va0.txt=taken.va2.txt+" maart"
+}else if(rtc1==4)
+{
+  taken.va0.txt=taken.va2.txt+" april"
+}else if(rtc1==5)
+{
+  taken.va0.txt=taken.va2.txt+" mei"
+}else if(rtc1==6)
+{
+  taken.va0.txt=taken.va2.txt+" juni"
+}else if(rtc1==7)
+{
+  taken.va0.txt=taken.va2.txt+" juli"
+}else if(rtc1==8)
+{
+  taken.va0.txt=taken.va2.txt+" augustus"
+}else if(rtc1==9)
+{
+  taken.va0.txt=taken.va2.txt+" september"
+}else if(rtc1==10)
+{
+  taken.va0.txt=taken.va2.txt+" oktober"
+}else if(rtc1==11)
+{
+  taken.va0.txt=taken.va2.txt+" november"
+}else if(rtc1==12)
+{
+  taken.va0.txt=taken.va2.txt+" december"
+}
+covx rtc3,taken.va1.txt,0,0
+taken.va2.txt=taken.va0.txt+", "+taken.va1.txt
+if(rtc4<10)
+{
+  taken.va0.txt=taken.va2.txt+":0"
+}else
+{
+  taken.va0.txt=taken.va2.txt+":"
+}
+covx rtc4,taken.va1.txt,0,0
+taken.va2.txt=taken.va0.txt+taken.va1.txt
+xstr 180,18,284,20,0,23372,9,2,1,0,taken.va2.txt
+// the goal
+repo gtmp,28
+if(gtmp>0)
+{
+  gprev=gtmp*416
+  gprev=gprev/300
+  if(gprev>416)
+  {
+    gprev=416
+  }
+  if(gprev>0)
+  {
+    picq 32,106,gprev,14,12
+  }
+}
+covx gtmp,taken.va0.txt,0,0
+taken.va2.txt=taken.va0.txt+" / 300 punten"
+xstr 232,78,216,20,0,6436,9,2,1,0,taken.va2.txt
+if(gtmp>=300)
+{
+  xstr 32,126,416,18,0,11081,9,0,1,0,"Gehaald! Tijd voor de beloning."
+}else
+{
+  gprev=300-gtmp
+  covx gprev,taken.va0.txt,0,0
+  taken.va2.txt="Nog "+taken.va0.txt+" punten te gaan"
+  xstr 32,126,416,18,0,23372,9,0,1,0,taken.va2.txt
+}
+----
+
+---- Touch Press Event (the page) --------------------
+gknop=0
+if(tch0>=16&&tch0<464&&tch1>=160&&tch1<204)
+{
+  gknop=1
+  if(gzeker==0)
+  {
+    picq 16,160,448,44,10
+  }
+}else if(tch0>=16&&tch0<464&&tch1>=212&&tch1<256)
+{
+  gknop=2
+  picq 16,212,448,44,10
+}else if(tch0>=16&&tch0<464&&tch1>=264&&tch1<308)
+{
+  gknop=9
+  picq 16,264,448,44,10
+}
+----
+
+---- Touch Release Event (the page) --------------------
+if(gknop==9)
+{
+  page taken
+}else if(gknop==2)
+{
+  page klok
+}else if(gknop==1)
+{
+  if(gzeker==0)
+  {
+    gzeker=1
+    picq 16,160,448,44,11
+  }else
+  {
+    // a new goal: count from 0, with the next number
+    gtmp=0
+    wepo gtmp,28
+    repo gtmp,32
+    gtmp=gtmp+1
+    wepo gtmp,32
+    page menu
+  }
+}
+----
+
+========================================================================
+PAGE klok   (page 4)
+========================================================================
+  The page itself: sta = image, pic = 13
+
+---- Preinitialize Event (the page) --------------------
+gknop=0
+if(gkladen==0)
+{
+  gkladen=1
+  if(rtc0<2025)
+  {
+    gkj=2026
+    gkm=1
+    gkd=1
+    gku=12
+    gkmi=0
+  }else
+  {
+    gkj=rtc0
+    gkm=rtc1
+    gkd=rtc2
+    gku=rtc3
+    gkmi=rtc4
+  }
+}
+----
+
+---- Postinitialize Event (the page) --------------------
+covx gkd,taken.va0.txt,0,0
+xstr 266,50,120,38,1,6436,13,1,1,0,taken.va0.txt
+covx gkm,taken.va0.txt,0,0
+xstr 266,92,120,38,1,6436,13,1,1,0,taken.va0.txt
+covx gkj,taken.va0.txt,0,0
+xstr 266,134,120,38,1,6436,13,1,1,0,taken.va0.txt
+covx gku,taken.va0.txt,0,0
+xstr 266,176,120,38,1,6436,13,1,1,0,taken.va0.txt
+covx gkmi,taken.va0.txt,0,0
+if(gkmi<10)
+{
+  taken.va1.txt="0"+taken.va0.txt
+  xstr 266,218,120,38,1,6436,13,1,1,0,taken.va1.txt
+}else
+{
+  xstr 266,218,120,38,1,6436,13,1,1,0,taken.va0.txt
+}
+----
+
+---- Touch Press Event (the page) --------------------
+gknop=0
+if(tch0>=16&&tch0<232&&tch1>=266&&tch1<312)
+{
+  gknop=9
+  picq 16,266,216,46,14
+}else if(tch0>=248&&tch0<464&&tch1>=266&&tch1<312)
+{
+  gknop=1
+  picq 248,266,216,46,14
+}else if(tch0>=200&&tch0<260&&tch1>=50&&tch1<88)
+{
+  gknop=11
+  picq 200,50,60,38,14
+}else if(tch0>=392&&tch0<452&&tch1>=50&&tch1<88)
+{
+  gknop=21
+  picq 392,50,60,38,14
+}else if(tch0>=200&&tch0<260&&tch1>=92&&tch1<130)
+{
+  gknop=12
+  picq 200,92,60,38,14
+}else if(tch0>=392&&tch0<452&&tch1>=92&&tch1<130)
+{
+  gknop=22
+  picq 392,92,60,38,14
+}else if(tch0>=200&&tch0<260&&tch1>=134&&tch1<172)
+{
+  gknop=13
+  picq 200,134,60,38,14
+}else if(tch0>=392&&tch0<452&&tch1>=134&&tch1<172)
+{
+  gknop=23
+  picq 392,134,60,38,14
+}else if(tch0>=200&&tch0<260&&tch1>=176&&tch1<214)
+{
+  gknop=14
+  picq 200,176,60,38,14
+}else if(tch0>=392&&tch0<452&&tch1>=176&&tch1<214)
+{
+  gknop=24
+  picq 392,176,60,38,14
+}else if(tch0>=200&&tch0<260&&tch1>=218&&tch1<256)
+{
+  gknop=15
+  picq 200,218,60,38,14
+}else if(tch0>=392&&tch0<452&&tch1>=218&&tch1<256)
+{
+  gknop=25
+  picq 392,218,60,38,14
+}
+----
+
+---- Touch Release Event (the page) --------------------
+if(gknop==1)
+{
+  // the day goes to 1 first, so every in-between date exists
+  rtc2=1
+  rtc0=gkj
+  rtc1=gkm
+  rtc2=gkd
+  rtc3=gku
+  rtc4=gkmi
+  rtc5=0
+  gkladen=0
+  page taken
+}else if(gknop==9)
+{
+  gkladen=0
+  page taken
+}else if(gknop==11)
+{
+  picq 200,50,60,38,13
+  gmax=31
+  if(gkm==4||gkm==6||gkm==9||gkm==11)
+  {
+    gmax=30
+  }else if(gkm==2)
+  {
+    gmax=28
+    gtmp=gkj/4
+    gtmp=gtmp*4
+    if(gtmp==gkj)
+    {
+      gmax=29
+    }
+  }
+  if(gkd>gmax)
+  {
+    gkd=gmax
+  }
+  gkd=gkd-1
+  if(gkd<1)
+  {
+    gkd=gmax
+  }
+  covx gkd,taken.va0.txt,0,0
+  xstr 266,50,120,38,1,6436,13,1,1,0,taken.va0.txt
+}else if(gknop==21)
+{
+  picq 392,50,60,38,13
+  gmax=31
+  if(gkm==4||gkm==6||gkm==9||gkm==11)
+  {
+    gmax=30
+  }else if(gkm==2)
+  {
+    gmax=28
+    gtmp=gkj/4
+    gtmp=gtmp*4
+    if(gtmp==gkj)
+    {
+      gmax=29
+    }
+  }
+  if(gkd>gmax)
+  {
+    gkd=gmax
+  }
+  gkd=gkd+1
+  if(gkd>gmax)
+  {
+    gkd=1
+  }
+  covx gkd,taken.va0.txt,0,0
+  xstr 266,50,120,38,1,6436,13,1,1,0,taken.va0.txt
+}else if(gknop==12)
+{
+  picq 200,92,60,38,13
+  gkm=gkm-1
+  if(gkm<1)
+  {
+    gkm=12
+  }
+  gmax=31
+  if(gkm==4||gkm==6||gkm==9||gkm==11)
+  {
+    gmax=30
+  }else if(gkm==2)
+  {
+    gmax=28
+    gtmp=gkj/4
+    gtmp=gtmp*4
+    if(gtmp==gkj)
+    {
+      gmax=29
+    }
+  }
+  if(gkd>gmax)
+  {
+    gkd=gmax
+  }
+  covx gkm,taken.va0.txt,0,0
+  xstr 266,92,120,38,1,6436,13,1,1,0,taken.va0.txt
+  covx gkd,taken.va0.txt,0,0
+  xstr 266,50,120,38,1,6436,13,1,1,0,taken.va0.txt
+}else if(gknop==22)
+{
+  picq 392,92,60,38,13
+  gkm=gkm+1
+  if(gkm>12)
+  {
+    gkm=1
+  }
+  gmax=31
+  if(gkm==4||gkm==6||gkm==9||gkm==11)
+  {
+    gmax=30
+  }else if(gkm==2)
+  {
+    gmax=28
+    gtmp=gkj/4
+    gtmp=gtmp*4
+    if(gtmp==gkj)
+    {
+      gmax=29
+    }
+  }
+  if(gkd>gmax)
+  {
+    gkd=gmax
+  }
+  covx gkm,taken.va0.txt,0,0
+  xstr 266,92,120,38,1,6436,13,1,1,0,taken.va0.txt
+  covx gkd,taken.va0.txt,0,0
+  xstr 266,50,120,38,1,6436,13,1,1,0,taken.va0.txt
+}else if(gknop==13)
+{
+  picq 200,134,60,38,13
+  gkj=gkj-1
+  if(gkj<2025)
+  {
+    gkj=2025
+  }
+  gmax=31
+  if(gkm==4||gkm==6||gkm==9||gkm==11)
+  {
+    gmax=30
+  }else if(gkm==2)
+  {
+    gmax=28
+    gtmp=gkj/4
+    gtmp=gtmp*4
+    if(gtmp==gkj)
+    {
+      gmax=29
+    }
+  }
+  if(gkd>gmax)
+  {
+    gkd=gmax
+  }
+  covx gkj,taken.va0.txt,0,0
+  xstr 266,134,120,38,1,6436,13,1,1,0,taken.va0.txt
+  covx gkd,taken.va0.txt,0,0
+  xstr 266,50,120,38,1,6436,13,1,1,0,taken.va0.txt
+}else if(gknop==23)
+{
+  picq 392,134,60,38,13
+  gkj=gkj+1
+  if(gkj>2099)
+  {
+    gkj=2099
+  }
+  gmax=31
+  if(gkm==4||gkm==6||gkm==9||gkm==11)
+  {
+    gmax=30
+  }else if(gkm==2)
+  {
+    gmax=28
+    gtmp=gkj/4
+    gtmp=gtmp*4
+    if(gtmp==gkj)
+    {
+      gmax=29
+    }
+  }
+  if(gkd>gmax)
+  {
+    gkd=gmax
+  }
+  covx gkj,taken.va0.txt,0,0
+  xstr 266,134,120,38,1,6436,13,1,1,0,taken.va0.txt
+  covx gkd,taken.va0.txt,0,0
+  xstr 266,50,120,38,1,6436,13,1,1,0,taken.va0.txt
+}else if(gknop==14)
+{
+  picq 200,176,60,38,13
+  gku=gku-1
+  if(gku<0)
+  {
+    gku=23
+  }
+  covx gku,taken.va0.txt,0,0
+  xstr 266,176,120,38,1,6436,13,1,1,0,taken.va0.txt
+}else if(gknop==24)
+{
+  picq 392,176,60,38,13
+  gku=gku+1
+  if(gku>23)
+  {
+    gku=0
+  }
+  covx gku,taken.va0.txt,0,0
+  xstr 266,176,120,38,1,6436,13,1,1,0,taken.va0.txt
+}else if(gknop==15)
+{
+  picq 200,218,60,38,13
+  gkmi=gkmi-1
+  if(gkmi<0)
+  {
+    gkmi=59
+  }
+  covx gkmi,taken.va0.txt,0,0
+  if(gkmi<10)
+  {
+    taken.va1.txt="0"+taken.va0.txt
+    xstr 266,218,120,38,1,6436,13,1,1,0,taken.va1.txt
+  }else
+  {
+    xstr 266,218,120,38,1,6436,13,1,1,0,taken.va0.txt
+  }
+}else if(gknop==25)
+{
+  picq 392,218,60,38,13
+  gkmi=gkmi+1
+  if(gkmi>59)
+  {
+    gkmi=0
+  }
+  covx gkmi,taken.va0.txt,0,0
+  if(gkmi<10)
+  {
+    taken.va1.txt="0"+taken.va0.txt
+    xstr 266,218,120,38,1,6436,13,1,1,0,taken.va1.txt
+  }else
+  {
+    xstr 266,218,120,38,1,6436,13,1,1,0,taken.va0.txt
+  }
+}
+----
 

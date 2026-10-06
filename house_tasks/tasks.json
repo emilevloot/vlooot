@@ -1,17 +1,19 @@
 {
-  "title": "House tasks",
+  "people": ["Nadia", "Vriend"],
+  "goal": {"name": "Uit eten", "points": 300},
+  "fresh_start": 1,
   "tasks": [
-    {"name": "Make the bed", "points": 5},
-    {"name": "Do the dishes", "points": 10},
-    {"name": "Empty dishwasher", "points": 10},
-    {"name": "Set the table", "points": 5},
-    {"name": "Take out trash", "points": 10},
-    {"name": "Vacuum", "points": 20},
-    {"name": "Laundry", "points": 15},
-    {"name": "Water plants", "points": 5},
-    {"name": "Clean bathroom", "points": 25},
-    {"name": "Tidy your room", "points": 10},
-    {"name": "Feed the pet", "points": 5},
-    {"name": "Groceries", "points": 20}
+    {"name": "Afwassen", "points": 3, "every": 1},
+    {"name": "Koken", "points": 8, "every": 1},
+    {"name": "Vaatwasser leeg", "points": 2, "every": 1},
+    {"name": "Vuilnis weg", "points": 2, "every": 3},
+    {"name": "Was draaien", "points": 4, "every": 3},
+    {"name": "Boodschappen", "points": 12, "every": 4},
+    {"name": "Stofzuigen", "points": 6, "every": 7},
+    {"name": "Badkamer", "points": 8, "every": 7},
+    {"name": "Wc schoonmaken", "points": 3, "every": 7},
+    {"name": "Planten water", "points": 2, "every": 7},
+    {"name": "Dweilen", "points": 6, "every": 14},
+    {"name": "Bed verschonen", "points": 4, "every": 14}
   ]
 }
